@@ -1,0 +1,8 @@
+# Define the goal
+uint32 method # Specify which method we want to use
+---
+# Define the result
+geometry_msgs/PoseStamped grasp_pose
+---
+# Define a feedback message
+float32 percent_complete
