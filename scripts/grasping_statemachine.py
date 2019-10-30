@@ -23,7 +23,7 @@ from grasping_pipeline.msg import FindGrasppointAction, FindGrasppointGoal, Exec
 # Enum for states
 class States(Enum):
     GRASP = 1
-    PLACE = 2
+    OPEN = 2
     RETURN_TO_NEUTRAL = 3
     PRINT_GRASP_POSE = 4
     QUIT = 5
@@ -32,16 +32,16 @@ class States(Enum):
 
 # Mapping of states to characters
 states_keys = {States.GRASP: 'g',
-               States.PLACE: 'p',
+               States.OPEN: 'o',
                States.RETURN_TO_NEUTRAL: 'n',
-               States.PRINT_GRASP_POSE: 'o',
+               States.PRINT_GRASP_POSE: 'p',
                States.QUIT: 'q',
                States.SHOW_COMMANDS: 's'}
 
 
 class UserInput(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['quitting', 'neutral', 'grasping'],
+        smach.State.__init__(self, outcomes=['quitting', 'neutral', 'grasping', 'opening'],
                                     input_keys=['found_grasp_pose'],
                                     output_keys=['find_grasppoint_method'])
 
@@ -77,10 +77,10 @@ class UserInput(smach.State):
                     userdata.find_grasppoint_method = 0
                     print ('Not a valid method')
                     self.print_help()
-            # Place
-        #    elif char_in == states_keys[States.PLACE]:
-        #        rospy.loginfo('Placing object')
-        #        return 'placing'
+            # Open gripper
+            elif char_in == states_keys[States.OPEN]:
+                rospy.loginfo('Opening gripper')
+                return 'opening'
             # Return to neutral position
             elif char_in == states_keys[States.RETURN_TO_NEUTRAL]:
                 rospy.loginfo('Returning robot to neutral position')
@@ -100,10 +100,10 @@ class UserInput(smach.State):
             else:
                 rospy.logwarn('Unrecognized command %s', char_in)
 
-        
     def print_help(self):
         for name, member in States.__members__.items():
             print(states_keys[member] + ' - ' + name)
+
 
 class GoToNeutral(smach.State):
     def __init__(self):
@@ -116,7 +116,6 @@ class GoToNeutral(smach.State):
         self.whole_body = self.robot.try_get('whole_body')
 
         self.move_client = actionlib.SimpleActionClient('/move_base/move', MoveBaseAction)
-
 
     def execute(self, userdata):
         rospy.loginfo('Executing state GoToNeutral')
@@ -133,6 +132,20 @@ class GoToNeutral(smach.State):
         self.whole_body.gaze_point((0.7, 0.1, 0.4))
         return 'succeeded'
 
+
+class Opening(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['succeeded'])
+
+        #Robot initialization
+        self.robot = Robot()
+        self.gripper = self.robot.try_get('gripper')
+
+    def execute(self, userdata):
+        rospy.loginfo('Executing state Opening')
+        self.gripper.command(1.0)
+        return 'succeeded'
+
 def main():
     rospy.init_node('grasping_statemachine')
 
@@ -142,10 +155,15 @@ def main():
                                UserInput(), \
                                transitions={'quitting':'end', 
                                             'neutral':'GO_TO_NEUTRAL',
-                                            'grasping':'FIND_GRASPPOINT'})
+                                            'grasping':'FIND_GRASPPOINT',
+                                            'opening':'OPENING'})
 
         smach.StateMachine.add('GO_TO_NEUTRAL',
                                 GoToNeutral(), \
+                                transitions={'succeeded':'USER_INPUT'})
+
+        smach.StateMachine.add('OPENING',
+                                Opening(), \
                                 transitions={'succeeded':'USER_INPUT'})
         smach.StateMachine.add('FIND_GRASPPOINT', \
                                 smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction,
