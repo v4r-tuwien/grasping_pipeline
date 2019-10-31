@@ -6,9 +6,9 @@ import actionlib
 import moveit_commander
 import moveit_msgs.msg
 import sys
+import geometry_msgs.msg
 
 from grasping_pipeline.msg import ExecuteGraspAction, ExecuteGraspActionResult
-import markus_grasp_test
 from hsrb_interface import Robot
 
 class ExecuteGraspServer:
@@ -39,33 +39,48 @@ class ExecuteGraspServer:
     return move_group
 
   def execute(self, goal):
-    ## method 1 uses yolo and haf grasping  
+    if goal.grasp_pose.header.frame_id == "":
+      rospy.loginfo('Not a valid goal. Aborted execution!')
+      self.server.set_aborted()
+      return
     move_group = self.moveit_init()
-    #markus.create_collision_environment()
-    print (goal)
+    self.create_collision_environment()
     move_group.set_pose_target(goal.grasp_pose)
     plan = move_group.plan()
-    print (goal.grasp_pose.pose.position.z)
-
-    if goal.grasp_pose.pose.position.z > 0.55:
-      move_group.go()
-      move_group.stop()
-      move_group.clear_pose_targets()
-      rospy.sleep(0.5)
-
-      if len(plan.joint_trajectory.points) > 0 :
-        self.gripper.apply_force(0.50)
-        self.whole_body.move_end_effector_by_line((0,0,1), -0.07)
-        self.whole_body.move_to_neutral()
-        #self.gripper.command(1.0)
-
+    move_group.go()
+    move_group.stop()
+    move_group.clear_pose_targets()
+    rospy.sleep(0.5)
+    if len(plan.joint_trajectory.points) > 0 :
+      self.gripper.apply_force(0.50)
+      self.whole_body.move_end_effector_by_line((0,0,1), -0.07)
+      self.whole_body.move_to_neutral()
+      #self.gripper.command(1.0)
     else:
       print ('no grasp found')
       move_group.stop()
       move_group.clear_pose_targets()
-    
     self.server.set_succeeded()
 
+  def add_box(self, name, position_x = 0, position_y = 0, position_z = 0, size_x = 0.1, size_y = 0.1, size_z = 0.1):
+    rospy.sleep(0.2)
+    box_pose = geometry_msgs.msg.PoseStamped()
+    box_pose.header.frame_id = "map"
+    box_pose.pose.orientation.w = 1.0
+    box_pose.pose.position.x = position_x 
+    box_pose.pose.position.y = position_y
+    box_pose.pose.position.z = position_z
+    box_name = name
+    self.scene.add_box(box_name, box_pose, size=(size_x, size_y, size_z))
+
+  def create_collision_environment(self):
+    #self.add_box('table', 0.39, -0.765, 0.225, 0.55, 0.55, 0.35)
+    self.add_box('table', 0.39, -0.765, 0.225, 0.52, 0.52, 0.45)    
+    self.add_box('cupboard', 1.4, 1.1, 1, 2.5, 1, 2)
+    self.add_box('desk', -1.5, -0.9, 0.4, 0.8, 1.8, 0.8)
+    self.add_box('drawer', 0.2, -2, 0.253, 0.8, 0.44, 0.56)
+    self.add_box('cupboard_2', 2.08, -1.23, 0.6, 0.6, 1.9, 1.2)
+    self.add_box('floor', 0,0,-0.1,5,5,0.1)
 
 if __name__ == '__main__':
   rospy.init_node('execute_grasp_server')

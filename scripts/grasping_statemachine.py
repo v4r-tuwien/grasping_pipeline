@@ -28,6 +28,8 @@ class States(Enum):
     PRINT_GRASP_POSE = 4
     QUIT = 5
     SHOW_COMMANDS = 6
+    FIND_GRASP = 7
+    EXECUTE_GRASP = 8
 
 
 # Mapping of states to characters
@@ -36,12 +38,14 @@ states_keys = {States.GRASP: 'g',
                States.RETURN_TO_NEUTRAL: 'n',
                States.PRINT_GRASP_POSE: 'p',
                States.QUIT: 'q',
-               States.SHOW_COMMANDS: 's'}
+               States.SHOW_COMMANDS: 's',
+               States.FIND_GRASP: 'f',
+               States.EXECUTE_GRASP: 'e'}
 
 
 class UserInput(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['quitting', 'neutral', 'grasping', 'opening'],
+        smach.State.__init__(self, outcomes=['quitting', 'neutral', 'grasping', 'opening', 'find_grasp', 'execute_grasp'],
                                     input_keys=['found_grasp_pose'],
                                     output_keys=['find_grasppoint_method'])
 
@@ -91,11 +95,37 @@ class UserInput(smach.State):
                 try:
                     print (userdata.found_grasp_pose)
                 except:
-                    print ('No grasp pose found yet. Have you executed "GRASP" before?')
+                    print ('No grasp pose found yet. Have you executed "FIND_GRASP" before?')
             # Show commands
             elif char_in == states_keys[States.SHOW_COMMANDS]:
                 rospy.loginfo('Showing state machine commands')
                 self.print_help()
+            # Find grasp
+            elif char_in == states_keys[States.FIND_GRASP]:
+                rospy.loginfo('Finding a grasp pose')
+                print('Choose a method for grasppoint calculation')
+                print('\t1 - yolo + haf_grasping')
+                while True:
+                    user_input = raw_input('CMD> ')
+                    if len(user_input) == 1:
+                        break
+                    print('Please enter only one character')
+                char_in = user_input.lower()
+                if char_in == '1':
+                    userdata.find_grasppoint_method = 1
+                    return 'find_grasp'
+                else:
+                    userdata.find_grasppoint_method = 0
+                    print ('Not a valid method')
+                    self.print_help()
+            elif char_in == states_keys[States.EXECUTE_GRASP]:
+                rospy.loginfo('Execute last found grasp')
+                try:
+                    print (userdata.found_grasp_pose)
+                    return 'execute_grasp'
+                except:
+                    print ('No grasp pose found yet. Have you executed "FIND_GRASP" before?')
+                    self.print_help()
             # Unrecognized command
             else:
                 rospy.logwarn('Unrecognized command %s', char_in)
@@ -146,6 +176,7 @@ class Opening(smach.State):
         self.gripper.command(1.0)
         return 'succeeded'
 
+
 def main():
     rospy.init_node('grasping_statemachine')
 
@@ -156,7 +187,9 @@ def main():
                                transitions={'quitting':'end', 
                                             'neutral':'GO_TO_NEUTRAL',
                                             'grasping':'FIND_GRASPPOINT',
-                                            'opening':'OPENING'})
+                                            'opening':'OPENING',
+                                            'find_grasp':'ONLY_FIND_GRASPPOINT',
+                                            'execute_grasp':'EXECUTE_GRASP'})
 
         smach.StateMachine.add('GO_TO_NEUTRAL',
                                 GoToNeutral(), \
@@ -171,7 +204,16 @@ def main():
                                                             result_slots = ['grasp_pose']),
                                 transitions={'succeeded':'EXECUTE_GRASP', 
                                             'preempted':'USER_INPUT',
-                                            'aborted':'end'},
+                                            'aborted':'USER_INPUT'},
+                                remapping={ 'method':'find_grasppoint_method', 
+                                            'grasp_pose':'found_grasp_pose'})
+        smach.StateMachine.add('ONLY_FIND_GRASPPOINT', \
+                                smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction,
+                                                            goal_slots = ['method'],
+                                                            result_slots = ['grasp_pose']),
+                                transitions={'succeeded':'USER_INPUT', 
+                                            'preempted':'USER_INPUT',
+                                            'aborted':'USER_INPUT'},
                                 remapping={ 'method':'find_grasppoint_method', 
                                             'grasp_pose':'found_grasp_pose'})
         smach.StateMachine.add('EXECUTE_GRASP',
@@ -179,7 +221,7 @@ def main():
                                                             goal_slots=['grasp_pose']),
                                 transitions={'succeeded':'USER_INPUT', 
                                             'preempted':'USER_INPUT',
-                                            'aborted':'end'},
+                                            'aborted':'USER_INPUT'},
                                 remapping={'grasp_pose':'found_grasp_pose'})
 
 

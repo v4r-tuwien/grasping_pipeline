@@ -5,7 +5,10 @@ find_package(catkin REQUIRED
 genmsg 
 rospy
 actionlib_msgs
-geometry_msgs)
+geometry_msgs
+hsrb_interface_py
+haf_grasping
+sensor_msgs)
 
 ## Generate actions in the 'action' folder
  add_action_files(
