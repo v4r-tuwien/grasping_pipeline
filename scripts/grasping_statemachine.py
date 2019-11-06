@@ -46,8 +46,8 @@ states_keys = {States.GRASP: 'g',
 class UserInput(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['quitting', 'neutral', 'grasping', 'opening', 'find_grasp', 'execute_grasp'],
-                                    input_keys=['found_grasp_pose'],
-                                    output_keys=['find_grasppoint_method'])
+                                    input_keys=['found_grasp_pose', 'grasp_height'],
+                                    output_keys=['find_grasppoint_method', 'grasp_height', 'safety_distance'])
 
     def execute(self, userdata):
         rospy.loginfo('Executing state UserInput')
@@ -76,6 +76,8 @@ class UserInput(smach.State):
                 char_in = user_input.lower()
                 if char_in == '1':
                     userdata.find_grasppoint_method = 1
+                    userdata.grasp_height = 0.06
+                    userdata.safety_distance = 0.14
                     return 'grasping'
                 else:
                     userdata.find_grasppoint_method = 0
@@ -206,7 +208,9 @@ def main():
                                             'preempted':'USER_INPUT',
                                             'aborted':'USER_INPUT'},
                                 remapping={ 'method':'find_grasppoint_method', 
-                                            'grasp_pose':'found_grasp_pose'})
+                                            'grasp_pose':'found_grasp_pose',
+                                            'grasp_height':'grasp_height',
+                                            'safety_height':'safety_height'})
         smach.StateMachine.add('ONLY_FIND_GRASPPOINT', \
                                 smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction,
                                                             goal_slots = ['method'],
@@ -218,11 +222,13 @@ def main():
                                             'grasp_pose':'found_grasp_pose'})
         smach.StateMachine.add('EXECUTE_GRASP',
                                 smach_ros.SimpleActionState('execute_grasp', ExecuteGraspAction,
-                                                            goal_slots=['grasp_pose']),
+                                                            goal_slots=['grasp_pose', 'grasp_height', 'safety_distance']),
                                 transitions={'succeeded':'USER_INPUT', 
                                             'preempted':'USER_INPUT',
                                             'aborted':'USER_INPUT'},
-                                remapping={'grasp_pose':'found_grasp_pose'})
+                                remapping={'grasp_pose':'found_grasp_pose',
+                                            'grasp_height':'grasp_height',
+                                            'safety_distance':'safety_distance'})
 
 
 

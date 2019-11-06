@@ -39,28 +39,46 @@ class ExecuteGraspServer:
     return move_group
 
   def execute(self, goal):
+    res = ExecuteGraspActionResult()
+
     if goal.grasp_pose.header.frame_id == "":
       rospy.loginfo('Not a valid goal. Aborted execution!')
       self.server.set_aborted()
       return
+    #open gripper
+    self.gripper.command(1.0)
+    #add grasp_height and safety_distance to grasp_pose
+    grasp_pose_1 = goal.grasp_pose
+    grasp_pose_1.pose.position.z = goal.grasp_pose.pose.position.z + goal.safety_distance
     move_group = self.moveit_init()
     self.create_collision_environment()
-    move_group.set_pose_target(goal.grasp_pose)
+    move_group.set_pose_target(grasp_pose_1)
     plan = move_group.plan()
     move_group.go()
     move_group.stop()
     move_group.clear_pose_targets()
     rospy.sleep(0.5)
     if len(plan.joint_trajectory.points) > 0 :
+      if goal.safety_distance>goal.grasp_height:
+        self.whole_body.move_end_effector_by_line((0,0,1), goal.safety_distance-goal.grasp_height)  
+          
       self.gripper.apply_force(0.50)
-      self.whole_body.move_end_effector_by_line((0,0,1), -0.07)
+      self.whole_body.move_end_effector_by_line((0,0,1), -goal.safety_distance)      
       self.whole_body.move_to_neutral()
       #self.gripper.command(1.0)
     else:
       print ('no grasp found')
       move_group.stop()
       move_group.clear_pose_targets()
-    self.server.set_succeeded()
+      res.result.success = False
+      self.server.set_succeeded(res.result)
+      return
+
+    if self.gripper.get_distance()>0.01:
+      res.result.success = True
+    else:
+      res.result.success = False
+    self.server.set_succeeded(res.result)
 
   def add_box(self, name, position_x = 0, position_y = 0, position_z = 0, size_x = 0.1, size_y = 0.1, size_z = 0.1):
     rospy.sleep(0.2)
@@ -75,7 +93,7 @@ class ExecuteGraspServer:
 
   def create_collision_environment(self):
     #self.add_box('table', 0.39, -0.765, 0.225, 0.55, 0.55, 0.35)
-    self.add_box('table', 0.39, -0.765, 0.225, 0.52, 0.52, 0.45)    
+    #self.add_box('table', 0.39, -0.765, 0.225, 0.52, 0.52, 0.45)    
     self.add_box('cupboard', 1.4, 1.1, 1, 2.5, 1, 2)
     self.add_box('desk', -1.5, -0.9, 0.4, 0.8, 1.8, 0.8)
     self.add_box('drawer', 0.2, -2, 0.253, 0.8, 0.44, 0.56)

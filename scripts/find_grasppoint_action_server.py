@@ -27,10 +27,13 @@ class FindGrasppointServer:
     self.Transformer = tf.TransformListener(True, rospy.Duration(10))
     self.grasp_client = actionlib.SimpleActionClient('/calc_grasppoints_svm_action_server', CalcGraspPointsServerAction)
     self.yolo_detection_sub = rospy.Subscriber('/yolo2_node/detections', DetectionArray, self.yolo_detection_cb)
+    rospy.loginfo('Initializing FindGrasppointServer done')
 
   def execute(self, goal):
     ## method 1 uses yolo and haf grasping
+    rospy.loginfo('Method Number: {}'.format(goal.method))
     if goal.method == 1:
+      rospy.loginfo('Chosen Method is YOLO + HAF')
       result = FindGrasppointActionResult().result
       rough_grasp_object_center = self.get_grasp_object_center_yolo()
       if rough_grasp_object_center is -1:
@@ -137,7 +140,7 @@ class FindGrasppointServer:
       grasp_pose_bl.pose.orientation.w = q[3]
       grasp_pose_bl.pose.position.x = grasp_x
       grasp_pose_bl.pose.position.y = grasp_y
-      grasp_pose_bl.pose.position.z = grasp_z+0.06
+      grasp_pose_bl.pose.position.z = grasp_z
       grasp_pose_bl.header.frame_id = '/base_link'
 
       grasp_pose = self.Transformer.transformPose('/odom', grasp_pose_bl)
