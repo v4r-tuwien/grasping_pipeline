@@ -30,12 +30,18 @@ class FindGrasppointServer:
     rospy.loginfo('Initializing FindGrasppointServer done')
 
   def execute(self, goal):
+    if not goal.object_names:
+      print 'use default object names'
+      object_names = ['apple', 'sports ball', 'bottle', 'banana', 'car']  
+    else:
+      object_names = goal.object_names
+    print object_names
     ## method 1 uses yolo and haf grasping
     rospy.loginfo('Method Number: {}'.format(goal.method))
     if goal.method == 1:
       rospy.loginfo('Chosen Method is YOLO + HAF')
       result = FindGrasppointActionResult().result
-      rough_grasp_object_center = self.get_grasp_object_center_yolo()
+      rough_grasp_object_center = self.get_grasp_object_center_yolo(object_names)
       if rough_grasp_object_center is -1:
         self.server.set_aborted()
       else:
@@ -54,7 +60,7 @@ class FindGrasppointServer:
   def yolo_detection_cb(self, data):
     self.yolo_detection = data
   
-  def get_grasp_object_center_yolo(self):
+  def get_grasp_object_center_yolo(self, object_names):
     rospy.wait_for_message('/yolo2_node/detections', DetectionArray)
     detection = self.yolo_detection
     chosen_object = Detection()
@@ -62,7 +68,7 @@ class FindGrasppointServer:
     #use detection with biggest confidence 
     for i in range(len(detection.detections)):
         name = detection.detections[i].label.name
-        if name =='sports ball' or name == 'apple' or name == 'cake':
+        if name in object_names:
             if detection.detections[i].label.confidence > chosen_object.label.confidence:
                 chosen_object = detection.detections[i]
     if chosen_object.label.confidence == 0:
@@ -80,10 +86,10 @@ class FindGrasppointServer:
     index = image_y*self.my_cloud.width+image_x
 
     center = points[index]
-    rospy.loginfo('len of points'.format(len(points)))
+    rospy.loginfo('len of points {}'.format(len(points)))
     while isnan(center[0]):
         index = index+self.my_cloud.width
-        rospy.loginfo('index = '.format(index))
+        rospy.loginfo('index = {}'.format(index))
         if index>len(points)-1:
           return -1
         center = points[index]

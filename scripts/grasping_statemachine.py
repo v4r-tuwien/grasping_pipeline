@@ -17,7 +17,7 @@ import random
 import copy
 
 from grasping_pipeline.msg import FindGrasppointAction, FindGrasppointGoal, ExecuteGraspAction, ExecuteGraspGoal
-
+from handover.msg import HandoverAction, HandoverGoal
 
 
 # Enum for states
@@ -47,10 +47,12 @@ class UserInput(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['quitting', 'neutral', 'grasping', 'opening', 'find_grasp', 'execute_grasp'],
                                     input_keys=['found_grasp_pose', 'grasp_height'],
-                                    output_keys=['find_grasppoint_method', 'grasp_height', 'safety_distance'])
+                                    output_keys=['find_grasppoint_method', 'objects_to_find',
+                                    'grasp_height', 'safety_distance'])
 
     def execute(self, userdata):
         rospy.loginfo('Executing state UserInput')
+        userdata.objects_to_find = ['apple', 'bottle']
         self.print_help()
         while not rospy.is_shutdown():
             while True:
@@ -200,9 +202,10 @@ def main():
         smach.StateMachine.add('OPENING',
                                 Opening(), \
                                 transitions={'succeeded':'USER_INPUT'})
+
         smach.StateMachine.add('FIND_GRASPPOINT', \
                                 smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction,
-                                                            goal_slots = ['method'],
+                                                            goal_slots = ['method', 'object_names'],
                                                             result_slots = ['grasp_pose']),
                                 transitions={'succeeded':'EXECUTE_GRASP', 
                                             'preempted':'USER_INPUT',
@@ -210,25 +213,38 @@ def main():
                                 remapping={ 'method':'find_grasppoint_method', 
                                             'grasp_pose':'found_grasp_pose',
                                             'grasp_height':'grasp_height',
-                                            'safety_height':'safety_height'})
+                                            'safety_height':'safety_height',
+                                            'object_names':'objects_to_find'})
+
         smach.StateMachine.add('ONLY_FIND_GRASPPOINT', \
                                 smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction,
-                                                            goal_slots = ['method'],
+                                                            goal_slots = ['method', 'object_names'],
                                                             result_slots = ['grasp_pose']),
                                 transitions={'succeeded':'USER_INPUT', 
                                             'preempted':'USER_INPUT',
                                             'aborted':'USER_INPUT'},
                                 remapping={ 'method':'find_grasppoint_method', 
-                                            'grasp_pose':'found_grasp_pose'})
+                                            'grasp_pose':'found_grasp_pose',
+                                            'object_names':'objects_to_find'})
+
         smach.StateMachine.add('EXECUTE_GRASP',
                                 smach_ros.SimpleActionState('execute_grasp', ExecuteGraspAction,
                                                             goal_slots=['grasp_pose', 'grasp_height', 'safety_distance']),
-                                transitions={'succeeded':'USER_INPUT', 
+                                transitions={'succeeded':'NEUTRAL_BEFORE_HANDOVER', 
                                             'preempted':'USER_INPUT',
                                             'aborted':'USER_INPUT'},
                                 remapping={'grasp_pose':'found_grasp_pose',
                                             'grasp_height':'grasp_height',
                                             'safety_distance':'safety_distance'})
+
+        smach.StateMachine.add('NEUTRAL_BEFORE_HANDOVER',
+                                GoToNeutral(), 
+                                transitions={'succeeded':'HANDOVER'})
+
+        smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
+                                transitions={'succeeded':'GO_TO_NEUTRAL', 
+                                            'preempted':'USER_INPUT',
+                                            'aborted':'USER_INPUT'})
 
 
 
