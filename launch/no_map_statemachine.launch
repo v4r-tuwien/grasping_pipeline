@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="execute_grasp_server" pkg="grasping_pipeline" type="no_map_grasp_action_server.py"/>
+    <node name="find_grasppoint_server" pkg="grasping_pipeline" type="find_grasppoint_action_server.py"/>
+    <node name="handover_server" pkg="handover" type="handover_server.py"/>
+    <node name="grasping_statemachine" pkg="grasping_pipeline" type="no_map_statemachine.py"  output="screen"/>
+</launch>

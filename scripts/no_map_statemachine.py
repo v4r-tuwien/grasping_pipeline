@@ -52,7 +52,7 @@ class UserInput(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state UserInput')
-        userdata.objects_to_find = ['apple', 'bottle']
+        userdata.objects_to_find = ['apple', 'sports ball', 'orange', 'bottle']
         self.print_help()
         while not rospy.is_shutdown():
             while True:
@@ -78,7 +78,7 @@ class UserInput(smach.State):
                 char_in = user_input.lower()
                 if char_in == '1':
                     userdata.find_grasppoint_method = 1
-                    userdata.grasp_height = 0.06
+                    userdata.grasp_height = 0.05
                     userdata.safety_distance = 0.14
                     return 'grasping'
                 else:
@@ -149,21 +149,28 @@ class GoToNeutral(smach.State):
         self.tts = self.robot.try_get('default_tts')
         self.whole_body = self.robot.try_get('whole_body')
 
-        self.move_client = actionlib.SimpleActionClient('/move_base/move', MoveBaseAction)
-
     def execute(self, userdata):
         rospy.loginfo('Executing state GoToNeutral')
         self.whole_body.move_to_neutral()
         self.whole_body.move_to_joint_positions({'arm_roll_joint':pi/2})
-        move_goal = MoveBaseGoal()
-        move_goal.target_pose.header.frame_id='map'
-        move_goal.target_pose.pose.position.x = 1.1
-        move_goal.target_pose.pose.position.y = -0.75
-        move_goal.target_pose.pose.orientation.z = 1.0
-        self.move_client.wait_for_server()
-        self.move_client.send_goal(move_goal)
-        self.move_client.wait_for_result()
         self.whole_body.gaze_point((0.7, 0.1, 0.4))
+        return 'succeeded'
+
+
+class GoBackAndNeutral(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['succeeded'])
+
+        #Robot initialization
+        self.robot = Robot()
+        self.base = self.robot.try_get('omni_base')
+        self.tts = self.robot.try_get('default_tts')
+        self.whole_body = self.robot.try_get('whole_body')
+    
+    def execute(self, userdata):
+        rospy.loginfo('Executing state GoToNeutral')
+        self.base.go_rel(-0.2,0,0)
+        self.whole_body.move_to_neutral()
         return 'succeeded'
 
 
@@ -238,7 +245,7 @@ def main():
                                             'safety_distance':'safety_distance'})
 
         smach.StateMachine.add('NEUTRAL_BEFORE_HANDOVER',
-                                GoToNeutral(), 
+                                GoBackAndNeutral(), 
                                 transitions={'succeeded':'HANDOVER'})
 
         smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),

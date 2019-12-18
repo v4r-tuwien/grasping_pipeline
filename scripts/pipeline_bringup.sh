@@ -6,11 +6,11 @@ SESSION=$USER
 
 tmux -2 new-session -d -s $SESSION
 tmux set -g mouse on
-# Setup a window for tailing log files
-tmux new-window -t $SESSION:0 -n 'launch'
-tmux new-window -t $SESSION:1 -n 'grasping_pipeline'
 
+tmux new-window -t $SESSION:0 
+tmux new-window -t $SESSION:1 
 
+## with map setting
 tmux select-window -t $SESSION:0
 tmux split-window -h
 tmux split-window -v
@@ -32,15 +32,14 @@ tmux send-keys "roslaunch grasping_pipeline statemachine.launch"
 tmux select-pan -t 3
 tmux send-keys "sshpass -p 'ubuntu' ssh ubuntu@hsrb-tk1.local" C-m
 tmux send-keys "export ROS_MASTER_URI=http://hsrb.local:11311" C-m
-tmux send-keys "export ROS_HOSTNAME=hsrb-tk1" C-m
 tmux send-keys "roslaunch hsrb_darknet_tutorials default_model_demo.launch" C-m
+tmux rename-window 'grasping'
 
-
-# Creating viewpoint
+# without map setting 
 tmux select-window -t $SESSION:1
-tmux split-window -v
-tmux split-window -h
-tmux select-pane -t 
+tmux send-keys "source /home/v4r/Markus_L/devel/setup.bash" C-m
+tmux send-keys "roslaunch grasping_pipeline no_map_statemachine.launch"
+tmux rename-window 'no map'
 tmux select-window -t $SESSION:0
 # Attach to session
 tmux -2 attach-session -t $SESSION
