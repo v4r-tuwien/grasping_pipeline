@@ -7,10 +7,15 @@ import moveit_commander
 import moveit_msgs.msg
 import sys
 import geometry_msgs.msg
+import tf.transformations
+
 
 from grasping_pipeline.msg import ExecuteGraspAction, ExecuteGraspActionResult
 from hsrb_interface import Robot
 from std_srvs.srv import Empty
+from visualization_msgs.msg import Marker
+from math import pi
+
 
 class ExecuteGraspServer:
   def __init__(self):
@@ -55,7 +60,15 @@ class ExecuteGraspServer:
     self.gripper.command(1.0)
     #add grasp_height and safety_distance to grasp_pose
     grasp_pose_1 = goal.grasp_pose
-    grasp_pose_1.pose.position.z = goal.grasp_pose.pose.position.z + goal.safety_distance
+    print grasp_pose_1
+    print goal.approach_vector_x
+    print goal.approach_vector_y
+    print goal.approach_vector_z
+    grasp_pose_1.pose.position.x = goal.grasp_pose.pose.position.x + goal.safety_distance*goal.approach_vector_x
+    grasp_pose_1.pose.position.y = goal.grasp_pose.pose.position.y + goal.safety_distance*goal.approach_vector_y
+    grasp_pose_1.pose.position.z = goal.grasp_pose.pose.position.z + goal.safety_distance*goal.approach_vector_z
+
+    self.add_marker(grasp_pose_1)
 
     self.move_group.set_pose_target(grasp_pose_1)
     plan = self.move_group.plan()
@@ -107,6 +120,40 @@ class ExecuteGraspServer:
     #self.add_box('drawer', 0.2, -2, 0.253, 0.8, 0.44, 0.56)
     #self.add_box('cupboard_2', 2.08, -1.23, 0.6, 0.6, 1.9, 1.2)
     self.add_box('floor', 0, 0,-0.1,15,15,0.1)
+
+  def add_marker(self, pose_goal):
+    marker_pub = rospy.Publisher('/grasp_marker_2', Marker, queue_size=10, latch=True)
+    marker = Marker()
+    marker.header.frame_id = pose_goal.header.frame_id
+    marker.header.stamp = rospy.Time()
+    marker.ns = 'grasp_marker'
+    marker.id = 0
+    marker.type = 0
+    marker.action = 0
+
+    q2 = [pose_goal.pose.orientation.w, pose_goal.pose.orientation.x, pose_goal.pose.orientation.y, pose_goal.pose.orientation.z]
+    q = tf.transformations.quaternion_about_axis(pi/2, (0,1,0))
+    q = tf.transformations.quaternion_multiply(q, q2)
+
+    marker.pose.orientation.w = q[0]
+    marker.pose.orientation.x = q[1]
+    marker.pose.orientation.y = q[2]
+    marker.pose.orientation.z = q[3]
+    marker.pose.position.x = pose_goal.pose.position.x
+    marker.pose.position.y = pose_goal.pose.position.y
+    marker.pose.position.z = pose_goal.pose.position.z
+
+    marker.scale.x = 0.1
+    marker.scale.y = 0.05
+    marker.scale.z = 0.01
+
+    marker.color.a = 1.0
+    marker.color.r = 0.0
+    marker.color.g = 1.0
+    marker.color.b = 0.0
+    marker_pub.publish(marker)
+    rospy.loginfo('grasp_marker')
+
 
 if __name__ == '__main__':
   rospy.init_node('execute_grasp_server')

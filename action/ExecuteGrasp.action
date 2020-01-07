@@ -2,6 +2,9 @@
 geometry_msgs/PoseStamped grasp_pose 
 float32 grasp_height 
 float32 safety_distance
+float32 approach_vector_x
+float32 approach_vector_y
+float32 approach_vector_z
 ---
 # Define the result
 bool success

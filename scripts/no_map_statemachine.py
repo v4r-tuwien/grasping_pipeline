@@ -45,8 +45,10 @@ states_keys = {States.GRASP: 'g',
 
 class UserInput(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['quitting', 'neutral', 'grasping', 'opening', 'find_grasp', 'execute_grasp'],
-                                    input_keys=['found_grasp_pose', 'grasp_height'],
+        smach.State.__init__(self, outcomes=['quitting', 'neutral', 'grasping', 'opening', 
+                                            'find_grasp', 'execute_grasp'],
+                                    input_keys=['found_grasp_pose', 'grasp_height', 'approach_vector_x', 
+                                                'approach_vector_y', 'approach_vector_z'],
                                     output_keys=['find_grasppoint_method', 'objects_to_find',
                                     'grasp_height', 'safety_distance'])
 
@@ -98,6 +100,10 @@ class UserInput(smach.State):
                 rospy.loginfo('Grasp pose:')
                 try:
                     print (userdata.found_grasp_pose)
+                    print (userdata.approach_vector_x)
+                    print (userdata.approach_vector_y)
+                    print (userdata.approach_vector_z)
+
                 except:
                     print ('No grasp pose found yet. Have you executed "FIND_GRASP" before?')
             # Show commands
@@ -125,6 +131,8 @@ class UserInput(smach.State):
             elif char_in == states_keys[States.EXECUTE_GRASP]:
                 rospy.loginfo('Execute last found grasp')
                 try:
+                    userdata.grasp_height = 0.05
+                    userdata.safety_distance = 0.14
                     print (userdata.found_grasp_pose)
                     return 'execute_grasp'
                 except:
@@ -213,12 +221,15 @@ def main():
         smach.StateMachine.add('FIND_GRASPPOINT', \
                                 smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction,
                                                             goal_slots = ['method', 'object_names'],
-                                                            result_slots = ['grasp_pose']),
+                                                            result_slots = ['grasp_pose', 'approach_vector_x', 'approach_vector_y', 'approach_vector_z']),
                                 transitions={'succeeded':'EXECUTE_GRASP', 
                                             'preempted':'USER_INPUT',
                                             'aborted':'USER_INPUT'},
                                 remapping={ 'method':'find_grasppoint_method', 
                                             'grasp_pose':'found_grasp_pose',
+                                            'approach_vector_x' : 'approach_vector_x',
+                                            'approach_vector_y' : 'approach_vector_y',
+                                            'approach_vector_z' : 'approach_vector_z',
                                             'grasp_height':'grasp_height',
                                             'safety_height':'safety_height',
                                             'object_names':'objects_to_find'})
@@ -226,22 +237,28 @@ def main():
         smach.StateMachine.add('ONLY_FIND_GRASPPOINT', \
                                 smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction,
                                                             goal_slots = ['method', 'object_names'],
-                                                            result_slots = ['grasp_pose']),
+                                                            result_slots = ['grasp_pose', 'approach_vector_x', 'approach_vector_y', 'approach_vector_z']),
                                 transitions={'succeeded':'USER_INPUT', 
                                             'preempted':'USER_INPUT',
                                             'aborted':'USER_INPUT'},
                                 remapping={ 'method':'find_grasppoint_method', 
                                             'grasp_pose':'found_grasp_pose',
+                                            'approach_vector_x' : 'approach_vector_x',
+                                            'approach_vector_y' : 'approach_vector_y',
+                                            'approach_vector_z' : 'approach_vector_z',
                                             'object_names':'objects_to_find'})
 
         smach.StateMachine.add('EXECUTE_GRASP',
                                 smach_ros.SimpleActionState('execute_grasp', ExecuteGraspAction,
-                                                            goal_slots=['grasp_pose', 'grasp_height', 'safety_distance']),
+                                                            goal_slots=['grasp_pose', 'grasp_height', 'safety_distance', 'approach_vector_x', 'approach_vector_y', 'approach_vector_z']),
                                 transitions={'succeeded':'NEUTRAL_BEFORE_HANDOVER', 
                                             'preempted':'USER_INPUT',
                                             'aborted':'USER_INPUT'},
                                 remapping={'grasp_pose':'found_grasp_pose',
                                             'grasp_height':'grasp_height',
+                                            'approach_vector_x' : 'approach_vector_x',
+                                            'approach_vector_y' : 'approach_vector_y',
+                                            'approach_vector_z' : 'approach_vector_z',
                                             'safety_distance':'safety_distance'})
 
         smach.StateMachine.add('NEUTRAL_BEFORE_HANDOVER',
