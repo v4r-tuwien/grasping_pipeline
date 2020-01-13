@@ -6,7 +6,7 @@ import actionlib
 from grasping_pipeline.msg import FindGrasppointAction, FindGrasppointActionResult
 from hsrb_interface import Robot
 import tf
-from tf.transformations import quaternion_from_euler
+from tf.transformations import quaternion_from_euler, quaternion_multiply, quaternion_matrix
 from haf_grasping.msg import CalcGraspPointsServerActionResult, CalcGraspPointsServerActionGoal, CalcGraspPointsServerAction
 from sensor_msgs.msg import PointCloud2
 import geometry_msgs.msg
@@ -14,6 +14,8 @@ import sensor_msgs.point_cloud2 as pc2
 from math import pi, atan2, asin, isnan, sqrt
 from visualization_msgs.msg import Marker
 from tmc_vision_msgs.msg import DetectionArray, Detection
+from object_detector_msgs.srv import get_poses
+import numpy as np
 
 
 class FindGrasppointServer:
@@ -28,6 +30,7 @@ class FindGrasppointServer:
     self.grasp_client = actionlib.SimpleActionClient('/calc_grasppoints_svm_action_server', CalcGraspPointsServerAction)
     self.yolo_detection_sub = rospy.Subscriber('/yolo2_node/detections', DetectionArray, self.yolo_detection_cb)
     rospy.loginfo('Initializing FindGrasppointServer done')
+    self.verefine_get_poses = rospy.ServiceProxy('/get_poses', get_poses)
 
   def execute(self, goal):
     if not goal.object_names:
@@ -36,17 +39,18 @@ class FindGrasppointServer:
     else:
       object_names = goal.object_names
     print (object_names)
-    ## method 1 uses yolo and haf grasping
     rospy.loginfo('Method Number: {}'.format(goal.method))
+    result = FindGrasppointActionResult().result
+
+    ## method 1 uses yolo and haf grasping
     if goal.method == 1:
       rospy.loginfo('Chosen Method is YOLO + HAF')
-      result = FindGrasppointActionResult().result
       rough_grasp_object_center = self.get_grasp_object_center_yolo(object_names)
       if rough_grasp_object_center is -1:
         self.server.set_aborted()
       else:
         self.call_haf_grasping(rough_grasp_object_center)
-        grasp_pose = self.convert_grasp_result_for_moveit()
+        grasp_pose = self.convert_haf_result_for_moveit()
         
         result.grasp_pose = grasp_pose
         norm = sqrt(self.approach_vector_x**2 + self.approach_vector_y**2 + self.approach_vector_z**2)
@@ -57,6 +61,65 @@ class FindGrasppointServer:
         
         #self.add_marker(grasp_pose)
         self.server.set_succeeded(result)
+
+    ## method 2 uses verefine
+    elif goal.method == 2:
+      self.verefine_object_found = False
+      rospy.loginfo('Chosen Method is VEREFINE')
+      object_poses_result = self.verefine_get_poses()
+      print(object_poses_result)
+      for i in range(0,len(object_poses_result.poses)):
+        print object_poses_result.poses[i].name
+        if object_poses_result.poses[i].name in object_names:
+          object_name = object_poses_result.poses[i].name
+          object_pose = object_poses_result.poses[i].pose
+          if object_name == '006_mustard_bottle':
+            object_center_offset = 0.10
+            self.verefine_object_found = True
+          elif object_name == '005_tomato_soup_can':
+            object_center_offset = 0.05
+            self.verefine_object_found = True
+      
+      if self.verefine_object_found:
+        print (object_pose)
+        object_pose_stamped = geometry_msgs.msg.PoseStamped()      
+        object_pose_stamped.header.frame_id = 'head_rgbd_sensor_rgb_frame'
+        object_pose_stamped.pose = object_pose
+
+        self.Transformer.waitForTransform('/odom', '/head_rgbd_sensor_rgb_frame', rospy.Time(), rospy.Duration(4.0))
+        object_pose_stamped = self.Transformer.transformPose('/odom', object_pose_stamped)
+
+        q =  [object_pose_stamped.pose.orientation.x, object_pose_stamped.pose.orientation.y, 
+              object_pose_stamped.pose.orientation.z, object_pose_stamped.pose.orientation.w]
+        
+        approach_vector = qv_mult(q, [0,0,1])
+        print approach_vector
+        
+        q = quaternion_multiply([1,0,0,0], q)       
+        
+        object_pose_stamped.pose.orientation.x = q[0]
+        object_pose_stamped.pose.orientation.y = q[1]
+        object_pose_stamped.pose.orientation.z = q[2]
+        object_pose_stamped.pose.orientation.w = q[3]
+
+        #grasp_pose = self.Transformer.transformPose('/odom', object_pose_stamped)
+        grasp_pose = object_pose_stamped
+        grasp_pose.pose.position.x = grasp_pose.pose.position.x + approach_vector[0]*object_center_offset
+        grasp_pose.pose.position.y = grasp_pose.pose.position.y + approach_vector[1]*object_center_offset
+        grasp_pose.pose.position.z = grasp_pose.pose.position.z + approach_vector[2]*object_center_offset
+        
+        #write result
+        result.grasp_pose = grasp_pose
+        result.approach_vector_x = approach_vector[0]
+        result.approach_vector_y = approach_vector[1]
+        result.approach_vector_z = approach_vector[2]
+
+        self.add_marker(grasp_pose)
+        self.server.set_succeeded(result)
+      else:
+        rospy.loginfo('No object pose found')
+        self.server.set_aborted()
+
     else:
       rospy.loginfo('Method not implemented')
       self.server.set_aborted()
@@ -138,7 +201,7 @@ class FindGrasppointServer:
       self.grasp_client.wait_for_result()
       self.grasp_result = self.grasp_client.get_result()
 
-  def convert_grasp_result_for_moveit(self):
+  def convert_haf_result_for_moveit(self):
       grasp_x = self.grasp_result.graspOutput.averagedGraspPoint.x
       grasp_y = self.grasp_result.graspOutput.averagedGraspPoint.y
       grasp_z = self.grasp_result.graspOutput.averagedGraspPoint.z
@@ -227,6 +290,11 @@ class FindGrasppointServer:
     marker_pub.publish(marker)
     rospy.loginfo('grasp_marker')
 
+# rotate vector v by quaternion q
+def qv_mult(q, v):
+    rot_mat = quaternion_matrix(q)[:3, :3]
+    v = np.array(v)
+    return rot_mat.dot(v)
 
 if __name__ == '__main__':
   rospy.init_node('find_grasppoint_server')

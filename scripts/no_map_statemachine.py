@@ -54,7 +54,8 @@ class UserInput(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state UserInput')
-        userdata.objects_to_find = ['apple', 'sports ball', 'orange', 'bottle']
+        userdata.objects_to_find = ['apple', 'sports ball', 'orange', 'bottle', 
+                                    '005_tomato_soup_can', '006_mustard_bottle']
         self.print_help()
         while not rospy.is_shutdown():
             while True:
@@ -72,6 +73,8 @@ class UserInput(smach.State):
                 rospy.loginfo('Grasping object')
                 print('Choose a method for grasppoint calculation')
                 print('\t1 - yolo + haf_grasping')
+                print('\t2 - verefine pose estimation')
+
                 while True:
                     user_input = raw_input('CMD> ')
                     if len(user_input) == 1:
@@ -80,6 +83,11 @@ class UserInput(smach.State):
                 char_in = user_input.lower()
                 if char_in == '1':
                     userdata.find_grasppoint_method = 1
+                    userdata.grasp_height = 0.05
+                    userdata.safety_distance = 0.14
+                    return 'grasping'
+                if char_in == '2':
+                    userdata.find_grasppoint_method = 2
                     userdata.grasp_height = 0.05
                     userdata.safety_distance = 0.14
                     return 'grasping'
@@ -115,6 +123,7 @@ class UserInput(smach.State):
                 rospy.loginfo('Finding a grasp pose')
                 print('Choose a method for grasppoint calculation')
                 print('\t1 - yolo + haf_grasping')
+                print('\t2 - verefine pose estimation')
                 while True:
                     user_input = raw_input('CMD> ')
                     if len(user_input) == 1:
@@ -123,6 +132,9 @@ class UserInput(smach.State):
                 char_in = user_input.lower()
                 if char_in == '1':
                     userdata.find_grasppoint_method = 1
+                    return 'find_grasp'
+                if char_in == '2':
+                    userdata.find_grasppoint_method = 2
                     return 'find_grasp'
                 else:
                     userdata.find_grasppoint_method = 0
