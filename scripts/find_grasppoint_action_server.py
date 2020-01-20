@@ -17,6 +17,12 @@ from tmc_vision_msgs.msg import DetectionArray, Detection
 from object_detector_msgs.srv import get_poses
 import numpy as np
 
+import actionlib
+from hsrb_grasping.msg import EstimateGraspAction, EstimateGraspGoal, ExecuteGraspAction, ExecuteGraspGoal,\
+    ExecutePlaceAction, ExecutePlaceGoal
+from hsrb_grasping.srv import save_grasp, save_graspResponse, save_graspRequest
+import smach
+
 
 class FindGrasppointServer:
   def __init__(self):
@@ -30,7 +36,14 @@ class FindGrasppointServer:
     self.grasp_client = actionlib.SimpleActionClient('/calc_grasppoints_svm_action_server', CalcGraspPointsServerAction)
     self.yolo_detection_sub = rospy.Subscriber('/yolo2_node/detections', DetectionArray, self.yolo_detection_cb)
     rospy.loginfo('Initializing FindGrasppointServer done')
-    self.verefine_get_poses = rospy.ServiceProxy('/get_poses', get_poses)
+    self.verefine_get_poses = rospy.ServiceProxy('/hsr_grasping/get_poses', get_poses)
+
+
+    action_name = '/hsrb_grasping_estimate'
+    self.grasp_estimation_client = actionlib.SimpleActionClient(action_name, EstimateGraspAction)
+    rospy.loginfo('Waiting for the action: %s', action_name)
+    self.grasp_estimation_client.wait_for_server()
+
 
   def execute(self, goal):
     if not goal.object_names:
@@ -66,60 +79,59 @@ class FindGrasppointServer:
     elif goal.method == 2:
       self.verefine_object_found = False
       rospy.loginfo('Chosen Method is VEREFINE')
-      object_poses_result = self.verefine_get_poses()
+      try:
+        object_poses_result = self.verefine_get_poses()
+      except:
+        rospy.loginfo('Aborted: error when calling get_poses service.')
+        self.server.set_aborted()
+        return
       print(object_poses_result)
+      confidence = 0
       for i in range(0,len(object_poses_result.poses)):
         print object_poses_result.poses[i].name
         if object_poses_result.poses[i].name in object_names:
-          object_name = object_poses_result.poses[i].name
-          object_pose = object_poses_result.poses[i].pose
-          if object_name == '006_mustard_bottle':
-            object_center_offset = 0.10
-            self.verefine_object_found = True
-          elif object_name == '005_tomato_soup_can':
-            object_center_offset = 0.05
-            self.verefine_object_found = True
-      
+          if confidence < object_poses_result.poses[i].confidence:
+            object_name = object_poses_result.poses[i].name
+            object_pose = object_poses_result.poses[i].pose
+            confidence = object_poses_result.poses[i].confidence
+            self.verefine_object_found = True    
       if self.verefine_object_found:
-        print (object_pose)
-        object_pose_stamped = geometry_msgs.msg.PoseStamped()      
-        object_pose_stamped.header.frame_id = 'head_rgbd_sensor_rgb_frame'
-        object_pose_stamped.pose = object_pose
+        goal = EstimateGraspGoal()
 
-        self.Transformer.waitForTransform('/odom', '/head_rgbd_sensor_rgb_frame', rospy.Time(), rospy.Duration(4.0))
-        object_pose_stamped = self.Transformer.transformPose('/odom', object_pose_stamped)
+        goal.object_pose = object_poses_result.poses[0]
 
-        q =  [object_pose_stamped.pose.orientation.x, object_pose_stamped.pose.orientation.y, 
-              object_pose_stamped.pose.orientation.z, object_pose_stamped.pose.orientation.w]
-        
-        approach_vector = qv_mult(q, [0,0,1])
-        print approach_vector
-        
-        q = quaternion_multiply([1,0,0,0], q)       
-        
-        object_pose_stamped.pose.orientation.x = q[0]
-        object_pose_stamped.pose.orientation.y = q[1]
-        object_pose_stamped.pose.orientation.z = q[2]
-        object_pose_stamped.pose.orientation.w = q[3]
+        # Sends the goal to the action server
+        self.grasp_estimation_client.send_goal(goal)
+        # Waits for the server to finish performing the action.
+        succeeded = self.grasp_estimation_client.wait_for_result()
+        if succeeded:
+            succeeded = self.grasp_estimation_client.get_result().success
 
-        #grasp_pose = self.Transformer.transformPose('/odom', object_pose_stamped)
-        grasp_pose = object_pose_stamped
-        grasp_pose.pose.position.x = grasp_pose.pose.position.x + approach_vector[0]*object_center_offset
-        grasp_pose.pose.position.y = grasp_pose.pose.position.y + approach_vector[1]*object_center_offset
-        grasp_pose.pose.position.z = grasp_pose.pose.position.z + approach_vector[2]*object_center_offset
-        
-        #write result
-        result.grasp_pose = grasp_pose
-        result.approach_vector_x = approach_vector[0]
-        result.approach_vector_y = approach_vector[1]
-        result.approach_vector_z = approach_vector[2]
+        # If succeeded, then return the grasp poses
+        if succeeded:
+            grasp_estimation = self.grasp_estimation_client.get_result()
 
-        self.add_marker(grasp_pose)
-        self.server.set_succeeded(result)
+            print grasp_estimation.grasp_pose
+            grasp_pose = grasp_estimation.grasp_pose
+
+            q =  [grasp_pose.pose.orientation.x, grasp_pose.pose.orientation.y, 
+                  grasp_pose.pose.orientation.z, grasp_pose.pose.orientation.w]
+            
+            approach_vector = qv_mult(q, [0,0,-1])
+            #write result
+            result.grasp_pose = grasp_pose
+            result.approach_vector_x = approach_vector[0]
+            result.approach_vector_y = approach_vector[1]
+            result.approach_vector_z = approach_vector[2]
+
+            self.add_marker(grasp_pose) 
+            self.server.set_succeeded(result)
+
+        else:
+          rospy.loginfo('no grasp found')
+          self.server.set_aborted()
       else:
-        rospy.loginfo('No object pose found')
-        self.server.set_aborted()
-
+        rospy.loginfo('no object pose found')
     else:
       rospy.loginfo('Method not implemented')
       self.server.set_aborted()

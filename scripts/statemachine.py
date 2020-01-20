@@ -30,6 +30,7 @@ class States(Enum):
     SHOW_COMMANDS = 6
     FIND_GRASP = 7
     EXECUTE_GRASP = 8
+    PRINT_USERDATA = 9
 
 
 # Mapping of states to characters
@@ -40,7 +41,8 @@ states_keys = {States.GRASP: 'g',
                States.QUIT: 'q',
                States.SHOW_COMMANDS: 's',
                States.FIND_GRASP: 'f',
-               States.EXECUTE_GRASP: 'e'}
+               States.EXECUTE_GRASP: 'e',
+               States.PRINT_USERDATA: 'u'}
 
 
 class UserInput(smach.State):
@@ -88,8 +90,8 @@ class UserInput(smach.State):
                     return 'grasping'
                 if char_in == '2':
                     userdata.find_grasppoint_method = 2
-                    userdata.grasp_height = 0.05
-                    userdata.safety_distance = 0.14
+                    userdata.grasp_height = 0.0
+                    userdata.safety_distance = 0.10
                     return 'grasping'
                 else:
                     userdata.find_grasppoint_method = 0
@@ -132,24 +134,36 @@ class UserInput(smach.State):
                 char_in = user_input.lower()
                 if char_in == '1':
                     userdata.find_grasppoint_method = 1
+                    userdata.grasp_height = 0.05
+                    userdata.safety_distance = 0.14
                     return 'find_grasp'
                 if char_in == '2':
                     userdata.find_grasppoint_method = 2
+                    userdata.grasp_height = 0.0
+                    userdata.safety_distance = 0.10
                     return 'find_grasp'
                 else:
                     userdata.find_grasppoint_method = 0
                     print ('Not a valid method')
                     self.print_help()
+            #execute last found grasp
             elif char_in == states_keys[States.EXECUTE_GRASP]:
                 rospy.loginfo('Execute last found grasp')
                 try:
-                    userdata.grasp_height = 0.05
-                    userdata.safety_distance = 0.14
-                    print (userdata.found_grasp_pose)
                     return 'execute_grasp'
                 except:
                     print ('No grasp pose found yet. Have you executed "FIND_GRASP" before?')
                     self.print_help()
+            #print userdata
+            elif char_in == states_keys[States.PRINT_USERDATA]:
+                try:
+                    for input_key in self._input_keys:
+                        print('userdata.{}: {}'.format(input_key, userdata[input_key]))
+                    self.print_help()
+                except:
+                    print('printing userdata failed')
+                    self.print_help()
+
             # Unrecognized command
             else:
                 rospy.logwarn('Unrecognized command %s', char_in)
