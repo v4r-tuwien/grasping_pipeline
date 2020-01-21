@@ -103,7 +103,7 @@ class ExecuteGraspServer:
       return
 
     self.gripper.apply_force(0.50)
-    if self.gripper.get_distance()>0.01:
+    if self.gripper.get_distance()>-0.004:
       res.result.success = True
       self.server.set_succeeded(res.result)
 

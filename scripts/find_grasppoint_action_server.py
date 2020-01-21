@@ -85,21 +85,18 @@ class FindGrasppointServer:
         rospy.loginfo('Aborted: error when calling get_poses service.')
         self.server.set_aborted()
         return
-      print(object_poses_result)
       confidence = 0
+      object_nr = 0
       for i in range(0,len(object_poses_result.poses)):
         print object_poses_result.poses[i].name
         if object_poses_result.poses[i].name in object_names:
           if confidence < object_poses_result.poses[i].confidence:
-            object_name = object_poses_result.poses[i].name
-            object_pose = object_poses_result.poses[i].pose
             confidence = object_poses_result.poses[i].confidence
+            object_nr = i
             self.verefine_object_found = True    
       if self.verefine_object_found:
         goal = EstimateGraspGoal()
-
-        goal.object_pose = object_poses_result.poses[0]
-
+        goal.object_pose = object_poses_result.poses[object_nr]
         # Sends the goal to the action server
         self.grasp_estimation_client.send_goal(goal)
         # Waits for the server to finish performing the action.

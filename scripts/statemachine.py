@@ -32,7 +32,6 @@ class States(Enum):
     EXECUTE_GRASP = 8
     PRINT_USERDATA = 9
 
-
 # Mapping of states to characters
 states_keys = {States.GRASP: 'g',
                States.OPEN: 'o',
@@ -43,6 +42,24 @@ states_keys = {States.GRASP: 'g',
                States.FIND_GRASP: 'f',
                States.EXECUTE_GRASP: 'e',
                States.PRINT_USERDATA: 'u'}
+
+# Mapping of numbers to object names
+objects_keys = {1: '005_tomato_soup_can',
+                2: '006_mustard_bottle',
+                3: '011_banana',
+                4: '021_bleach_cleanser',
+                5: '024_bowl',
+                6: '025_mug',
+                7: '035_power_drill'}
+
+objects_display_names= {1: 'Tomato Soup',
+                        2: 'Mustard Bottle',
+                        3: 'Banana',
+                        4: 'Bleach Cleanser',
+                        5: 'Bowl',
+                        6: 'Mug',
+                        7: 'Power Drill'}
+
 
 
 class UserInput(smach.State):
@@ -76,6 +93,7 @@ class UserInput(smach.State):
                 print('Choose a method for grasppoint calculation')
                 print('\t1 - yolo + haf_grasping')
                 print('\t2 - verefine pose estimation')
+                print('\t3 - choose object verefine')
 
                 while True:
                     user_input = raw_input('CMD> ')
@@ -88,10 +106,24 @@ class UserInput(smach.State):
                     userdata.grasp_height = 0.05
                     userdata.safety_distance = 0.14
                     return 'grasping'
-                if char_in == '2':
+                elif char_in == '2':
                     userdata.find_grasppoint_method = 2
                     userdata.grasp_height = 0.0
                     userdata.safety_distance = 0.10
+                    return 'grasping'
+                elif char_in == '3':
+                    userdata.find_grasppoint_method = 2
+                    userdata.grasp_height = 0.0
+                    userdata.safety_distance = 0.10
+                    self.print_objects()
+                    while True:
+                        user_input = raw_input('CMD> ')
+                        if user_input.isdigit():
+                            if int(user_input) < len(objects_keys)+1: 
+                                break
+                        print('Please enter a valid number')
+                    print('chosen number is {}'.format(user_input))
+                    userdata.objects_to_find = [objects_keys[int(user_input)]]
                     return 'grasping'
                 else:
                     userdata.find_grasppoint_method = 0
@@ -126,6 +158,8 @@ class UserInput(smach.State):
                 print('Choose a method for grasppoint calculation')
                 print('\t1 - yolo + haf_grasping')
                 print('\t2 - verefine pose estimation')
+                print('\t3 - choose object verefine')
+
                 while True:
                     user_input = raw_input('CMD> ')
                     if len(user_input) == 1:
@@ -137,10 +171,23 @@ class UserInput(smach.State):
                     userdata.grasp_height = 0.05
                     userdata.safety_distance = 0.14
                     return 'find_grasp'
-                if char_in == '2':
+                elif char_in == '2':
                     userdata.find_grasppoint_method = 2
                     userdata.grasp_height = 0.0
                     userdata.safety_distance = 0.10
+                    return 'find_grasp'
+                elif char_in == '3':
+                    userdata.find_grasppoint_method = 2
+                    userdata.grasp_height = 0.0
+                    userdata.safety_distance = 0.10
+                    self.print_objects()
+                    while True:
+                        user_input = raw_input('CMD> ')
+                        if user_input.isdigit():
+                            if int(user_input) < len(objects_keys)+1: 
+                                break
+                        print('Please enter a valid number')
+                    userdata.objects_to_find = [objects_keys[int(user_input)]]
                     return 'find_grasp'
                 else:
                     userdata.find_grasppoint_method = 0
@@ -171,6 +218,10 @@ class UserInput(smach.State):
     def print_help(self):
         for name, member in States.__members__.items():
             print(states_keys[member] + ' - ' + name)
+    
+    def print_objects(self):
+        for i in range(len(objects_display_names)):
+            print('{}'.format(i+1) + ' - ' + objects_display_names[i+1])
 
 
 class GoToNeutral(smach.State):
@@ -203,7 +254,7 @@ class GoBackAndNeutral(smach.State):
     
     def execute(self, userdata):
         rospy.loginfo('Executing state GoToNeutral')
-        self.base.go_rel(-0.2,0,0)
+        self.base.go_rel(-0.1,0,0)
         self.whole_body.move_to_neutral()
         return 'succeeded'
 
