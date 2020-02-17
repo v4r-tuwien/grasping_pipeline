@@ -8,6 +8,7 @@ import moveit_msgs.msg
 import sys
 import geometry_msgs.msg
 import tf.transformations
+import tf
 
 
 from grasping_pipeline.msg import ExecuteGraspAction, ExecuteGraspActionResult
@@ -22,9 +23,13 @@ class ExecuteGraspServer:
     self.robot = Robot()
     self.whole_body = self.robot.try_get('whole_body')
     self.gripper = self.robot.get('gripper')
+    self.tf = tf.TransformListener()
+    self.use_map = rospy.get_param('/use_map', False)
+
     self.move_group = self.moveit_init()
     self.server = actionlib.SimpleActionServer('execute_grasp', ExecuteGraspAction, self.execute, False)
     self.clear_octomap = rospy.ServiceProxy('/clear_octomap', Empty)
+
     self.server.start()
   
   def moveit_init(self):
@@ -39,8 +44,12 @@ class ExecuteGraspServer:
     self.planning_frame = move_group.get_planning_frame()
     self.eef_link = move_group.get_end_effector_link()
     self.group_names = self.robot_cmd.get_group_names()   
+    
 
-    move_group.set_workspace((-0.5,-1.5,-1,2,1.5,3))
+    t = self.tf.getLatestCommonTime('/odom', '/base_link')
+    transform = self.tf.lookupTransform('/odom', '/base_link', t)
+    move_group.set_workspace((-1.5+transform[0][0],-1.5+transform[0][1],-1,1.5+transform[0][0],1.5+transform[0][1],3))
+    
     move_group.allow_replanning(True)
     move_group.set_num_planning_attempts(5)
     self.create_collision_environment()
@@ -49,7 +58,8 @@ class ExecuteGraspServer:
 
   def execute(self, goal):
     res = ExecuteGraspActionResult()
-    
+    self.create_collision_environment()
+
     self.clear_octomap()
 
     if goal.grasp_pose.header.frame_id == "":
@@ -67,6 +77,7 @@ class ExecuteGraspServer:
     grasp_pose_1.pose.position.x = goal.grasp_pose.pose.position.x + goal.safety_distance*goal.approach_vector_x
     grasp_pose_1.pose.position.y = goal.grasp_pose.pose.position.y + goal.safety_distance*goal.approach_vector_y
     grasp_pose_1.pose.position.z = goal.grasp_pose.pose.position.z + goal.safety_distance*goal.approach_vector_z
+
 
     retreat_pose = grasp_pose_1
     retreat_pose.pose.position.z = retreat_pose.pose.position.z + 0.03
@@ -123,15 +134,24 @@ class ExecuteGraspServer:
     self.scene.add_box(box_name, box_pose, size=(size_x, size_y, size_z))
 
   def create_collision_environment(self):
-    #self.add_box('table', 0.39, -0.765, 0.225, 0.55, 0.55, 0.35)
-    #self.add_box('table', 0.39, -0.765, 0.225, 0.52, 0.52, 0.45)    
-    #self.add_box('cupboard', 1.4, 1.1, 1, 2.5, 1, 2)
-    #self.add_box('desk', -1.5, -0.9, 0.4, 0.8, 1.8, 0.8)
-    #self.add_box('drawer', 0.2, -2, 0.253, 0.8, 0.44, 0.56)
-    #self.add_box('cupboard_2', 2.08, -1.23, 0.6, 0.6, 1.9, 1.2)
+    if self.use_map:
+      self.add_box('table', 0.39, -0.765, 0.185, 0.52, 0.52, 0.37)
+      self.add_box('table', 0.39, -0.765, 0.225, 0.52, 0.52, 0.45)    
+      self.add_box('cupboard', 1.4, 1.1, 1, 2.5, 1, 2)
+      self.add_box('desk', -1.5, -0.9, 0.4, 0.8, 1.8, 0.8)
+      self.add_box('drawer', 0.2, -2, 0.253, 0.8, 0.44, 0.56)
+      self.add_box('cupboard_2', 2.08, -1.23, 0.6, 0.6, 1.9, 1.2)
     self.add_box('floor', 0, 0,-0.1,15,15,0.1)
 
   def add_marker(self, pose_goal):
+
+    br = tf.TransformBroadcaster()
+    br.sendTransform((pose_goal.pose.position.x, pose_goal.pose.position.y, pose_goal.pose.position.z),
+    [pose_goal.pose.orientation.x, pose_goal.pose.orientation.y, pose_goal.pose.orientation.z, pose_goal.pose.orientation.w],
+      rospy.Time.now(),
+      'grasp_pose_execute',
+      pose_goal.header.frame_id)
+
     marker_pub = rospy.Publisher('/grasp_marker_2', Marker, queue_size=10, latch=True)
     marker = Marker()
     marker.header.frame_id = pose_goal.header.frame_id

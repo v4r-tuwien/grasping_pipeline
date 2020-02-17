@@ -1,5 +1,8 @@
 <?xml version="1.0"?>
 <launch>
+
+    <!-- Load parameters -->
+    <rosparam command="load" ns="" file="$(find grasping_pipeline)/config/standard.yaml"/>
     <node name="execute_grasp_server" pkg="grasping_pipeline" type="execute_grasp_action_server.py"/>
     <node name="find_grasppoint_server" pkg="grasping_pipeline" type="find_grasppoint_action_server.py"/>
     <node name="handover_server" pkg="handover" type="handover_server.py"/>

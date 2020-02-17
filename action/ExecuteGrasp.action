@@ -5,6 +5,7 @@ float32 safety_distance
 float32 approach_vector_x
 float32 approach_vector_y
 float32 approach_vector_z
+bool use_map
 ---
 # Define the result
 bool success

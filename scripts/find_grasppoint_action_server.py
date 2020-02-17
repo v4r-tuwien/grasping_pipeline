@@ -48,6 +48,8 @@ class FindGrasppointServer:
   def execute(self, goal):
     if not goal.object_names:
       print ('use default object names')
+      #TODO define default object names?
+      # or add option to grasp everything 
       object_names = ['apple', 'sports ball', 'bottle', 'banana', 'car']  
     else:
       object_names = goal.object_names
@@ -89,7 +91,7 @@ class FindGrasppointServer:
       object_nr = 0
       for i in range(0,len(object_poses_result.poses)):
         print object_poses_result.poses[i].name
-        if object_poses_result.poses[i].name in object_names:
+        if object_poses_result.poses[i].name in object_names: #TODO add all objects option
           if confidence < object_poses_result.poses[i].confidence:
             confidence = object_poses_result.poses[i].confidence
             object_nr = i
@@ -109,13 +111,24 @@ class FindGrasppointServer:
             grasp_estimation = self.grasp_estimation_client.get_result()
 
             print grasp_estimation.grasp_pose
-            grasp_pose = grasp_estimation.grasp_pose
+            grasp_pose = grasp_estimation.grasp_pose            
 
             q =  [grasp_pose.pose.orientation.x, grasp_pose.pose.orientation.y, 
                   grasp_pose.pose.orientation.z, grasp_pose.pose.orientation.w]
             
             approach_vector = qv_mult(q, [0,0,-1])
+            
+            #rotate pose TODO: wait for Tims fix
+            #q = tf.transformations.quaternion_about_axis(pi, (1,0,0))
+            #q = tf.transformations.quaternion_multiply(q, q2)
+
+
             #write result
+            grasp_pose.pose.orientation.x = q[0]
+            grasp_pose.pose.orientation.y = q[1]
+            grasp_pose.pose.orientation.z = q[2]
+            grasp_pose.pose.orientation.w = q[3]
+
             result.grasp_pose = grasp_pose
             result.approach_vector_x = approach_vector[0]
             result.approach_vector_y = approach_vector[1]
@@ -129,6 +142,7 @@ class FindGrasppointServer:
           self.server.set_aborted()
       else:
         rospy.loginfo('no object pose found')
+        self.server.set_aborted()
     else:
       rospy.loginfo('Method not implemented')
       self.server.set_aborted()
@@ -263,6 +277,13 @@ class FindGrasppointServer:
       return grasp_pose
 
   def add_marker(self, pose_goal):
+    # br = tf.TransformBroadcaster()
+    # br.sendTransform((pose_goal.pose.position.x, pose_goal.pose.position.y, pose_goal.pose.position.z),
+    # [pose_goal.pose.orientation.w, pose_goal.pose.orientation.x, pose_goal.pose.orientation.y, pose_goal.pose.orientation.z],
+    #   rospy.Time.now(),
+    #   'grasp_pose',
+    #   pose_goal.header.frame_id)
+    
     marker_pub = rospy.Publisher('/grasp_marker', Marker, queue_size=10, latch=True)
     marker = Marker()
     marker.header.frame_id = pose_goal.header.frame_id
