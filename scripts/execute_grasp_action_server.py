@@ -78,23 +78,27 @@ class ExecuteGraspServer:
     grasp_pose_1.pose.position.y = goal.grasp_pose.pose.position.y + goal.safety_distance*goal.approach_vector_y
     grasp_pose_1.pose.position.z = goal.grasp_pose.pose.position.z + goal.safety_distance*goal.approach_vector_z
 
-
-    retreat_pose = grasp_pose_1
-    retreat_pose.pose.position.z = retreat_pose.pose.position.z + 0.03
-
+    t = self.tf.getLatestCommonTime('/odom', grasp_pose_1.header.frame_id)
+    grasp_pose_1.header.stamp = t
+    grasp_pose_1 = self.tf.transformPose('/odom', grasp_pose_1)
     self.add_marker(grasp_pose_1)
-
+    rospy.sleep(1) #TODO maybe not important
     self.move_group.set_pose_target(grasp_pose_1)
     plan = self.move_group.plan()
-    self.move_group.go()
-    self.move_group.stop()
-    self.move_group.clear_pose_targets()
+    #TODO sometimes the robot executes the plan, but plan_found is false
+    if len(plan.joint_trajectory.points)>0:
+      plan_found = True
+    else:
+      plan_found = False
+    self.move_group.go(wait=True)
+    #self.move_group.stop()
+    #self.move_group.clear_pose_targets()
     rospy.sleep(0.5)
-    if len(plan.joint_trajectory.points) > 0 :
+    if plan_found:
       if goal.safety_distance>goal.grasp_height:
         self.whole_body.move_end_effector_by_line((0,0,1), goal.safety_distance-goal.grasp_height)  
           
-      self.gripper.apply_force(0.50)
+      self.gripper.apply_force(0.30)
 
       #move 5cm in z direction 
       pose_vec, pose_quat = self.whole_body.get_end_effector_pose('base_link')
@@ -106,7 +110,7 @@ class ExecuteGraspServer:
       self.whole_body.move_to_neutral()
       #self.gripper.command(1.0)
     else:
-      rospy.loginfo('no grasp found')
+      rospy.logerr('no grasp found')
       self.move_group.stop()
       self.move_group.clear_pose_targets()
       res.result.success = False
@@ -120,6 +124,7 @@ class ExecuteGraspServer:
 
     else:
       res.result.success = False
+      rospy.logerr('grasping failed')
       self.server.set_aborted()
 
   def add_box(self, name, position_x = 0, position_y = 0, position_z = 0, size_x = 0.1, size_y = 0.1, size_z = 0.1):
@@ -135,8 +140,7 @@ class ExecuteGraspServer:
 
   def create_collision_environment(self):
     if self.use_map:
-      self.add_box('table', 0.39, -0.765, 0.185, 0.52, 0.52, 0.37)
-      self.add_box('table', 0.39, -0.765, 0.225, 0.52, 0.52, 0.45)    
+      self.add_box('table', 0.39, -0.765, 0.175, 0.52, 0.52, 0.35)
       self.add_box('cupboard', 1.4, 1.1, 1, 2.5, 1, 2)
       self.add_box('desk', -1.5, -0.9, 0.4, 0.8, 1.8, 0.8)
       self.add_box('drawer', 0.2, -2, 0.253, 0.8, 0.44, 0.56)

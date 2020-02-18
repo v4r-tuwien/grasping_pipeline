@@ -117,11 +117,6 @@ class FindGrasppointServer:
                   grasp_pose.pose.orientation.z, grasp_pose.pose.orientation.w]
             
             approach_vector = qv_mult(q, [0,0,-1])
-            
-            #rotate pose TODO: wait for Tims fix
-            #q = tf.transformations.quaternion_about_axis(pi, (1,0,0))
-            #q = tf.transformations.quaternion_multiply(q, q2)
-
 
             #write result
             grasp_pose.pose.orientation.x = q[0]
