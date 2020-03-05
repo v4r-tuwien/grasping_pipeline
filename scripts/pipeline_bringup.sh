@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SESSION=$USER
+SESSION=VEREFINE
 
 
 

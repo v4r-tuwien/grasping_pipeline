@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SESSION=$USER
+SESSION=HAF
 
 
 
@@ -30,8 +30,8 @@ tmux select-pane -t 2
 tmux send-keys "source /home/v4r/Markus_L/devel/setup.bash" C-m
 tmux send-keys "roslaunch grasping_pipeline statemachine.launch"
 tmux select-pan -t 3
-tmux send-keys "sshpass -p 'ubuntu' ssh ubuntu@hsrb-tk1.local" C-m
-tmux send-keys "export ROS_MASTER_URI=http://hsrb.local:11311" C-m
+tmux send-keys "sshpass -p 'ubuntu' ssh ubuntu@hsrb-tk1" C-m
+tmux send-keys "export ROS_MASTER_URI=http://hsrb:11311" C-m
 tmux send-keys "roslaunch hsrb_darknet_tutorials default_model_demo.launch" C-m
 tmux rename-window 'grasping'
 

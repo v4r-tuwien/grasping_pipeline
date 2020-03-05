@@ -67,7 +67,7 @@ class ExecuteGraspServer:
       self.server.set_aborted()
       return
     #open gripper
-    self.gripper.command(1.0)
+    #self.gripper.command(1.0)  # TODO commented-out for banana thingy
     #add grasp_height and safety_distance to grasp_pose
     grasp_pose_1 = goal.grasp_pose
     print grasp_pose_1

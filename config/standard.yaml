@@ -1,2 +1,2 @@
 use_map: True
-grasp_check: True
+grasp_check: False
