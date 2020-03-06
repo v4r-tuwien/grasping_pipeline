@@ -104,7 +104,9 @@ class UserInput(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state UserInput')
-        userdata.objects_to_find = objects_keys.values()
+        objects_to_find = objects_keys.values()
+        objects_to_find.extend(['apple', 'bottle', 'bowl', 'cup', 'sports ball'])
+        userdata.objects_to_find = objects_to_find
         self.print_help()
         while not rospy.is_shutdown():
             #write config to userdata

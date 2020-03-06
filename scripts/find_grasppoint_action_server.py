@@ -14,7 +14,8 @@ import sensor_msgs.point_cloud2 as pc2
 from math import pi, atan2, asin, isnan, sqrt
 from visualization_msgs.msg import Marker
 from tmc_vision_msgs.msg import DetectionArray, Detection
-from object_detector_msgs.srv import get_poses
+from object_detector_msgs.srv import get_poses, start, stop
+from object_detector_msgs.msg import Detections as DetectronDetections, Detection as DetectronDetection
 import numpy as np
 
 import actionlib
@@ -35,8 +36,13 @@ class FindGrasppointServer:
     self.Transformer = tf.TransformListener(True, rospy.Duration(10))
     self.grasp_client = actionlib.SimpleActionClient('/calc_grasppoints_svm_action_server', CalcGraspPointsServerAction)
     self.yolo_detection_sub = rospy.Subscriber('/yolo2_node/detections', DetectionArray, self.yolo_detection_cb)
+    rospy.loginfo('Initializing FindGrasppointServer done')    
+    self.detectron_sub = rospy.Subscriber('/detectron2_service/detections', DetectronDetections, self.detectron_cb)
     rospy.loginfo('Initializing FindGrasppointServer done')
+
     self.verefine_get_poses = rospy.ServiceProxy('/hsr_grasping/get_poses', get_poses)
+    self.start_detectron = rospy.ServiceProxy('/detectron2_service/start', start)
+    self.stop_detectron = rospy.ServiceProxy('/detectron2_service/stop', stop)
 
 
     action_name = '/hsrb_grasping_estimate'
@@ -60,7 +66,8 @@ class FindGrasppointServer:
     ## method 1 uses yolo and haf grasping
     if goal.method == 1:
       rospy.loginfo('Chosen Method is YOLO + HAF')
-      rough_grasp_object_center = self.get_grasp_object_center_yolo(object_names)
+      #rough_grasp_object_center = self.get_grasp_object_center_yolo(object_names)
+      rough_grasp_object_center = self.get_grasp_object_center_detectron(object_names)
       if rough_grasp_object_center is -1:
         self.server.set_aborted()
       else:
@@ -148,6 +155,55 @@ class FindGrasppointServer:
   def yolo_detection_cb(self, data):
     self.yolo_detection = data
   
+  def detectron_cb(self,data):
+    self.detectron_detection = data
+
+  def get_grasp_object_center_detectron(self, object_names):
+    print self.start_detectron()
+    detections = rospy.wait_for_message('/detectron2_service/detections', DetectronDetections, timeout=10)
+    print 'detection received'
+    self.stop_detectron()
+    print 'stop detectron'
+    chosen_object = DetectronDetection()
+    chosen_object.bbox.ymax = 0
+    for i in range(len(detections.detections)):
+      name = detections.detections[i].name
+      if name in object_names:
+          if detections.detections[i].bbox.ymax > chosen_object.bbox.ymax:
+            chosen_object = detections.detections[i]
+    if chosen_object.score == 0:
+      return -1
+    image_x = chosen_object.bbox.xmin + (chosen_object.bbox.xmax-chosen_object.bbox.xmin)/2
+    image_y = chosen_object.bbox.ymin + (chosen_object.bbox.ymax-chosen_object.bbox.ymin)/2
+    self.object_name = chosen_object.name
+    pointcloud_sub = rospy.Subscriber('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, self.pointcloud_cb )
+    rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, timeout=15)
+    rospy.sleep(0.5)
+    self.my_cloud = self.cloud
+    points = pc2.read_points_list(self.my_cloud, field_names=None, skip_nans=False)
+
+    index = image_y*self.my_cloud.width+image_x
+
+    center = points[index]
+    rospy.loginfo('len of points {}'.format(len(points)))
+    while isnan(center[0]):
+        index = index+self.my_cloud.width
+        rospy.loginfo('index = {}'.format(index))
+        if index>len(points)-1:
+          return -1
+        center = points[index]
+        
+
+    self.Transformer.waitForTransform('/base_link', '/head_rgbd_sensor_link', rospy.Time(), rospy.Duration(4.0))
+    pose_goal = geometry_msgs.msg.Pose()
+    point = geometry_msgs.msg.PointStamped()
+    point.point.x = center[0]
+    point.point.y = center[1]
+    point.point.z = center[2]
+    point.header.frame_id = '/head_rgbd_sensor_link'
+    point_transformed = self.Transformer.transformPoint('/base_link', point)
+    return point_transformed
+
   def get_grasp_object_center_yolo(self, object_names):
     rospy.wait_for_message('/yolo2_node/detections', DetectionArray)
     detection = self.yolo_detection
