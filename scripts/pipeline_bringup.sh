@@ -29,6 +29,14 @@ tmux send-keys enter
 tmux select-pane -t 2
 tmux send-keys "source /home/v4r/Markus_L/devel/setup.bash" C-m
 tmux send-keys "roslaunch grasping_pipeline statemachine.launch"
+tmux select-pane -t 3
+tmux send-keys "source /home/v4r/Markus_L/devel/setup.bash" C-m
+tmux send-keys "rosrun grasping_pipeline statemachine.py"
+tmux select-window -t $SESSION:1
+tmux send-keys "source /home/v4r/Markus_L/devel/setup.bash" C-m
+tmux send-keys "roslaunch haf_grasping haf_grasping_all.launch" C-m
+tmux select-window -t $SESSION:0
+tmux select-pane -t 2
 
 tmux rename-window 'grasping'
 
