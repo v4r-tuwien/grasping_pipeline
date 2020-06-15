@@ -1,3 +1,5 @@
+Usage: https://rwiki.acin.tuwien.ac.at/mediawiki/index.php/Demos#Sasha_Grasping_2
+
 ## Starting the pipeline
 ssh to robot:
 ```
@@ -21,3 +23,4 @@ rosrun grasping_pipeline pipeline_bringup.sh
  -  f - find grasp: find grasp without executing it. robot is not moving. print result with p
 		     grasp marker gets published on /grasp_marker
  -  e - execute grasp: execute the grasp that was last found. need to run find grasp first
+
