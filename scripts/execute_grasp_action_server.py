@@ -16,6 +16,7 @@ from hsrb_interface import Robot, geometry
 from std_srvs.srv import Empty
 from visualization_msgs.msg import Marker
 from math import pi
+import numpy as np
 
 
 class ExecuteGraspServer:
@@ -51,7 +52,7 @@ class ExecuteGraspServer:
     move_group.set_workspace((-1.5+transform[0][0],-1.5+transform[0][1],-1,1.5+transform[0][0],1.5+transform[0][1],3))
     
     move_group.allow_replanning(True)
-    move_group.set_num_planning_attempts(5)
+    #move_group.set_num_planning_attempts(5)
     self.create_collision_environment()
 
     return move_group
@@ -66,50 +67,28 @@ class ExecuteGraspServer:
       rospy.loginfo('Not a valid goal. Aborted execution!')
       self.server.set_aborted()
       return
-    #open gripper
-    #self.gripper.command(1.0)  # TODO commented-out for banana thingy
+
     #add grasp_height and safety_distance to grasp_pose
-    grasp_pose_1 = goal.grasp_pose
-    print grasp_pose_1
-    print goal.approach_vector_x
-    print goal.approach_vector_y
-    print goal.approach_vector_z
-    grasp_pose_1.pose.position.x = goal.grasp_pose.pose.position.x + goal.safety_distance*goal.approach_vector_x
-    grasp_pose_1.pose.position.y = goal.grasp_pose.pose.position.y + goal.safety_distance*goal.approach_vector_y
-    grasp_pose_1.pose.position.z = goal.grasp_pose.pose.position.z + goal.safety_distance*goal.approach_vector_z
+    grasp_pose = goal.grasp_pose
+    q =  [grasp_pose.pose.orientation.x, grasp_pose.pose.orientation.y, 
+            grasp_pose.pose.orientation.z, grasp_pose.pose.orientation.w]
+      
+    approach_vector = qv_mult(q, [0,0,-1])
+    print(approach_vector)
 
-    t = self.tf.getLatestCommonTime('/odom', grasp_pose_1.header.frame_id)
-    grasp_pose_1.header.stamp = t
-    grasp_pose_1 = self.tf.transformPose('/odom', grasp_pose_1)
-    self.add_marker(grasp_pose_1)
-    rospy.sleep(1) #TODO maybe not important
-    self.move_group.set_pose_target(grasp_pose_1)
+    grasp_pose.pose.position.x = goal.grasp_pose.pose.position.x + goal.safety_distance*approach_vector[0]
+    grasp_pose.pose.position.y = goal.grasp_pose.pose.position.y + goal.safety_distance*approach_vector[1]
+    grasp_pose.pose.position.z = goal.grasp_pose.pose.position.z + goal.safety_distance*approach_vector[2]
+
+    t = self.tf.getLatestCommonTime('/odom', grasp_pose.header.frame_id)
+    grasp_pose.header.stamp = t
+    grasp_pose = self.tf.transformPose('/odom', grasp_pose)
+    self.add_marker(grasp_pose)
+    self.move_group.set_pose_target(grasp_pose)
     plan = self.move_group.plan()
-    #TODO sometimes the robot executes the plan, but plan_found is false
-    if len(plan.joint_trajectory.points)>0:
-      plan_found = True
-    else:
-      plan_found = False
-    self.move_group.go(wait=True)
-    #self.move_group.stop()
-    #self.move_group.clear_pose_targets()
-    rospy.sleep(0.5)
-    if plan_found:
-      if goal.safety_distance>goal.grasp_height:
-        self.whole_body.move_end_effector_by_line((0,0,1), goal.safety_distance-goal.grasp_height)  
-          
-      self.gripper.apply_force(0.30)
 
-      #move 5cm in z direction 
-      pose_vec, pose_quat = self.whole_body.get_end_effector_pose('base_link')
-      new_pose_vec = geometry.Vector3(pose_vec.x, pose_vec.y, pose_vec.z + 0.05)
-      new_pose = geometry.Pose(new_pose_vec, pose_quat)
-      self.whole_body.move_end_effector_pose(new_pose)
-
-      self.whole_body.move_end_effector_by_line((0,0,1), -goal.safety_distance)      
-      self.whole_body.move_to_neutral()
-      #self.gripper.command(1.0)
-    else:
+    # abort if no plan is found
+    if len(plan.joint_trajectory.points)<=0:
       rospy.logerr('no grasp found')
       self.move_group.stop()
       self.move_group.clear_pose_targets()
@@ -117,6 +96,24 @@ class ExecuteGraspServer:
       self.server.set_aborted(res.result)
       return
 
+    self.move_group.go(wait=True)
+    rospy.sleep(0.5)
+
+    if goal.safety_distance>goal.grasp_height:
+      self.whole_body.move_end_effector_by_line((0,0,1), goal.safety_distance-goal.grasp_height)  
+        
+    self.gripper.apply_force(0.30)
+
+    #move 5cm in z direction 
+    pose_vec, pose_quat = self.whole_body.get_end_effector_pose('base_link')
+    new_pose_vec = geometry.Vector3(pose_vec.x, pose_vec.y, pose_vec.z + 0.05)
+    new_pose = geometry.Pose(new_pose_vec, pose_quat)
+    self.whole_body.move_end_effector_pose(new_pose)
+
+    self.whole_body.move_end_effector_by_line((0,0,1), -goal.safety_distance)      
+    self.whole_body.move_to_neutral()
+
+    # check if object is in gripper
     self.gripper.apply_force(0.50)
     if self.gripper.get_distance()>-0.004:
       res.result.success = True
@@ -148,7 +145,6 @@ class ExecuteGraspServer:
     self.add_box('floor', 0, 0,-0.1,15,15,0.1)
 
   def add_marker(self, pose_goal):
-
     br = tf.TransformBroadcaster()
     br.sendTransform((pose_goal.pose.position.x, pose_goal.pose.position.y, pose_goal.pose.position.z),
     [pose_goal.pose.orientation.x, pose_goal.pose.orientation.y, pose_goal.pose.orientation.z, pose_goal.pose.orientation.w],
@@ -187,6 +183,11 @@ class ExecuteGraspServer:
     marker.color.b = 0.0
     marker_pub.publish(marker)
     rospy.loginfo('grasp_marker')
+
+def qv_mult(q, v):
+    rot_mat = tf.transformations.quaternion_matrix(q)[:3, :3]
+    v = np.array(v)
+    return rot_mat.dot(v)
 
 
 if __name__ == '__main__':

@@ -1,12 +1,10 @@
 # Define the goal
 uint32 method # Specify which method we want to use
 string[] object_names # which objects do you want to grasp
+float32 grasp_height 
 ---
 # Define the result
 geometry_msgs/PoseStamped grasp_pose
-float32 approach_vector_x
-float32 approach_vector_y
-float32 approach_vector_z
 ---
 # Define a feedback message
 float32 percent_complete

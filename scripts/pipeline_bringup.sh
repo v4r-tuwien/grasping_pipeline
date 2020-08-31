@@ -17,7 +17,7 @@ tmux split-window -v
 tmux select-pane -t 0
 tmux split-window -v
 tmux select-pane -t 0
-tmux send-keys "source /home/v4r/moveit_ws/devel/setup.bash" C-m
+tmux send-keys "source /home/v4r/Markus_L/devel/setup.bash" C-m
 tmux select-pane -t 1
 tmux send-keys "source /home/v4r/Markus_L/devel/setup.bash" C-m
 tmux select-pane -t 0
