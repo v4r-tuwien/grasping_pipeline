@@ -221,6 +221,8 @@ class UserInput(smach.State):
                 print('\t2 - known object')
                 print('\t3 - choose known object')
                 print('\t4 - known object with HAF')
+                print('\t5 - PyraPose known objects')
+                print('\t6 - PyraPose choose object')
 
                 while True:
                     user_input = raw_input('CMD> ')
@@ -258,7 +260,26 @@ class UserInput(smach.State):
                     userdata.grasp_height = self.grasp_height_unknown
                     userdata.safety_distance = self.safety_distance_unknown
                     return 'find_grasp'
-
+                elif char_in == '5':
+                    userdata.find_grasppoint_method = 4
+                    userdata.grasp_height = self.grasp_height_known
+                    userdata.safety_distance = self.safety_distance_known
+                    return 'find_grasp'
+                elif char_in == '6':
+                    userdata.find_grasppoint_method = 4
+                    userdata.grasp_height = self.grasp_height_known
+                    userdata.safety_distance = self.safety_distance_known
+                    self.print_objects()
+                    while True:
+                        user_input = raw_input('CMD> ')
+                        if user_input.isdigit():
+                            if int(user_input) < len(objects_keys)+1: 
+                                userdata.objects_to_find = [objects_keys[int(user_input)]]
+                                return 'find_grasp'
+                        if user_input == 'q':
+                            self.print_help()
+                            break
+                        print('Please enter a valid number')
                 else:
                     userdata.find_grasppoint_method = 0
                     print ('Not a valid method')

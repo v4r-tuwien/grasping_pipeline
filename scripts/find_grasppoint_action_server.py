@@ -42,9 +42,10 @@ class FindGrasppointServer:
     rospy.loginfo('Initializing FindGrasppointServer done')
 
     self.verefine_get_poses = rospy.ServiceProxy('/hsr_grasping/get_poses', get_poses)
+    self.pyrapose_get_poses = rospy.ServiceProxy('/PyraPose/return_poses', get_poses)
     self.start_detectron = rospy.ServiceProxy('/detectron2_service/start', start)
     self.stop_detectron = rospy.ServiceProxy('/detectron2_service/stop', stop)
-
+    self.pose_pub = rospy.Publisher('/PyraPose/pose', geometry_msgs.msg.PoseStamped)
 
     action_name = '/hsrb_grasping_estimate'
     self.grasp_estimation_client = actionlib.SimpleActionClient(action_name, EstimateGraspAction)
@@ -64,7 +65,7 @@ class FindGrasppointServer:
     rospy.loginfo('Method Number: {}'.format(goal.method))
     result = FindGrasppointActionResult().result
 
-    ## method 1, unknown objects, uses detectron and haf grasping
+## method 1, unknown objects, uses detectron and haf grasping
     if goal.method == 1:
       rospy.loginfo('Chosen Method is Detectron + HAF')
       #rough_grasp_object_center = self.get_grasp_object_center_yolo(object_names)
@@ -82,7 +83,7 @@ class FindGrasppointServer:
 
       self.server.set_succeeded(result)
 
-    ## method 2, known objects, uses verefine
+## method 2, known objects, uses verefine
     elif goal.method == 2:
       self.verefine_object_found = False
       rospy.loginfo('Chosen Method is VEREFINE')
@@ -127,7 +128,7 @@ class FindGrasppointServer:
       self.add_marker(grasp_pose) 
       self.server.set_succeeded(result)
 
-    ## method 3, known objects, but with HAF 
+## method 3, known objects, but with HAF 
     elif goal.method == 3:
       rospy.loginfo('Chosen Method is VeREFINE + HAF')
       #rough_grasp_object_center = self.get_grasp_object_center_yolo(object_names)
@@ -182,6 +183,64 @@ class FindGrasppointServer:
         return
       result.grasp_pose = grasp_pose
       self.server.set_succeeded(result)
+
+## method 4, known objects, uses pyrapose
+    elif goal.method == 4:
+      self.pyrapose_object_found = False
+      rospy.loginfo('Chosen Method is PYRAPOSE')
+      try:
+        object_poses_result = self.pyrapose_get_poses()
+        print(object_poses_result)
+      except:
+        rospy.loginfo('Aborted: error when calling get_poses service.')
+        self.server.set_aborted()
+        return
+      confidence = 0
+      object_nr = 0
+      # choose object with highest confidence from pyrapose
+      for i in range(0,len(object_poses_result.poses)):
+        print (object_poses_result.poses[i].name)
+        if object_poses_result.poses[i].name in object_names: #TODO add all objects option
+          if confidence < object_poses_result.poses[i].confidence:
+            confidence = object_poses_result.poses[i].confidence
+            object_nr = i
+            self.pyrapose_object_found = True    
+      if not self.pyrapose_object_found:
+        rospy.logerr('No object pose found')
+        self.server.set_aborted()
+        return
+
+      goal = EstimateGraspGoal()
+      goal.object_pose = object_poses_result.poses[object_nr]
+
+      pose_st = geometry_msgs.msg.PoseStamped()
+      pose_st.pose = object_poses_result.poses[object_nr].pose
+      pose_st.header.frame_id = 'head_rgbd_sensor_rgb_frame'
+      self.pose_pub.publish(pose_st)
+      # Sends the goal to the action server
+      self.grasp_estimation_client.send_goal(goal)
+      # Waits for the server to finish performing the action.
+      succeeded = self.grasp_estimation_client.wait_for_result()
+      if not succeeded:
+        rospy.loginfo('no grasp found')
+        self.server.set_aborted()
+        return
+
+      grasp_estimation = self.grasp_estimation_client.get_result()
+      print(grasp_estimation.grasp_pose)
+      if not grasp_estimation.success:
+        rospy.loginfo('No Grasp Estimation')
+        self.server.set_aborted()
+        return
+      grasp_pose = grasp_estimation.grasp_pose            
+
+      result.grasp_pose = grasp_pose
+
+      self.add_marker(grasp_pose) 
+      self.server.set_succeeded(result)
+
+
+    
     else:
       rospy.loginfo('Method not implemented')
       self.server.set_aborted()
