@@ -145,6 +145,9 @@ class UserInput(smach.State):
                 print('\t1 - unknown object')
                 print('\t2 - known object')
                 print('\t3 - choose known object')
+                print('\t4 - known object with HAF')
+                print('\t5 - PyraPose known objects')
+                print('\t6 - PyraPose choose object')
 
                 while True:
                     user_input = raw_input('CMD> ')
@@ -184,7 +187,38 @@ class UserInput(smach.State):
                             self.print_help()
                             break
                         print('Please enter a valid number')
-
+                elif char_in == '4':
+                    userdata.find_grasppoint_method = 3
+                    userdata.grasp_height = self.grasp_height_unknown
+                    userdata.safety_distance = self.safety_distance_unknown
+                    if self.use_map:
+                        return 'go_to_table'
+                    return 'grasping'
+                elif char_in == '5':
+                    userdata.find_grasppoint_method = 4
+                    userdata.grasp_height = self.grasp_height_known
+                    userdata.safety_distance = self.safety_distance_known
+                    if self.use_map:
+                        return 'go_to_table'
+                    return 'grasping'
+                elif char_in == '6':
+                    userdata.find_grasppoint_method = 4
+                    userdata.grasp_height = self.grasp_height_known
+                    userdata.safety_distance = self.safety_distance_known
+                    self.print_objects()
+                    while True:
+                        user_input = raw_input('CMD> ')
+                        if user_input.isdigit():
+                            if int(user_input) < len(objects_keys)+1: 
+                                print('chosen number is {}'.format(user_input))
+                                userdata.objects_to_find = [objects_keys[int(user_input)]]
+                                if self.use_map:
+                                    return 'go_to_table'                    
+                                return 'grasping'
+                        if user_input == 'q':
+                            self.print_help()
+                            break
+                        print('Please enter a valid number')
                 else:
                     userdata.find_grasppoint_method = 0
                     print ('Not a valid method')
@@ -374,7 +408,7 @@ class GoToNeutral(smach.State):
         rospy.loginfo('Executing state GoToNeutral')
         self.whole_body.move_to_neutral()
         self.whole_body.move_to_joint_positions({'arm_roll_joint':pi/2})
-        self.whole_body.gaze_point((0.7, 0.05, 0.4))
+        self.whole_body.gaze_point((0.8, 0.05, 0.4))
         if userdata.params.get('clean_table'):
             return 'continuing'
         return 'succeeded'
@@ -552,7 +586,7 @@ def main():
 
         smach.StateMachine.add('NEUTRAL_BEFORE_HANDOVER',
                                 GoBackAndNeutral(), 
-                                transitions={'succeeded':'HANDOVER'})
+                                transitions={'succeeded':'USER_INPUT'}) #HANDOVER
 
         smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
                                 transitions={'succeeded':'GO_TO_NEUTRAL', 

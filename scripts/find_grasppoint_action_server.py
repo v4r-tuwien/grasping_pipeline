@@ -45,7 +45,6 @@ class FindGrasppointServer:
     self.pyrapose_get_poses = rospy.ServiceProxy('/PyraPose/return_poses', get_poses)
     self.start_detectron = rospy.ServiceProxy('/detectron2_service/start', start)
     self.stop_detectron = rospy.ServiceProxy('/detectron2_service/stop', stop)
-    self.pose_pub = rospy.Publisher('/PyraPose/pose', geometry_msgs.msg.PoseStamped)
 
     action_name = '/hsrb_grasping_estimate'
     self.grasp_estimation_client = actionlib.SimpleActionClient(action_name, EstimateGraspAction)
@@ -212,11 +211,9 @@ class FindGrasppointServer:
 
       goal = EstimateGraspGoal()
       goal.object_pose = object_poses_result.poses[object_nr]
-
       pose_st = geometry_msgs.msg.PoseStamped()
       pose_st.pose = object_poses_result.poses[object_nr].pose
       pose_st.header.frame_id = 'head_rgbd_sensor_rgb_frame'
-      self.pose_pub.publish(pose_st)
       # Sends the goal to the action server
       self.grasp_estimation_client.send_goal(goal)
       # Waits for the server to finish performing the action.
