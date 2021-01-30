@@ -18,6 +18,7 @@ from object_detector_msgs.srv import get_poses, start, stop
 from object_detector_msgs.msg import Detections as DetectronDetections, Detection as DetectronDetection
 import numpy as np
 from copy import deepcopy
+from grasp_checker import check_grasp_hsr
 
 import actionlib
 from hsrb_grasping.msg import EstimateGraspAction, EstimateGraspGoal, ExecuteGraspAction, ExecuteGraspGoal,\
@@ -101,26 +102,32 @@ class FindGrasppointServer:
           if confidence < object_poses_result.poses[i].confidence:
             confidence = object_poses_result.poses[i].confidence
             object_nr = i
-            self.verefine_object_found = True    
+            self.verefine_object_found = True
       if not self.verefine_object_found:
         rospy.logerr('No object pose found')
         self.server.set_aborted()
         return
       #if self.verefine_object_found:
-      goal = EstimateGraspGoal()
-      goal.object_pose = object_poses_result.poses[object_nr]
+      #goal = EstimateGraspGoal()
+      #goal.object_pose = object_poses_result.poses[object_nr]
       # Sends the goal to the action server
-      self.grasp_estimation_client.send_goal(goal)
-      # Waits for the server to finish performing the action.
-      succeeded = self.grasp_estimation_client.wait_for_result()
-      if not succeeded:
+      grasp_object = object_poses_result.poses[object_nr]
+      print("I will try to find a grasp for " + grasp_object.name)
+      pointcloud_sub = rospy.Subscriber('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, self.pointcloud_cb )
+      rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, timeout=15)
+      scene_cloud = self.cloud
+      chosen_pose, valid_poses = check_grasp_hsr(grasp_object, scene_cloud, True)
+      if len(valid_poses) == 0:
         rospy.loginfo('no grasp found')
         self.server.set_aborted()
         return
-
-      grasp_estimation = self.grasp_estimation_client.get_result()
-
-      grasp_pose = grasp_estimation.grasp_pose            
+      
+      #grasp_estimation = self.grasp_estimation_client.get_result()
+      #print(np.asarray(grasp_poses_xyz)[test_results])
+      #chosen_pose = (np.asarray(grasp_poses_xyz)[test_results])[0]   
+      grasp_pose = geometry_msgs.msg.PoseStamped()
+      grasp_pose.pose = chosen_pose
+      grasp_pose.header.frame_id = '/head_rgbd_sensor_rgb_frame'
 
       result.grasp_pose = grasp_pose
 
@@ -162,8 +169,8 @@ class FindGrasppointServer:
       
       grasp_pose = geometry_msgs.msg.PointStamped()
       grasp_pose.point = object_poses_result.poses[object_nr].pose.position
-      grasp_pose.header.frame_id = 'head_rgbd_sensor_link'
-      self.Transformer.waitForTransform('/base_link', '/head_rgbd_sensor_link', rospy.Time(), rospy.Duration(4.0))
+      grasp_pose.header.frame_id = 'head_rgbd_sensor_rgb_frame' #head_rgbd_sensor_link
+      self.Transformer.waitForTransform('/base_link', '/head_rgbd_sensor_rgb_frame', rospy.Time(), rospy.Duration(4.0))
       grasp_pose= self.Transformer.transformPoint('/base_link', grasp_pose)
 
       rough_grasp_object_center = grasp_pose
