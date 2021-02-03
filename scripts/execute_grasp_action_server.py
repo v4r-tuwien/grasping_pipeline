@@ -62,39 +62,42 @@ class ExecuteGraspServer:
     self.create_collision_environment()
 
     self.clear_octomap()
+    plan_found = False
+    for grasp_pose in goal.grasp_poses:
+      if grasp_pose.header.frame_id == "":
+        rospy.loginfo('Not a valid goal. Aborted execution!')
+        self.server.set_aborted()
+        return
 
-    if goal.grasp_pose.header.frame_id == "":
-      rospy.loginfo('Not a valid goal. Aborted execution!')
-      self.server.set_aborted()
-      return
+      #add grasp_height and safety_distance to grasp_pose
+      q =  [grasp_pose.pose.orientation.x, grasp_pose.pose.orientation.y, 
+              grasp_pose.pose.orientation.z, grasp_pose.pose.orientation.w]
+        
+      approach_vector = qv_mult(q, [0,0,-1])
+      print(approach_vector)
 
-    #add grasp_height and safety_distance to grasp_pose
-    grasp_pose = goal.grasp_pose
-    q =  [grasp_pose.pose.orientation.x, grasp_pose.pose.orientation.y, 
-            grasp_pose.pose.orientation.z, grasp_pose.pose.orientation.w]
-      
-    approach_vector = qv_mult(q, [0,0,-1])
-    print(approach_vector)
+      grasp_pose.pose.position.x = grasp_pose.pose.position.x + goal.safety_distance*approach_vector[0]
+      grasp_pose.pose.position.y = grasp_pose.pose.position.y + goal.safety_distance*approach_vector[1]
+      grasp_pose.pose.position.z = grasp_pose.pose.position.z + goal.safety_distance*approach_vector[2]
 
-    grasp_pose.pose.position.x = goal.grasp_pose.pose.position.x + goal.safety_distance*approach_vector[0]
-    grasp_pose.pose.position.y = goal.grasp_pose.pose.position.y + goal.safety_distance*approach_vector[1]
-    grasp_pose.pose.position.z = goal.grasp_pose.pose.position.z + goal.safety_distance*approach_vector[2]
-
-    t = self.tf.getLatestCommonTime('/odom', grasp_pose.header.frame_id)
-    grasp_pose.header.stamp = t
-    grasp_pose = self.tf.transformPose('/odom', grasp_pose)
-    self.add_marker(grasp_pose)
-    self.move_group.set_pose_target(grasp_pose)
-    plan = self.move_group.plan()
+      t = self.tf.getLatestCommonTime('/odom', grasp_pose.header.frame_id)
+      grasp_pose.header.stamp = t
+      grasp_pose = self.tf.transformPose('/odom', grasp_pose)
+      self.add_marker(grasp_pose)
+      self.move_group.set_pose_target(grasp_pose)
+      plan = self.move_group.plan()
+      if len(plan.joint_trajectory.points)>0:
+        plan_found = True
+        break
 
     # abort if no plan is found
-    if len(plan.joint_trajectory.points)<=0:
-      rospy.logerr('no grasp found')
-      self.move_group.stop()
-      self.move_group.clear_pose_targets()
-      res.result.success = False
-      self.server.set_aborted(res.result)
-      return
+    if not plan_found:
+        rospy.logerr('no grasp found')
+        self.move_group.stop()
+        self.move_group.clear_pose_targets()
+        res.result.success = False
+        self.server.set_aborted(res.result)
+        return
 
     self.move_group.go(wait=True)
     rospy.sleep(0.5)

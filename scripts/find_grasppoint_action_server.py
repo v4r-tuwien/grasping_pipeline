@@ -38,20 +38,13 @@ class FindGrasppointServer:
     self.Transformer = tf.TransformListener(True, rospy.Duration(10))
     self.grasp_client = actionlib.SimpleActionClient('/calc_grasppoints_svm_action_server', CalcGraspPointsServerAction)
     self.yolo_detection_sub = rospy.Subscriber('/yolo2_node/detections', DetectionArray, self.yolo_detection_cb)
-    rospy.loginfo('Initializing FindGrasppointServer done')    
     self.detectron_sub = rospy.Subscriber('/detectron2_service/detections', DetectronDetections, self.detectron_cb)
-    rospy.loginfo('Initializing FindGrasppointServer done')
 
     self.verefine_get_poses = rospy.ServiceProxy('/hsr_grasping/get_poses', get_poses)
     self.pyrapose_get_poses = rospy.ServiceProxy('/PyraPose/return_poses', get_poses)
     self.start_detectron = rospy.ServiceProxy('/detectron2_service/start', start)
     self.stop_detectron = rospy.ServiceProxy('/detectron2_service/stop', stop)
-
-    action_name = '/hsrb_grasping_estimate'
-    self.grasp_estimation_client = actionlib.SimpleActionClient(action_name, EstimateGraspAction)
-    rospy.loginfo('Waiting for the action: %s', action_name)
-    self.grasp_estimation_client.wait_for_server()
-
+    rospy.loginfo('Initializing FindGrasppointServer done')
 
   def execute(self, goal):
     self.grasp_height = goal.grasp_height
@@ -79,7 +72,7 @@ class FindGrasppointServer:
       grasp_result_haf = self.call_haf_grasping(rough_grasp_object_center)
       grasp_pose = self.convert_haf_result_for_moveit(grasp_result_haf)
       
-      result.grasp_pose = grasp_pose
+      result.grasp_poses = [grasp_pose]
 
       self.server.set_succeeded(result)
 
@@ -95,6 +88,7 @@ class FindGrasppointServer:
         return
       confidence = 0
       object_nr = 0
+
       # choose object with highest confidence from verefine
       for i in range(0,len(object_poses_result.poses)):
         print (object_poses_result.poses[i].name)
@@ -107,31 +101,24 @@ class FindGrasppointServer:
         rospy.logerr('No object pose found')
         self.server.set_aborted()
         return
-      #if self.verefine_object_found:
-      #goal = EstimateGraspGoal()
-      #goal.object_pose = object_poses_result.poses[object_nr]
-      # Sends the goal to the action server
+
+
       grasp_object = object_poses_result.poses[object_nr]
-      print("I will try to find a grasp for " + grasp_object.name)
+      print(grasp_object)
+
       pointcloud_sub = rospy.Subscriber('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, self.pointcloud_cb )
       rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, timeout=15)
       scene_cloud = self.cloud
-      chosen_pose, valid_poses = check_grasp_hsr(grasp_object, scene_cloud, True)
+      valid_poses = check_grasp_hsr(grasp_object, scene_cloud, True)
+
       if len(valid_poses) == 0:
         rospy.loginfo('no grasp found')
         self.server.set_aborted()
         return
-      
-      #grasp_estimation = self.grasp_estimation_client.get_result()
-      #print(np.asarray(grasp_poses_xyz)[test_results])
-      #chosen_pose = (np.asarray(grasp_poses_xyz)[test_results])[0]   
-      grasp_pose = geometry_msgs.msg.PoseStamped()
-      grasp_pose.pose = chosen_pose
-      grasp_pose.header.frame_id = '/head_rgbd_sensor_rgb_frame'
 
-      result.grasp_pose = grasp_pose
+      result.grasp_poses = valid_poses
 
-      self.add_marker(grasp_pose) 
+      self.add_marker(valid_poses[0]) 
       self.server.set_succeeded(result)
 
 ## method 3, known objects, but with HAF 
@@ -187,7 +174,7 @@ class FindGrasppointServer:
       if grasp_pose == 0:
         self.server.set_aborted()
         return
-      result.grasp_pose = grasp_pose
+      result.grasp_poses = [grasp_pose]
       self.server.set_succeeded(result)
 
 ## method 4, known objects, uses pyrapose
@@ -216,34 +203,22 @@ class FindGrasppointServer:
         self.server.set_aborted()
         return
 
-      goal = EstimateGraspGoal()
-      goal.object_pose = object_poses_result.poses[object_nr]
-      pose_st = geometry_msgs.msg.PoseStamped()
-      pose_st.pose = object_poses_result.poses[object_nr].pose
-      pose_st.header.frame_id = 'head_rgbd_sensor_rgb_frame'
-      # Sends the goal to the action server
-      self.grasp_estimation_client.send_goal(goal)
-      # Waits for the server to finish performing the action.
-      succeeded = self.grasp_estimation_client.wait_for_result()
-      if not succeeded:
+      grasp_object = object_poses_result.poses[object_nr]
+
+      pointcloud_sub = rospy.Subscriber('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, self.pointcloud_cb )
+      rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, timeout=15)
+      scene_cloud = self.cloud
+      valid_poses = check_grasp_hsr(grasp_object, scene_cloud, True)
+
+      if len(valid_poses) == 0:
         rospy.loginfo('no grasp found')
         self.server.set_aborted()
         return
 
-      grasp_estimation = self.grasp_estimation_client.get_result()
-      print(grasp_estimation.grasp_pose)
-      if not grasp_estimation.success:
-        rospy.loginfo('No Grasp Estimation')
-        self.server.set_aborted()
-        return
-      grasp_pose = grasp_estimation.grasp_pose            
-
-      result.grasp_pose = grasp_pose
+      result.grasp_poses = valid_poses
 
       self.add_marker(grasp_pose) 
       self.server.set_succeeded(result)
-
-
     
     else:
       rospy.loginfo('Method not implemented')
@@ -354,172 +329,83 @@ class FindGrasppointServer:
     return point_transformed
 
   def call_haf_grasping(self, search_center):
-      # approach vector for top grasps
-      self.approach_vector_x = 0.0
-      self.approach_vector_y = 0.0
-      self.approach_vector_z = 1.0
-      
-      grasp_goal = CalcGraspPointsServerActionGoal()
-      grasp_goal.goal.graspinput.goal_frame_id = search_center.header.frame_id
-      grasp_goal.goal.graspinput.grasp_area_center.x = search_center.point.x
-      grasp_goal.goal.graspinput.grasp_area_center.y = search_center.point.y
-      grasp_goal.goal.graspinput.grasp_area_center.z = search_center.point.z+self.grasp_height
-      grasp_goal.goal.graspinput.grasp_area_length_x = 20
-      grasp_goal.goal.graspinput.grasp_area_length_y = 20
-      
-      grasp_goal.goal.graspinput.approach_vector.x = self.approach_vector_x
-      grasp_goal.goal.graspinput.approach_vector.y = self.approach_vector_y
-      grasp_goal.goal.graspinput.approach_vector.z = self.approach_vector_z
+    # approach vector for top grasps
+    self.approach_vector_x = 0.0
+    self.approach_vector_y = 0.0
+    self.approach_vector_z = 1.0
+    
+    grasp_goal = CalcGraspPointsServerActionGoal()
+    grasp_goal.goal.graspinput.goal_frame_id = search_center.header.frame_id
+    grasp_goal.goal.graspinput.grasp_area_center.x = search_center.point.x
+    grasp_goal.goal.graspinput.grasp_area_center.y = search_center.point.y
+    grasp_goal.goal.graspinput.grasp_area_center.z = search_center.point.z+self.grasp_height
+    grasp_goal.goal.graspinput.grasp_area_length_x = 20
+    grasp_goal.goal.graspinput.grasp_area_length_y = 20
+    
+    grasp_goal.goal.graspinput.approach_vector.x = self.approach_vector_x
+    grasp_goal.goal.graspinput.approach_vector.y = self.approach_vector_y
+    grasp_goal.goal.graspinput.approach_vector.z = self.approach_vector_z
 
-      grasp_goal.goal.graspinput.input_pc = self.my_cloud
-      grasp_goal.goal.graspinput.max_calculation_time = rospy.Time(15)
-      grasp_goal.goal.graspinput.gripper_opening_width = 1.0
-      self.grasp_client.wait_for_server()
-      self.grasp_client.send_goal(grasp_goal.goal)
-      self.grasp_client.wait_for_result()
-      grasp_result = self.grasp_client.get_result()
-      return grasp_result
+    grasp_goal.goal.graspinput.input_pc = self.my_cloud
+    grasp_goal.goal.graspinput.max_calculation_time = rospy.Time(15)
+    grasp_goal.goal.graspinput.gripper_opening_width = 1.0
+    self.grasp_client.wait_for_server()
+    self.grasp_client.send_goal(grasp_goal.goal)
+    self.grasp_client.wait_for_result()
+    grasp_result = self.grasp_client.get_result()
+    return grasp_result
 
   def convert_haf_result_for_moveit(self, grasp_result_haf):
-      moveit_service = rospy.ServiceProxy('/hsr_moveit_service', MoveItCommand)
-      moveit_cmd = MoveItCommandRequest()
+    #moveit_service = rospy.ServiceProxy('/hsr_moveit_service', MoveItCommand)
+    #moveit_cmd = MoveItCommandRequest()
 
-      grasp_x = grasp_result_haf.graspOutput.averagedGraspPoint.x
-      grasp_y = grasp_result_haf.graspOutput.averagedGraspPoint.y
-      grasp_z = grasp_result_haf.graspOutput.averagedGraspPoint.z
+    grasp_x = grasp_result_haf.graspOutput.averagedGraspPoint.x
+    grasp_y = grasp_result_haf.graspOutput.averagedGraspPoint.y
+    grasp_z = grasp_result_haf.graspOutput.averagedGraspPoint.z
 
-      dir_x = -grasp_result_haf.graspOutput.approachVector.x
-      dir_y = -grasp_result_haf.graspOutput.approachVector.y
-      dir_z = -grasp_result_haf.graspOutput.approachVector.z
-      pitch = asin(dir_y)
-      yaw = atan2(dir_x, dir_z)
-      roll = grasp_result_haf.graspOutput.roll
+    dir_x = -grasp_result_haf.graspOutput.approachVector.x
+    dir_y = -grasp_result_haf.graspOutput.approachVector.y
+    dir_z = -grasp_result_haf.graspOutput.approachVector.z
+    pitch = asin(dir_y)
+    yaw = atan2(dir_x, dir_z)
+    roll = grasp_result_haf.graspOutput.roll
 
-      q = quaternion_from_euler(yaw, pitch, roll-pi, 'rxyz')
+    q = quaternion_from_euler(yaw, pitch, roll-pi, 'rxyz')
 
-      if not (self.approach_vector_x == 0 and self.approach_vector_y == 0):
-        q_rot = tf.transformations.quaternion_about_axis(pi/2, (0,0,1))
-        q = tf.transformations.quaternion_multiply(q_rot, q)
-      q_rot = tf.transformations.quaternion_about_axis(pi/2, (self.approach_vector_x,self.approach_vector_y,self.approach_vector_z))
+    if not (self.approach_vector_x == 0 and self.approach_vector_y == 0):
+      q_rot = tf.transformations.quaternion_about_axis(pi/2, (0,0,1))
       q = tf.transformations.quaternion_multiply(q_rot, q)
+    q_rot = tf.transformations.quaternion_about_axis(pi/2, (self.approach_vector_x,self.approach_vector_y,self.approach_vector_z))
+    q = tf.transformations.quaternion_multiply(q_rot, q)
 
-      self.Transformer.waitForTransform('/odom', '/base_link', rospy.Time(), rospy.Duration(4.0))
+    self.Transformer.waitForTransform('/odom', '/base_link', rospy.Time(), rospy.Duration(4.0))
 
-      grasp_pose_bl = geometry_msgs.msg.PoseStamped()
+    grasp_pose_bl = geometry_msgs.msg.PoseStamped()
 
-      grasp_pose_bl.pose.orientation.x = q[0]
-      grasp_pose_bl.pose.orientation.y = q[1]
-      grasp_pose_bl.pose.orientation.z = q[2]
-      grasp_pose_bl.pose.orientation.w = q[3]
-      grasp_pose_bl.pose.position.x = grasp_x
-      grasp_pose_bl.pose.position.y = grasp_y
-      grasp_pose_bl.pose.position.z = grasp_z
-      grasp_pose_bl.header.frame_id = '/base_link'
+    grasp_pose_bl.pose.orientation.x = q[0]
+    grasp_pose_bl.pose.orientation.y = q[1]
+    grasp_pose_bl.pose.orientation.z = q[2]
+    grasp_pose_bl.pose.orientation.w = q[3]
+    grasp_pose_bl.pose.position.x = grasp_x
+    grasp_pose_bl.pose.position.y = grasp_y
+    grasp_pose_bl.pose.position.z = grasp_z
+    grasp_pose_bl.header.frame_id = '/base_link'
+    print('grasp_pose')
+    print(grasp_pose_bl)
+    self.add_marker(grasp_pose_bl)
 
-      self.add_marker(grasp_pose_bl)
-
-      grasp_pose = self.Transformer.transformPose('/odom', grasp_pose_bl)
-      
-      moveit_cmd.execute = False
-      moveit_cmd.pose = deepcopy(grasp_pose)
-      moveit_cmd.pose.pose.position.z = moveit_cmd.pose.pose.position.z + self.grasp_height
-      ret = moveit_service(moveit_cmd)
-      #if ret.success:
-      #  return grasp_pose
-      return grasp_pose
-      
-
-      grasp_x = grasp_result_haf.graspOutput.graspPoint1.x
-      grasp_y = grasp_result_haf.graspOutput.graspPoint1.y
-      grasp_z = grasp_result_haf.graspOutput.graspPoint1.z
-
-      dir_x = -grasp_result_haf.graspOutput.approachVector.x
-      dir_y = -grasp_result_haf.graspOutput.approachVector.y
-      dir_z = -grasp_result_haf.graspOutput.approachVector.z
-      pitch = asin(dir_y)
-      yaw = atan2(dir_x, dir_z)
-      roll = grasp_result_haf.graspOutput.roll
-
-      q = quaternion_from_euler(yaw, pitch, roll-pi, 'rxyz')
-
-      if not (self.approach_vector_x == 0 and self.approach_vector_y == 0):
-        q_rot = tf.transformations.quaternion_about_axis(pi/2, (0,0,1))
-        q = tf.transformations.quaternion_multiply(q_rot, q)
-      q_rot = tf.transformations.quaternion_about_axis(pi/2, (self.approach_vector_x,self.approach_vector_y,self.approach_vector_z))
-      q = tf.transformations.quaternion_multiply(q_rot, q)
-
-      self.Transformer.waitForTransform('/odom', '/base_link', rospy.Time(), rospy.Duration(4.0))
-
-      grasp_pose_bl = geometry_msgs.msg.PoseStamped()
-
-      grasp_pose_bl.pose.orientation.x = q[0]
-      grasp_pose_bl.pose.orientation.y = q[1]
-      grasp_pose_bl.pose.orientation.z = q[2]
-      grasp_pose_bl.pose.orientation.w = q[3]
-      grasp_pose_bl.pose.position.x = grasp_x
-      grasp_pose_bl.pose.position.y = grasp_y
-      grasp_pose_bl.pose.position.z = grasp_z
-      grasp_pose_bl.header.frame_id = '/base_link'
-
-      self.add_marker(grasp_pose_bl)
-
-      grasp_pose = self.Transformer.transformPose('/odom', grasp_pose_bl)
-
-      moveit_cmd.execute = False
-      moveit_cmd.pose = deepcopy(grasp_pose)
-      moveit_cmd.pose.pose.position.z = moveit_cmd.pose.pose.position.z + self.grasp_height
-      ret = moveit_service(moveit_cmd)
-      if ret.success:
-        return grasp_pose
-
-      grasp_x = grasp_result_haf.graspOutput.graspPoint2.x
-      grasp_y = grasp_result_haf.graspOutput.graspPoint2.y
-      grasp_z = grasp_result_haf.graspOutput.graspPoint2.z
-
-      dir_x = -grasp_result_haf.graspOutput.approachVector.x
-      dir_y = -grasp_result_haf.graspOutput.approachVector.y
-      dir_z = -grasp_result_haf.graspOutput.approachVector.z
-      pitch = asin(dir_y)
-      yaw = atan2(dir_x, dir_z)
-      roll = grasp_result_haf.graspOutput.roll
-
-      q = quaternion_from_euler(yaw, pitch, roll-pi, 'rxyz')
-
-      if not (self.approach_vector_x == 0 and self.approach_vector_y == 0):
-        q_rot = tf.transformations.quaternion_about_axis(pi/2, (0,0,1))
-        q = tf.transformations.quaternion_multiply(q_rot, q)
-      q_rot = tf.transformations.quaternion_about_axis(pi/2, (self.approach_vector_x,self.approach_vector_y,self.approach_vector_z))
-      q = tf.transformations.quaternion_multiply(q_rot, q)
-
-      self.Transformer.waitForTransform('/odom', '/base_link', rospy.Time(), rospy.Duration(4.0))
-
-      grasp_pose_bl = geometry_msgs.msg.PoseStamped()
-
-      grasp_pose_bl.pose.orientation.x = q[0]
-      grasp_pose_bl.pose.orientation.y = q[1]
-      grasp_pose_bl.pose.orientation.z = q[2]
-      grasp_pose_bl.pose.orientation.w = q[3]
-      grasp_pose_bl.pose.position.x = grasp_x
-      grasp_pose_bl.pose.position.y = grasp_y
-      grasp_pose_bl.pose.position.z = grasp_z
-      grasp_pose_bl.header.frame_id = '/base_link'
-
-      self.add_marker(grasp_pose_bl)
-
-      grasp_pose = self.Transformer.transformPose('/odom', grasp_pose_bl)
-
-      moveit_cmd.execute = False
-      moveit_cmd.pose = deepcopy(grasp_pose)
-      moveit_cmd.pose.pose.position.z = moveit_cmd.pose.pose.position.z + self.grasp_height
-      ret = moveit_service(moveit_cmd)
-
-      if ret.success:
-        return grasp_pose
-      
-      return 0
+    grasp_pose = self.Transformer.transformPose('/odom', grasp_pose_bl)
+    
+    #moveit_cmd.execute = False
+    #moveit_cmd.pose = deepcopy(grasp_pose)
+    #moveit_cmd.pose.pose.position.z = moveit_cmd.pose.pose.position.z + self.grasp_height
+    #ret = moveit_service(moveit_cmd)
+    #if ret.success:
+    #  return grasp_pose
+    return grasp_pose
 
   def add_marker(self, pose_goal):
-    marker_pub = rospy.Publisher('/grasp_marker', Marker, queue_size=10, latch=True)
+    marker_pub = rospy.Publisher('/grasping_pipeline/grasp_marker', Marker, queue_size=10, latch=True)
     marker = Marker()
     marker.header.frame_id = pose_goal.header.frame_id
     marker.header.stamp = rospy.Time()

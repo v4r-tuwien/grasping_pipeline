@@ -3,7 +3,7 @@ import open3d as o3d
 import copy
 import random
 
-REACHABLE_TOLERANCE = 0.3#0.05
+REACHABLE_TOLERANCE = 0.1#0.05
 TABLE_DISTANCE_THRESHOLD = 0.01
 OBJECT_DISTANCE_THRESHOLD = 0.01
 
@@ -11,7 +11,7 @@ OBJECT_DISTANCE_THRESHOLD = 0.01
 class GraspChecker:
     def __init__(self):
         # gripper_cloud_file = rospy.get_param('gripper_cloud_filename')
-        gripper_cloud_file = '/home/v4r/Markus_L/src/grasping_pipeline/scripts/hand_open_new.pcd'
+        gripper_cloud_file = '/home/v4r/Markus_L/src/grasping_pipeline/scripts/hsrb_description_meshes_hand_open_new.pcd'
         self.gripper_cloud = o3d.io.read_point_cloud(gripper_cloud_file)
         self.scene_cloud = None
 
@@ -79,11 +79,13 @@ class GraspChecker:
         '''
 
         if nx < -REACHABLE_TOLERANCE:
-            print('Unreachable because Y direction is negative {}'.format(nx))
+            #print('Unreachable because X direction is negative {}'.format(nx))
             return False
         if nz > REACHABLE_TOLERANCE:
-            print('Unreachable because Z direction is positive {}'.format(nz))
+            #print('Unreachable because Z direction is positive {}'.format(nz))
             return False
+        #else:
+            #print('grasp is reachable, X={}, Y={}, Z={}'.format(nx, ny, nz))
 
         return True
 
@@ -113,7 +115,8 @@ class GraspChecker:
 
         # Find if any gripper point is within a threshold to the table plane
         if table_plane is None:
-            print('WARNING: Table plane not provided, not explicitly checking for clearance from the table')
+            #print('WARNING: Table plane not provided, not explicitly checking for clearance from the table')
+            pass
         else:
             for pt in gripper_points:
                 d = self.point_to_plane_distance(pt, table_plane)
@@ -156,10 +159,11 @@ class GraspChecker:
 
         # If the grasp is not reachable, then cannot generate a valid pose
         if cam_to_base is None:
-            print('WARNING: No transform from camera to base provided, cannot check reachability')
+            pass
+            #print('WARNING: No transform from camera to base provided, cannot check reachability')
         else:
             if not self.is_grasp_reachable(grasp_pose, cam_to_base):
-                print('Not reachable')
+                #print('Not reachable')
                 return False
 
         # Create a KD tree for the scene
@@ -167,11 +171,11 @@ class GraspChecker:
 
         # If this is collision free, return the pose
         if self.is_gripper_collision_free((scene_cloud, scene_tree), grasp_pose, table_plane):
-            print('Valid')
+            #print('Valid')
             return True
 
         # If no valid grasp was found, then return zero matrix
-        print('Collision detected')
+        #print('Collision detected')
         return False
 
 #    def service_callback(self, req):
@@ -237,9 +241,20 @@ def points_to_plane(points):
 
     return coefficients
 
+def get_tf_transform(tfBuffer, origin_frame, target_frame):
+    import tf2_ros, rospy
+    tf_found = False
+    while not tf_found:
+        try:
+            trans = tfBuffer.lookup_transform(origin_frame, target_frame, rospy.Time(0))
+            tf_found = True
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            rospy.sleep(0.2)
+    return trans
+
 def check_grasp_hsr(pose_odm, scene_cloud_ros, visualize=False):
     """
-    Takes a object pose and detects which of the saved grasps are reachable with the GraspChecker.
+    Takes a object pose (in '/map' frame) and detects which of the saved grasps are reachable with the GraspChecker.
 
     Parameters
     ----------
@@ -250,30 +265,23 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, visualize=False):
     
     Returns
     -------
-    grasp_pose
-        valid grasp pose
+    valid_poses: geometry_msgs.msg.PoseStamped[]
+        List of valid grasp poses
     """
     from open3d_ros_helper import open3d_ros_helper as orh
     import tf2_ros, tf
     import transforms3d as tf3d
     import rospy
     from sensor_msgs.msg import PointCloud2
-    from geometry_msgs.msg import Pose
+    from geometry_msgs.msg import PoseStamped
     grasp_checker = GraspChecker()
     o3dcloud = orh.rospc_to_o3dpc(scene_cloud_ros, True)
     grasp_checker.set_scene_data(o3dcloud)
 
     tfBuffer = tf2_ros.Buffer()
     listener = tf2_ros.TransformListener(tfBuffer)
-    tf_found = False
-    while not tf_found:
-        try:
-            trans = tfBuffer.lookup_transform('map', 'head_rgbd_sensor_rgb_frame', rospy.Time(0))
-            print(trans)
-            tf_found = True
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            print('No tf found')
-            rospy.sleep(1)
+    trans = get_tf_transform(tfBuffer, 'map', 'head_rgbd_sensor_rgb_frame')
+
     rot = tf3d.quaternions.quat2mat([trans.transform.rotation.w, trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z])
     cam_to_base = np.eye(4)
     cam_to_base[:3, :3] = rot
@@ -284,30 +292,36 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, visualize=False):
     object_pose = np.eye(4)
     object_pose[:3, :3] = rot
     object_pose[:3, 3] = [pose_odm.pose.position.x, pose_odm.pose.position.y, pose_odm.pose.position.z]
-    print(o3dcloud)
     grasp_poses = np.load('/home/v4r/Markus_L/src/grasping_pipeline/grasps/'+pose_odm.name+'.npy')
     grasp_poses = grasp_poses.reshape((grasp_poses.shape[0],4,4))
     successes = []
     grasp_trials = []
     index = -1
     shortest_dist = 1.0
-    dist_to_cam = []
+    dist_to_wrist = []
     grasp_poses_ros = []
     for pose, i in zip(grasp_poses, range(len(grasp_poses))):
         grasp_try = np.eye(4)
         grasp_try = np.matmul(object_pose, pose)
         res = grasp_checker.is_grasp_valid(o3dcloud, grasp_try, cam_to_base=cam_to_base)
-        dist = np.linalg.norm(grasp_try[:3,3])
-        dist_to_cam.append(dist)
-        pose = Pose()
-        pose.position.x = grasp_try[0, 3]
-        pose.position.y = grasp_try[1, 3]
-        pose.position.z = grasp_try[2, 3]
+        trans = get_tf_transform(tfBuffer, 'wrist_flex_link', 'head_rgbd_sensor_rgb_frame')
+        rot = tf3d.quaternions.quat2mat([trans.transform.rotation.w, trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z])
+        cam_to_wrist = np.eye(4)
+        cam_to_wrist[:3, :3] = rot
+        cam_to_wrist[:3, 3] = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z]
+        grasp_try_wrist = np.matmul(cam_to_wrist, grasp_try)
+        dist = np.linalg.norm(grasp_try_wrist[:3,3])
+        dist_to_wrist.append(dist)
+        pose = PoseStamped()
+        pose.header.frame_id = '/head_rgbd_sensor_rgb_frame'
+        pose.pose.position.x = grasp_try[0, 3]
+        pose.pose.position.y = grasp_try[1, 3]
+        pose.pose.position.z = grasp_try[2, 3]
         quat = tf.transformations.quaternion_from_matrix(grasp_try)
-        pose.orientation.x = quat[0]
-        pose.orientation.y = quat[1]
-        pose.orientation.z = quat[2]
-        pose.orientation.w = quat[3]
+        pose.pose.orientation.x = quat[0]
+        pose.pose.orientation.y = quat[1]
+        pose.pose.orientation.z = quat[2]
+        pose.pose.orientation.w = quat[3]
         # Add to array
         grasp_poses_ros.append(pose)
         if res and (dist < shortest_dist):
@@ -315,30 +329,19 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, visualize=False):
             index = i
         grasp_trials.append(grasp_try)
         successes.append(res)
-    grasps = zip(grasp_poses_ros, grasp_trials, successes, dist_to_cam)
-    print(dist_to_cam)
-    print('2222222222222222')
+    grasps = zip(grasp_poses_ros, grasp_trials, successes, dist_to_wrist)
     grasps = list(grasps)
     
-    print('333333333333')
     grasps = np.array(sorted(grasps, key = lambda x:(-x[2],x[3])))
-    print('44444444444444444')
-    #chosen_pose = np.asarray(grasp_poses_ros)[index]
-    chosen_pose = grasps[0,0]
-    print(grasps)
-    print('#####')
-    dist_to_cam = list(grasps[:,3])
-    print(dist_to_cam)
-    print('#####')
-    print('valid poses:')
-    print(grasps[:,2])
+
+    dist_to_wrist = list(grasps[:,3])
     valid_poses = list(grasps[:,0][grasps[:,2].astype(bool)])
     #valid_poses = np.asarray(grasp_poses_ros)[successes]
 
-    print(valid_poses)
     if visualize == True:
         scenepub = rospy.Publisher('/grasping_pipeline/grasp_checker/scenecloud', PointCloud2, queue_size=10, latch=True)
         gripperpub = rospy.Publisher('/grasping_pipeline/grasp_checker/grippercloud', PointCloud2, queue_size=10, latch=True)
+        chosenpub = rospy.Publisher('/grasping_pipeline/grasp_checker/chosengrippercloud', PointCloud2, queue_size=10, latch=True)
         scenepub.publish(scene_cloud_ros)
         o3dcloud.paint_uniform_color([0.5, 0.5, 0.5])
         geometries = [o3dcloud]
@@ -354,12 +357,14 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, visualize=False):
                 g_cloud.paint_uniform_color([1, 0, 0])
             if i == index:
                 g_cloud.paint_uniform_color([0 ,1 ,0])
+                chosenpub.publish(orh.o3dpc_to_rospc(g_cloud, 'head_rgbd_sensor_rgb_frame', rospy.Time(0)))
+
             #geometries.append(g_cloud)
             combined_grasps += g_cloud
-            print(combined_grasps)            
+            #print(combined_grasps)            
         #np.save('g_cloud'+str(i), np.asarray(g_cloud.points))
         gripperpub.publish(orh.o3dpc_to_rospc(combined_grasps, 'head_rgbd_sensor_rgb_frame', rospy.Time(0)))
-    return chosen_pose, valid_poses
+    return valid_poses
 
 if __name__ == '__main__':
     # rospy.init_node('Grasp_checker_service')

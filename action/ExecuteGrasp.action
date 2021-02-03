@@ -1,5 +1,5 @@
 # Define the goal
-geometry_msgs/PoseStamped grasp_pose 
+geometry_msgs/PoseStamped[] grasp_poses
 float32 grasp_height 
 float32 safety_distance
 bool use_map

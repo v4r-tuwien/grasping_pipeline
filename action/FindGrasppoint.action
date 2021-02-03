@@ -4,7 +4,7 @@ string[] object_names # which objects do you want to grasp
 float32 grasp_height 
 ---
 # Define the result
-geometry_msgs/PoseStamped grasp_pose
+geometry_msgs/PoseStamped[] grasp_poses
 ---
 # Define a feedback message
 float32 percent_complete
