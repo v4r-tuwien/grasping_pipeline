@@ -69,16 +69,16 @@ class ExecuteGraspServer:
         self.server.set_aborted()
         return
 
-      #add grasp_height and safety_distance to grasp_pose
+      #add safety_distance to grasp_pose
       q =  [grasp_pose.pose.orientation.x, grasp_pose.pose.orientation.y, 
               grasp_pose.pose.orientation.z, grasp_pose.pose.orientation.w]
         
       approach_vector = qv_mult(q, [0,0,-1])
       print(approach_vector)
-
-      grasp_pose.pose.position.x = grasp_pose.pose.position.x + goal.safety_distance*approach_vector[0]
-      grasp_pose.pose.position.y = grasp_pose.pose.position.y + goal.safety_distance*approach_vector[1]
-      grasp_pose.pose.position.z = grasp_pose.pose.position.z + goal.safety_distance*approach_vector[2]
+      safety_distance =  + rospy.get_param("/safety_distance", default=0.08)
+      grasp_pose.pose.position.x = grasp_pose.pose.position.x + safety_distance*approach_vector[0]
+      grasp_pose.pose.position.y = grasp_pose.pose.position.y + safety_distance*approach_vector[1]
+      grasp_pose.pose.position.z = grasp_pose.pose.position.z + safety_distance*approach_vector[2]
 
       t = self.tf.getLatestCommonTime('/odom', grasp_pose.header.frame_id)
       grasp_pose.header.stamp = t
@@ -102,8 +102,8 @@ class ExecuteGraspServer:
     self.move_group.go(wait=True)
     rospy.sleep(0.5)
 
-    if goal.safety_distance>goal.grasp_height:
-      self.whole_body.move_end_effector_by_line((0,0,1), goal.safety_distance-goal.grasp_height)  
+    
+    self.whole_body.move_end_effector_by_line((0,0,1), safety_distance)  
         
     self.gripper.apply_force(0.30)
 
@@ -113,7 +113,7 @@ class ExecuteGraspServer:
     new_pose = geometry.Pose(new_pose_vec, pose_quat)
     self.whole_body.move_end_effector_pose(new_pose)
 
-    self.whole_body.move_end_effector_by_line((0,0,1), -goal.safety_distance)      
+    self.whole_body.move_end_effector_by_line((0,0,1), -safety_distance)      
     self.whole_body.move_to_neutral()
 
     # check if object is in gripper

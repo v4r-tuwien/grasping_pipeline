@@ -1,6 +1,4 @@
 use_map: False  # True
 grasp_check: False
-grasp_height_unknown: 0.07 #0.07
-safety_distance_unknown: 0.1 #0.14
-grasp_height_known: 0.0
-safety_distance_known: 0.08
+grasppoint_offset_haf: 0.07 #0.07
+safety_distance: 0.08

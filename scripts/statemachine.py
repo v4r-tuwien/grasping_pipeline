@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # Copyright (C) 2016 Toyota Motor Corporation
-import copy
-import random
 from enum import Enum
 from math import pi
 
@@ -9,16 +7,13 @@ import actionlib
 import rospy
 import smach
 import smach_ros
-import tf.transformations
 import tf
 from actionlib_msgs.msg import GoalStatus
-from geometry_msgs.msg import Point, PoseStamped, Quaternion
-from hsrb_interface import Robot
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-
 from grasping_pipeline.msg import (ExecuteGraspAction, ExecuteGraspGoal,
                                    FindGrasppointAction, FindGrasppointGoal)
-from handover.msg import HandoverAction, HandoverGoal
+from handover.msg import HandoverAction
+from hsrb_interface import Robot
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 
 # neutral joint positions
 neutral_joint_positions ={'arm_flex_joint': 0.0,
@@ -91,28 +86,20 @@ class UserInput(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['quitting', 'neutral', 'grasping', 'opening', 
                                             'find_grasp', 'execute_grasp', 'go_to_table'],
-                                    input_keys=['found_grasp_poses', 'grasp_height'],
+                                    input_keys=['found_grasp_poses'],
                                     output_keys=['find_grasppoint_method', 'objects_to_find',
-                                    'grasp_height', 'safety_distance', 'params', 'find_grasppoint_tries'])
+                                    'params', 'find_grasppoint_tries'])
         #config initial settings
         self.use_map = rospy.get_param("/use_map")
         self.grasp_check = rospy.get_param("/grasp_check")
         #grasp_params for unknown object method
-        self.grasp_height_unknown = rospy.get_param("/grasp_height_unknown", default=0.07)
-        self.safety_distance_unknown = rospy.get_param("safety_distance_unknown", default=0.14)
 
         #grasp params for known object method
-        self.grasp_height_known = rospy.get_param("/grasp_height_known", default=0.0)
-        self.safety_distance_known = rospy.get_param("safety_distance_unknown", default=0.08)
 
         self.clean_table = False
         self.params = { 'use_map': self.use_map,
                         'grasp_check': self.grasp_check,
                         'clean_table': self.clean_table,
-                        'grasp_height_unknown': self.grasp_height_unknown,
-                        'safety_distance_unknown': self.safety_distance_unknown,
-                        'grasp_height_known': self.grasp_height_known,
-                        'safety_distance_known': self.safety_distance_known}
 
     def execute(self, userdata):
         rospy.loginfo('Executing state UserInput')
@@ -157,22 +144,16 @@ class UserInput(smach.State):
                 char_in = user_input.lower()
                 if char_in == '1':
                     userdata.find_grasppoint_method = 1
-                    userdata.grasp_height = self.grasp_height_unknown
-                    userdata.safety_distance = self.safety_distance_unknown
                     if self.use_map:
                         return 'go_to_table'
                     return 'grasping'
                 elif char_in == '2':
                     userdata.find_grasppoint_method = 2
-                    userdata.grasp_height = self.grasp_height_known
-                    userdata.safety_distance = self.safety_distance_known
                     if self.use_map:
                         return 'go_to_table'
                     return 'grasping'
                 elif char_in == '3':
                     userdata.find_grasppoint_method = 2
-                    userdata.grasp_height = self.grasp_height_known
-                    userdata.safety_distance = self.safety_distance_known
                     self.print_objects()
                     while True:
                         user_input = raw_input('CMD> ')
@@ -189,22 +170,16 @@ class UserInput(smach.State):
                         print('Please enter a valid number')
                 elif char_in == '4':
                     userdata.find_grasppoint_method = 3
-                    userdata.grasp_height = self.grasp_height_unknown
-                    userdata.safety_distance = self.safety_distance_unknown
                     if self.use_map:
                         return 'go_to_table'
                     return 'grasping'
                 elif char_in == '5':
                     userdata.find_grasppoint_method = 4
-                    userdata.grasp_height = self.grasp_height_known
-                    userdata.safety_distance = self.safety_distance_known
                     if self.use_map:
                         return 'go_to_table'
                     return 'grasping'
                 elif char_in == '6':
                     userdata.find_grasppoint_method = 4
-                    userdata.grasp_height = self.grasp_height_known
-                    userdata.safety_distance = self.safety_distance_known
                     self.print_objects()
                     while True:
                         user_input = raw_input('CMD> ')
@@ -266,18 +241,12 @@ class UserInput(smach.State):
                 char_in = user_input.lower()
                 if char_in == '1':
                     userdata.find_grasppoint_method = 1
-                    userdata.grasp_height = self.grasp_height_unknown
-                    userdata.safety_distance = self.safety_distance_unknown
                     return 'find_grasp'
                 elif char_in == '2':
                     userdata.find_grasppoint_method = 2
-                    userdata.grasp_height = self.grasp_height_known
-                    userdata.safety_distance = self.safety_distance_known
                     return 'find_grasp'
                 elif char_in == '3':
                     userdata.find_grasppoint_method = 2
-                    userdata.grasp_height = self.grasp_height_known
-                    userdata.safety_distance = self.safety_distance_known
                     self.print_objects()
                     while True:
                         user_input = raw_input('CMD> ')
@@ -291,18 +260,12 @@ class UserInput(smach.State):
                         print('Please enter a valid number')
                 elif char_in == '4':
                     userdata.find_grasppoint_method = 3
-                    userdata.grasp_height = self.grasp_height_unknown
-                    userdata.safety_distance = self.safety_distance_unknown
                     return 'find_grasp'
                 elif char_in == '5':
                     userdata.find_grasppoint_method = 4
-                    userdata.grasp_height = self.grasp_height_known
-                    userdata.safety_distance = self.safety_distance_known
                     return 'find_grasp'
                 elif char_in == '6':
                     userdata.find_grasppoint_method = 4
-                    userdata.grasp_height = self.grasp_height_known
-                    userdata.safety_distance = self.safety_distance_known
                     self.print_objects()
                     while True:
                         user_input = raw_input('CMD> ')
@@ -376,8 +339,6 @@ class UserInput(smach.State):
                 userdata.params = self.params
 
                 userdata.find_grasppoint_method = 2
-                userdata.grasp_height = self.grasp_height_known
-                userdata.safety_distance = self.safety_distance_unknown
                 if self.use_map:
                     return 'go_to_table'
                 return 'grasping'
@@ -417,7 +378,7 @@ class GoToNeutral(smach.State):
 class GoBackAndNeutral(smach.State):
     def __init__(self):
         smach.State.__init__(self,input_keys=['params'], 
-                            output_keys=['find_grasppoint_tries', 'find_grasppoint_method', 'grasp_height', 'safety_distance'], 
+                            output_keys=['find_grasppoint_tries', 'find_grasppoint_method'], 
                             outcomes=['succeeded'])
         #Robot initialization
         self.robot = Robot()
@@ -431,8 +392,6 @@ class GoBackAndNeutral(smach.State):
         rospy.loginfo('Executing state GoToNeutral')
         userdata.find_grasppoint_tries = 0
         userdata.find_grasppoint_method = 2
-        userdata.grasp_height = userdata.params.get('grasp_height_known')
-        userdata.safety_distance = userdata.params.get('safety_distance_known')
         if userdata.params.get('use_map'):
             move_goal = MoveBaseGoal()
             move_goal.target_pose.header.frame_id='map'
@@ -499,7 +458,7 @@ class GoToTable(smach.State):
 
 class NoGrasppointFound(smach.State):
     def __init__(self):
-        smach.State.__init__(self,output_keys=['find_grasppoint_tries', 'find_grasppoint_method', 'grasp_height', 'safety_distance'], 
+        smach.State.__init__(self,output_keys=['find_grasppoint_tries', 'find_grasppoint_method'], 
                             input_keys=['params', 'find_grasppoint_tries'], 
                             outcomes=['find_grasp', 'user_input'])
     
@@ -511,8 +470,6 @@ class NoGrasppointFound(smach.State):
             return 'user_input'
         if userdata.find_grasppoint_tries > 3:
             userdata.find_grasppoint_method = 1
-            userdata.grasp_height = userdata.params.get('grasp_height_unknown')
-            userdata.safety_distance = userdata.params.get('safety_distance_unknown')
         if userdata.params.get('clean_table'):
             return 'find_grasp'
         else:
@@ -551,7 +508,7 @@ def main():
 
         smach.StateMachine.add('FIND_GRASPPOINT', \
                                 smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction,
-                                                            goal_slots = ['method', 'object_names', 'grasp_height'],
+                                                            goal_slots = ['method', 'object_names'],
                                                             result_slots = ['grasp_poses']),
                                 transitions={'succeeded':'EXECUTE_GRASP', 
                                             'preempted':'USER_INPUT',
@@ -567,7 +524,7 @@ def main():
 
         smach.StateMachine.add('ONLY_FIND_GRASPPOINT', \
                                 smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction,
-                                                            goal_slots = ['method', 'object_names', 'grasp_height'],
+                                                            goal_slots = ['method', 'object_names'],
                                                             result_slots = ['grasp_poses']),
                                 transitions={'succeeded':'USER_INPUT', 
                                             'preempted':'USER_INPUT',
@@ -578,7 +535,7 @@ def main():
 
         smach.StateMachine.add('EXECUTE_GRASP',
                                 smach_ros.SimpleActionState('execute_grasp', ExecuteGraspAction,
-                                                            goal_slots=['grasp_poses', 'grasp_height', 'safety_distance']),
+                                                            goal_slots=['grasp_poses']),
                                 transitions={'succeeded':'NEUTRAL_BEFORE_HANDOVER', 
                                             'preempted':'USER_INPUT',
                                             'aborted':'GO_TO_NEUTRAL'},
