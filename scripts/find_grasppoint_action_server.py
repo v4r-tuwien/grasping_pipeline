@@ -5,6 +5,7 @@ from math import asin, atan2, isnan, pi
 import actionlib
 import geometry_msgs.msg
 import rospy
+import numpy as np
 import sensor_msgs.point_cloud2 as pc2
 import tf
 from grasping_pipeline.msg import (FindGrasppointAction,
@@ -68,8 +69,7 @@ class FindGrasppointServer:
       grasp_result_haf = self.call_haf_grasping(rough_grasp_object_center)
       grasp_pose = self.convert_haf_result_for_moveit(grasp_result_haf)
       
-      result.grasp_poses = [grasp_pose]
-
+      result.grasp_poses = grasp_pose
       self.server.set_succeeded(result)
 
 ## method 2, known objects, uses verefine
@@ -170,7 +170,7 @@ class FindGrasppointServer:
       if grasp_pose == 0:
         self.server.set_aborted()
         return
-      result.grasp_poses = [grasp_pose]
+      result.grasp_poses = grasp_pose
       self.server.set_succeeded(result)
 
 ## method 4, known objects, uses pyrapose
@@ -378,9 +378,9 @@ class FindGrasppointServer:
     grasp_pose_bl.pose.orientation.y = q[1]
     grasp_pose_bl.pose.orientation.z = q[2]
     grasp_pose_bl.pose.orientation.w = q[3]
-    grasp_pose_bl.pose.position.x = grasp_result_haf.graspOutput.averagedGraspPoint.x + rospy.get_param("/grasppoint_offset_haf", default=0.07)*av[0]
-    grasp_pose_bl.pose.position.y = grasp_result_haf.graspOutput.averagedGraspPoint.y + rospy.get_param("/grasppoint_offset_haf", default=0.07)*av[1]
-    grasp_pose_bl.pose.position.z = grasp_result_haf.graspOutput.averagedGraspPoint.z + rospy.get_param("/grasppoint_offset_haf", default=0.07)*av[2]
+    grasp_pose_bl.pose.position.x = grasp_result_haf.graspOutput.averagedGraspPoint.x - rospy.get_param("/grasppoint_offset_haf", default=0.04)*av[0]
+    grasp_pose_bl.pose.position.y = grasp_result_haf.graspOutput.averagedGraspPoint.y - rospy.get_param("/grasppoint_offset_haf", default=0.04)*av[1]
+    grasp_pose_bl.pose.position.z = grasp_result_haf.graspOutput.averagedGraspPoint.z - rospy.get_param("/grasppoint_offset_haf", default=0.04)*av[2]
     grasp_pose_bl.header.frame_id = '/base_link'
 
     self.add_marker(grasp_pose_bl)

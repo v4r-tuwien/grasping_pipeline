@@ -99,7 +99,7 @@ class UserInput(smach.State):
         self.clean_table = False
         self.params = { 'use_map': self.use_map,
                         'grasp_check': self.grasp_check,
-                        'clean_table': self.clean_table,
+                        'clean_table': self.clean_table}
 
     def execute(self, userdata):
         rospy.loginfo('Executing state UserInput')
@@ -543,7 +543,7 @@ def main():
 
         smach.StateMachine.add('NEUTRAL_BEFORE_HANDOVER',
                                 GoBackAndNeutral(), 
-                                transitions={'succeeded':'USER_INPUT'}) #HANDOVER
+                                transitions={'succeeded':'HANDOVER'})
 
         smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
                                 transitions={'succeeded':'GO_TO_NEUTRAL', 
