@@ -92,10 +92,6 @@ class UserInput(smach.State):
         #config initial settings
         self.use_map = rospy.get_param("/use_map")
         self.grasp_check = rospy.get_param("/grasp_check")
-        #grasp_params for unknown object method
-
-        #grasp params for known object method
-
         self.clean_table = False
         self.params = { 'use_map': self.use_map,
                         'grasp_check': self.grasp_check,
@@ -395,8 +391,8 @@ class GoBackAndNeutral(smach.State):
         if userdata.params.get('use_map'):
             move_goal = MoveBaseGoal()
             move_goal.target_pose.header.frame_id='map'
-            move_goal.target_pose.pose.position.x = 1.15
-            move_goal.target_pose.pose.position.y = -0.7
+            move_goal.target_pose.pose.position.x = 0.4
+            move_goal.target_pose.pose.position.y = 0.0
             move_goal.target_pose.pose.orientation.z = 0.707
             move_goal.target_pose.pose.orientation.w = 0.707
             self.move_client.wait_for_server()
@@ -435,9 +431,10 @@ class GoToTable(smach.State):
     def execute(self, userdata):
         move_goal = MoveBaseGoal()
         move_goal.target_pose.header.frame_id='map'
-        move_goal.target_pose.pose.position.x = 1.25
-        move_goal.target_pose.pose.position.y = -0.75
-        move_goal.target_pose.pose.orientation.z = 1.0
+        move_goal.target_pose.pose.position.x = 0
+        move_goal.target_pose.pose.position.y = 0
+        move_goal.target_pose.pose.orientation.z = 0.95
+        move_goal.target_pose.pose.orientation.w = 0.05
         self.move_client.wait_for_server()
         self.move_client.send_goal(move_goal)
         result = self.move_client.wait_for_result()

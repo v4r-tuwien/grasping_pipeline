@@ -115,8 +115,7 @@ class GraspChecker:
 
         # Find if any gripper point is within a threshold to the table plane
         if table_plane is None:
-            #print('WARNING: Table plane not provided, not explicitly checking for clearance from the table')
-            pass
+            print('WARNING: Table plane not provided, not explicitly checking for clearance from the table')
         else:
             for pt in gripper_points:
                 d = self.point_to_plane_distance(pt, table_plane)
@@ -274,6 +273,9 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, visualize=False):
     import rospy
     from sensor_msgs.msg import PointCloud2
     from geometry_msgs.msg import PoseStamped
+    #table_plane = np.array([0.01, 0.002, 0.0, 0.9999, -0.45]) #get it from Table Store
+    table_plane = None
+
     grasp_checker = GraspChecker()
     o3dcloud = orh.rospc_to_o3dpc(scene_cloud_ros, True)
     grasp_checker.set_scene_data(o3dcloud)
@@ -303,7 +305,7 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, visualize=False):
     for pose, i in zip(grasp_poses, range(len(grasp_poses))):
         grasp_try = np.eye(4)
         grasp_try = np.matmul(object_pose, pose)
-        res = grasp_checker.is_grasp_valid(o3dcloud, grasp_try, cam_to_base=cam_to_base)
+        res = grasp_checker.is_grasp_valid(o3dcloud, grasp_try, table_plane = table_plane, cam_to_base=cam_to_base)
         trans = get_tf_transform(tfBuffer, 'wrist_flex_link', 'head_rgbd_sensor_rgb_frame')
         rot = tf3d.quaternions.quat2mat([trans.transform.rotation.w, trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z])
         cam_to_wrist = np.eye(4)

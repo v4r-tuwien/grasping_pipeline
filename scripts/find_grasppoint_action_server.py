@@ -34,9 +34,13 @@ class FindGrasppointServer:
     self.whole_body = self.robot.try_get('whole_body')
     self.gripper = self.robot.get('gripper')
     self.Transformer = tf.TransformListener(True, rospy.Duration(10))
-    self.grasp_client = actionlib.SimpleActionClient('/calc_grasppoints_svm_action_server', CalcGraspPointsServerAction)
-    self.yolo_detection_sub = rospy.Subscriber('/yolo2_node/detections', DetectionArray, self.yolo_detection_cb)
+    self.haf_client = actionlib.SimpleActionClient('/calc_grasppoints_svm_action_server', CalcGraspPointsServerAction)
+
+    #self.yolo_detection_sub = rospy.Subscriber('/yolo2_node/detections', DetectionArray, self.yolo_detection_cb)
     self.detectron_sub = rospy.Subscriber('/detectron2_service/detections', DetectronDetections, self.detectron_cb)
+
+    self.pointcloud_topic =  '/hsrb/head_rgbd_sensor/depth_registered/rectified_points'
+    self.pointcloud_sub = rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.pointcloud_cb )
 
     self.verefine_get_poses = rospy.ServiceProxy('/hsr_grasping/get_poses', get_poses)
     self.pyrapose_get_poses = rospy.ServiceProxy('/PyraPose/return_poses', get_poses)
@@ -102,8 +106,7 @@ class FindGrasppointServer:
       grasp_object = object_poses_result.poses[object_nr]
       print(grasp_object)
 
-      pointcloud_sub = rospy.Subscriber('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, self.pointcloud_cb )
-      rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, timeout=15)
+      rospy.wait_for_message(self.pointcloud_topic, PointCloud2, timeout=15)
       scene_cloud = self.cloud
       valid_poses = check_grasp_hsr(grasp_object, scene_cloud, True)
 
@@ -146,8 +149,7 @@ class FindGrasppointServer:
         self.server.set_aborted()
         return
 
-      pointcloud_sub = rospy.Subscriber('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, self.pointcloud_cb )
-      rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, timeout=15)
+      rospy.wait_for_message(self.pointcloud_topic, PointCloud2, timeout=15)
       self.my_cloud = self.cloud      
       
       grasp_pose = geometry_msgs.msg.PointStamped()
@@ -201,8 +203,7 @@ class FindGrasppointServer:
 
       grasp_object = object_poses_result.poses[object_nr]
 
-      pointcloud_sub = rospy.Subscriber('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, self.pointcloud_cb )
-      rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, timeout=15)
+      rospy.wait_for_message(self.pointcloud_topic, PointCloud2, timeout=15)
       scene_cloud = self.cloud
       valid_poses = check_grasp_hsr(grasp_object, scene_cloud, True)
 
@@ -223,8 +224,8 @@ class FindGrasppointServer:
   def pointcloud_cb(self, data):
     self.cloud = data
   
-  def yolo_detection_cb(self, data):
-    self.yolo_detection = data
+  # def yolo_detection_cb(self, data):
+  #   self.yolo_detection = data
   
   def detectron_cb(self,data):
     self.detectron_detection = data
@@ -253,8 +254,7 @@ class FindGrasppointServer:
     self.object_name = chosen_object.name
 
     # get bounding box center from pointcloud
-    pointcloud_sub = rospy.Subscriber('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, self.pointcloud_cb )
-    rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, timeout=15)
+    rospy.wait_for_message(self.pointcloud_topic, PointCloud2, timeout=15)
     #rospy.sleep(0.5)
     self.my_cloud = self.cloud
     points = pc2.read_points_list(self.my_cloud, field_names=None, skip_nans=False)
@@ -280,49 +280,48 @@ class FindGrasppointServer:
     point_transformed = self.Transformer.transformPoint('/base_link', point)
     return point_transformed
 
-  def get_grasp_object_center_yolo(self, object_names):
-    rospy.wait_for_message('/yolo2_node/detections', DetectionArray)
-    detection = self.yolo_detection
-    chosen_object = Detection()
-    chosen_object.label.confidence = 0
-    #use detection with biggest confidence 
-    for i in range(len(detection.detections)):
-        name = detection.detections[i].label.name
-        if name in object_names:
-            if detection.detections[i].label.confidence > chosen_object.label.confidence:
-                chosen_object = detection.detections[i]
-    if chosen_object.label.confidence == 0:
-      return -1
+  # def get_grasp_object_center_yolo(self, object_names):
+  #   rospy.wait_for_message('/yolo2_node/detections', DetectionArray)
+  #   detection = self.yolo_detection
+  #   chosen_object = Detection()
+  #   chosen_object.label.confidence = 0
+  #   #use detection with biggest confidence 
+  #   for i in range(len(detection.detections)):
+  #       name = detection.detections[i].label.name
+  #       if name in object_names:
+  #           if detection.detections[i].label.confidence > chosen_object.label.confidence:
+  #               chosen_object = detection.detections[i]
+  #   if chosen_object.label.confidence == 0:
+  #     return -1
             
-    image_x = int(chosen_object.x)
-    image_y = int(chosen_object.y)
-    self.object_name = chosen_object.label.name
-    pointcloud_sub = rospy.Subscriber('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, self.pointcloud_cb )
-    rospy.wait_for_message('/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2, timeout=15)
-    rospy.sleep(0.5)
-    self.my_cloud = self.cloud
-    points = pc2.read_points_list(self.my_cloud, field_names=None, skip_nans=False)
+  #   image_x = int(chosen_object.x)
+  #   image_y = int(chosen_object.y)
+  #   self.object_name = chosen_object.label.name
+  #   rospy.wait_for_message(self.pointcloud_topic, PointCloud2, timeout=15)
+  #   rospy.sleep(0.5)
+  #   self.my_cloud = self.cloud
+  #   points = pc2.read_points_list(self.my_cloud, field_names=None, skip_nans=False)
 
-    index = image_y*self.my_cloud.width+image_x
+  #   index = image_y*self.my_cloud.width+image_x
 
-    center = points[index]
-    rospy.loginfo('len of points {}'.format(len(points)))
-    while isnan(center[0]):
-        index = index+self.my_cloud.width
-        rospy.loginfo('index = {}'.format(index))
-        if index>len(points)-1:
-          return -1
-        center = points[index]
+  #   center = points[index]
+  #   rospy.loginfo('len of points {}'.format(len(points)))
+  #   while isnan(center[0]):
+  #       index = index+self.my_cloud.width
+  #       rospy.loginfo('index = {}'.format(index))
+  #       if index>len(points)-1:
+  #         return -1
+  #       center = points[index]
         
 
-    self.Transformer.waitForTransform('/base_link', '/head_rgbd_sensor_link', rospy.Time(), rospy.Duration(4.0))
-    point = geometry_msgs.msg.PointStamped()
-    point.point.x = center[0]
-    point.point.y = center[1]
-    point.point.z = center[2]
-    point.header.frame_id = '/head_rgbd_sensor_link'
-    point_transformed = self.Transformer.transformPoint('/base_link', point)
-    return point_transformed
+  #   self.Transformer.waitForTransform('/base_link', '/head_rgbd_sensor_link', rospy.Time(), rospy.Duration(4.0))
+  #   point = geometry_msgs.msg.PointStamped()
+  #   point.point.x = center[0]
+  #   point.point.y = center[1]
+  #   point.point.z = center[2]
+  #   point.header.frame_id = '/head_rgbd_sensor_link'
+  #   point_transformed = self.Transformer.transformPoint('/base_link', point)
+  #   return point_transformed
 
   def call_haf_grasping(self, search_center):
     # approach vector for top grasps
@@ -345,10 +344,10 @@ class FindGrasppointServer:
     grasp_goal.goal.graspinput.input_pc = self.my_cloud
     grasp_goal.goal.graspinput.max_calculation_time = rospy.Time(15)
     grasp_goal.goal.graspinput.gripper_opening_width = 1.0
-    self.grasp_client.wait_for_server()
-    self.grasp_client.send_goal(grasp_goal.goal)
-    self.grasp_client.wait_for_result()
-    grasp_result = self.grasp_client.get_result()
+    self.haf_client.wait_for_server()
+    self.haf_client.send_goal(grasp_goal.goal)
+    self.haf_client.wait_for_result()
+    grasp_result = self.haf_client.get_result()
     return grasp_result
 
   def convert_haf_result_for_moveit(self, grasp_result_haf):
