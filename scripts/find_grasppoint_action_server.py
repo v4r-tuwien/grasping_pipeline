@@ -22,7 +22,7 @@ from tf.transformations import (quaternion_about_axis, quaternion_from_matrix,
 from tmc_vision_msgs.msg import Detection, DetectionArray
 from visualization_msgs.msg import Marker
 
-from grasp_checker import check_grasp_hsr
+from grasp_checker import check_grasp_hsr, get_tf_transform, get_transmat_from_tf_trans
 
 
 class FindGrasppointServer:
@@ -102,14 +102,20 @@ class FindGrasppointServer:
         self.server.set_aborted()
         return
 
-
       grasp_object = object_poses_result.poses[object_nr]
-      print(grasp_object)
 
       rospy.wait_for_message(self.pointcloud_topic, PointCloud2, timeout=15)
       scene_cloud = self.cloud
-      valid_poses = check_grasp_hsr(grasp_object, scene_cloud, True)
+      if rospy.get_param('/use_table_grasp_checker'):
+        from get_table_plane import GetTablePlane
+        TableGetter = GetTablePlane()
+        table_plane = TableGetter.get_table_plane()
+        print(table_plane)
+      else:
+        table_plane = None
 
+      valid_poses = check_grasp_hsr(grasp_object, scene_cloud, table_plane=table_plane, visualize=True)
+      
       if len(valid_poses) == 0:
         rospy.loginfo('no grasp found')
         self.server.set_aborted()

@@ -24,8 +24,6 @@ tmux select-pane -t 0
 tmux send-keys "roslaunch hsrb_moveit_config move_group.launch"
 tmux send-keys enter
 tmux select-pane -t 1
-tmux send-keys "roslaunch hsrb_grasping verefine_grasping.launch"
-tmux send-keys enter
 tmux select-pane -t 2
 tmux send-keys "source /home/v4r/Markus_L/devel/setup.bash" C-m
 tmux send-keys "roslaunch grasping_pipeline statemachine.launch"

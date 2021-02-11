@@ -240,8 +240,10 @@ def points_to_plane(points):
 
     return coefficients
 
-def get_tf_transform(tfBuffer, origin_frame, target_frame):
+def get_tf_transform(origin_frame, target_frame):
     import tf2_ros, rospy
+    tfBuffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(tfBuffer)
     tf_found = False
     while not tf_found:
         try:
@@ -251,7 +253,17 @@ def get_tf_transform(tfBuffer, origin_frame, target_frame):
             rospy.sleep(0.2)
     return trans
 
-def check_grasp_hsr(pose_odm, scene_cloud_ros, visualize=False):
+def get_transmat_from_tf_trans(trans):
+    import numpy as np
+    import transforms3d as tf3d
+    rot = tf3d.quaternions.quat2mat([trans.transform.rotation.w, trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z])
+    transmat = np.eye(4)
+    transmat[:3, :3] = rot
+    transmat[:3, 3] = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z]
+    return transmat
+
+
+def check_grasp_hsr(pose_odm, scene_cloud_ros, table_plane = None, visualize=False):
     """
     Takes a object pose (in '/map' frame) and detects which of the saved grasps are reachable with the GraspChecker.
 
@@ -261,7 +273,10 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, visualize=False):
         object pose, with attributes pose, name and confidence
     scene_cloud_ros: sensor_msgs.msg.PointCloud2
         Pointcloud of the scene
-    
+    table_plane: np.array, optional
+        Table plane parameters (4 values)
+    visualize: bool, optional
+        if True, then scene cloud and gripper cloud are published for RViz. Default is False
     Returns
     -------
     valid_poses: geometry_msgs.msg.PoseStamped[]
@@ -273,21 +288,15 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, visualize=False):
     import rospy
     from sensor_msgs.msg import PointCloud2
     from geometry_msgs.msg import PoseStamped
-    #table_plane = np.array([0.01, 0.002, 0.0, 0.9999, -0.45]) #get it from Table Store
-    table_plane = None
 
     grasp_checker = GraspChecker()
     o3dcloud = orh.rospc_to_o3dpc(scene_cloud_ros, True)
     grasp_checker.set_scene_data(o3dcloud)
 
-    tfBuffer = tf2_ros.Buffer()
-    listener = tf2_ros.TransformListener(tfBuffer)
-    trans = get_tf_transform(tfBuffer, 'map', 'head_rgbd_sensor_rgb_frame')
 
-    rot = tf3d.quaternions.quat2mat([trans.transform.rotation.w, trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z])
-    cam_to_base = np.eye(4)
-    cam_to_base[:3, :3] = rot
-    cam_to_base[:3, 3] = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z]
+    trans = get_tf_transform('map', 'head_rgbd_sensor_rgb_frame')
+
+    cam_to_base = get_transmat_from_tf_trans(trans)
 
     rot = tf3d.quaternions.quat2mat([pose_odm.pose.orientation.w, pose_odm.pose.orientation.x, 
                                     pose_odm.pose.orientation.y, pose_odm.pose.orientation.z])
@@ -306,11 +315,8 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, visualize=False):
         grasp_try = np.eye(4)
         grasp_try = np.matmul(object_pose, pose)
         res = grasp_checker.is_grasp_valid(o3dcloud, grasp_try, table_plane = table_plane, cam_to_base=cam_to_base)
-        trans = get_tf_transform(tfBuffer, 'wrist_flex_link', 'head_rgbd_sensor_rgb_frame')
-        rot = tf3d.quaternions.quat2mat([trans.transform.rotation.w, trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z])
-        cam_to_wrist = np.eye(4)
-        cam_to_wrist[:3, :3] = rot
-        cam_to_wrist[:3, 3] = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z]
+        trans = get_tf_transform('wrist_flex_link', 'head_rgbd_sensor_rgb_frame')
+        cam_to_wrist = get_transmat_from_tf_trans(trans)
         grasp_try_wrist = np.matmul(cam_to_wrist, grasp_try)
         dist = np.linalg.norm(grasp_try_wrist[:3,3])
         dist_to_wrist.append(dist)

@@ -1,4 +1,7 @@
 use_map: False  # True
 grasp_check: False
-grasppoint_offset_haf: 0.04 #0.07
 safety_distance: 0.08
+
+## find_grasppoint_server parameters
+grasppoint_offset_haf: 0.04 #0.07
+use_table_grasp_checker: True
