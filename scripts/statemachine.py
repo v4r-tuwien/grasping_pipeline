@@ -52,35 +52,6 @@ states_keys = {States.GRASP: 'g',
                States.CONFIG: 'c',
                States.CLEAN_TABLE: 't'}
 
-# Mapping of numbers to object names
-objects_keys = {
-                1: "002_master_chef_can",
-                2: "003_cracker_box",
-                3: "005_tomato_soup_can",
-                4: "006_mustard_bottle",
-                5: "009_gelatin_box",
-                6: "010_potted_meat_can",
-                7: '011_banana',
-                8: '021_bleach_cleanser',
-                9: '024_bowl',
-                10: '025_mug',
-#                11: '035_power_drill',
-                11: '061_foam_brick'}
-
-
-objects_display_names= {1: "Coffee Master Chef",
-                        2: "Cracker Cheezit",
-                        3: "Tomato Soup",
-                        4: "Mustard",
-                        5: "Gelatin Jello",
-                        6: "Potted Meat Spam",
-                        7: 'Banana',
-                        8: 'Bleach Cleanser Soft Scrub',
-                        9: 'Bowl',
-                        10: 'Mug',
-#                        11: 'Power Drill',
-                        11: 'Foam Brick'}
-
 
 class UserInput(smach.State):
     def __init__(self):
@@ -96,11 +67,14 @@ class UserInput(smach.State):
         self.params = { 'use_map': self.use_map,
                         'grasp_check': self.grasp_check,
                         'clean_table': self.clean_table}
+        self.objects_keys = rospy.get_param("/objects_keys")
+        self.objects_display_names = rospy.get_param("/objects_display_names")
 
     def execute(self, userdata):
         rospy.loginfo('Executing state UserInput')
-        objects_to_find = objects_keys.values()
-        objects_to_find.extend(['teddy bear', 'banana', 'bottle', 'sports ball', 'dog'])
+
+        objects_to_find = self.objects_keys.values()
+        objects_to_find.extend(['teddy bear', 'banana', 'bottle', 'sports ball', 'dog', '000002'])
         userdata.objects_to_find = objects_to_find
         self.print_help()
         while not rospy.is_shutdown():
@@ -154,9 +128,9 @@ class UserInput(smach.State):
                     while True:
                         user_input = raw_input('CMD> ')
                         if user_input.isdigit():
-                            if int(user_input) < len(objects_keys)+1: 
+                            if int(user_input) < len(self.objects_keys)+1: 
                                 print('chosen number is {}'.format(user_input))
-                                userdata.objects_to_find = [objects_keys[int(user_input)]]
+                                userdata.objects_to_find = [self.objects_keys[user_input]]
                                 if self.use_map:
                                     return 'go_to_table'                    
                                 return 'grasping'
@@ -180,9 +154,9 @@ class UserInput(smach.State):
                     while True:
                         user_input = raw_input('CMD> ')
                         if user_input.isdigit():
-                            if int(user_input) < len(objects_keys)+1: 
+                            if int(user_input) < len(self.objects_keys)+1: 
                                 print('chosen number is {}'.format(user_input))
-                                userdata.objects_to_find = [objects_keys[int(user_input)]]
+                                userdata.objects_to_find = [self.objects_keys[user_input]]
                                 if self.use_map:
                                     return 'go_to_table'                    
                                 return 'grasping'
@@ -247,8 +221,8 @@ class UserInput(smach.State):
                     while True:
                         user_input = raw_input('CMD> ')
                         if user_input.isdigit():
-                            if int(user_input) < len(objects_keys)+1: 
-                                userdata.objects_to_find = [objects_keys[int(user_input)]]
+                            if int(user_input) < len(self.objects_keys)+1: 
+                                userdata.objects_to_find = [self.objects_keys[user_input]]
                                 return 'find_grasp'
                         if user_input == 'q':
                             self.print_help()
@@ -266,8 +240,8 @@ class UserInput(smach.State):
                     while True:
                         user_input = raw_input('CMD> ')
                         if user_input.isdigit():
-                            if int(user_input) < len(objects_keys)+1: 
-                                userdata.objects_to_find = [objects_keys[int(user_input)]]
+                            if int(user_input) < len(self.objects_keys)+1: 
+                                userdata.objects_to_find = [self.objects_keys[user_input]]
                                 return 'find_grasp'
                         if user_input == 'q':
                             self.print_help()
@@ -348,8 +322,8 @@ class UserInput(smach.State):
             print(states_keys[member] + ' - ' + name)
     
     def print_objects(self):
-        for i in range(len(objects_display_names)):
-            print('{}'.format(i+1) + ' - ' + objects_display_names[i+1])
+        for i in range(len(self.objects_display_names)):
+            print('{} - {}'.format(i+1,self.objects_display_names[str(i+1)]))
 
 
 class GoToNeutral(smach.State):
