@@ -75,12 +75,19 @@ class FindGrasppointServer:
             # use detectron and find a rough grasp center, that is needed for HAF grasping
             rough_grasp_object_center = self.get_grasp_object_center_detectron(
                 object_names)
-            if rough_grasp_object_center is -1:
+            
+            if rough_grasp_object_center == -1:
                 self.server.set_aborted()
                 return
 
             grasp_result_haf = self.call_haf_grasping(
                 rough_grasp_object_center)
+            
+            if grasp_result_haf.graspOutput.eval <= 0:
+                rospy.logerr(
+                    'HAF grasping did not deliver successful result. Eval below 0')
+                self.server.set_aborted()
+                return
             grasp_pose = self.convert_haf_result_for_moveit(grasp_result_haf)
 
             result.grasp_poses = grasp_pose
@@ -178,12 +185,12 @@ class FindGrasppointServer:
             grasp_pose.point = object_poses_result.poses[object_nr].pose.position
             grasp_pose.header.frame_id = 'head_rgbd_sensor_rgb_frame'  # head_rgbd_sensor_link
             self.Transformer.waitForTransform(
-                '/base_link', '/head_rgbd_sensor_rgb_frame', rospy.Time(), rospy.Duration(4.0))
+                'base_link', 'head_rgbd_sensor_rgb_frame', rospy.Time(), rospy.Duration(4.0))
             grasp_pose = self.Transformer.transformPoint(
-                '/base_link', grasp_pose)
+                'base_link', grasp_pose)
 
             rough_grasp_object_center = grasp_pose
-            if rough_grasp_object_center is -1:
+            if rough_grasp_object_center == -1:
                 self.server.set_aborted()
                 return
 
@@ -278,10 +285,10 @@ class FindGrasppointServer:
         if chosen_object.score == 0:
             return -1
 
-        image_x = chosen_object.bbox.xmin + \
-            (chosen_object.bbox.xmax-chosen_object.bbox.xmin)/2
-        image_y = chosen_object.bbox.ymin + \
-            (chosen_object.bbox.ymax-chosen_object.bbox.ymin)/2
+        image_x = int(chosen_object.bbox.xmin + \
+            (chosen_object.bbox.xmax-chosen_object.bbox.xmin)/2)
+        image_y = int(chosen_object.bbox.ymin + \
+            (chosen_object.bbox.ymax-chosen_object.bbox.ymin)/2)
         self.object_name = chosen_object.name
 
         # get bounding box center from pointcloud
@@ -291,7 +298,6 @@ class FindGrasppointServer:
         points = pc2.read_points_list(
             self.my_cloud, field_names=None, skip_nans=False)
         index = image_y*self.my_cloud.width+image_x
-
         center = points[index]
         # check if there is a valid point, otherwise go down a row
         while isnan(center[0]):
@@ -303,15 +309,15 @@ class FindGrasppointServer:
 
         # transform the rough grasp point to base_link
         self.Transformer.waitForTransform(
-            '/base_link', '/head_rgbd_sensor_rgb_frame', rospy.Time(), rospy.Duration(4.0))
+            'base_link', 'head_rgbd_sensor_rgb_frame', rospy.Time(), rospy.Duration(4.0))
         pose_goal = geometry_msgs.msg.Pose()
         point = geometry_msgs.msg.PointStamped()
         point.point.x = center[0]
         point.point.y = center[1]
         point.point.z = center[2]
-        point.header.frame_id = '/head_rgbd_sensor_rgb_frame'
+        point.header.frame_id = 'head_rgbd_sensor_rgb_frame'
         point_transformed = self.Transformer.transformPoint(
-            '/base_link', point)
+            'base_link', point)
         return point_transformed
 
     # def get_grasp_object_center_yolo(self, object_names):
@@ -347,13 +353,13 @@ class FindGrasppointServer:
     #         return -1
     #       center = points[index]
 
-    #   self.Transformer.waitForTransform('/base_link', '/head_rgbd_sensor_link', rospy.Time(), rospy.Duration(4.0))
+    #   self.Transformer.waitForTransform('base_link', '/head_rgbd_sensor_link', rospy.Time(), rospy.Duration(4.0))
     #   point = geometry_msgs.msg.PointStamped()
     #   point.point.x = center[0]
     #   point.point.y = center[1]
     #   point.point.z = center[2]
     #   point.header.frame_id = '/head_rgbd_sensor_link'
-    #   point_transformed = self.Transformer.transformPoint('/base_link', point)
+    #   point_transformed = self.Transformer.transformPoint('base_link', point)
     #   return point_transformed
 
     def call_haf_grasping(self, search_center):
@@ -375,8 +381,8 @@ class FindGrasppointServer:
         grasp_goal.goal.graspinput.approach_vector.z = self.approach_vector_z
 
         grasp_goal.goal.graspinput.input_pc = self.my_cloud
-        grasp_goal.goal.graspinput.max_calculation_time = rospy.Time(15)
-        grasp_goal.goal.graspinput.gripper_opening_width = 1.0
+        grasp_goal.goal.graspinput.max_calculation_time = rospy.Duration(15)
+        grasp_goal.goal.graspinput.gripper_opening_width = 1
         self.haf_client.wait_for_server()
         self.haf_client.send_goal(grasp_goal.goal)
         self.haf_client.wait_for_result()
@@ -404,7 +410,7 @@ class FindGrasppointServer:
         q = quaternion_from_matrix(rot_mat)
 
         self.Transformer.waitForTransform(
-            '/odom', '/base_link', rospy.Time(), rospy.Duration(4.0))
+            'odom', 'base_link', rospy.Time(), rospy.Duration(4.0))
 
         grasp_pose_bl = geometry_msgs.msg.PoseStamped()
 
@@ -418,12 +424,12 @@ class FindGrasppointServer:
             rospy.get_param("/grasppoint_offset_haf", default=0.04)*av[1]
         grasp_pose_bl.pose.position.z = grasp_result_haf.graspOutput.averagedGraspPoint.z - \
             rospy.get_param("/grasppoint_offset_haf", default=0.04)*av[2]
-        grasp_pose_bl.header.frame_id = '/base_link'
+        grasp_pose_bl.header.frame_id = 'base_link'
 
         self.add_marker(grasp_pose_bl)
         grasp_pose = []
         grasp_pose.append(
-            self.Transformer.transformPose('/odom', grasp_pose_bl))
+            self.Transformer.transformPose('odom', grasp_pose_bl))
         return grasp_pose
 
     def add_marker(self, pose_goal):
