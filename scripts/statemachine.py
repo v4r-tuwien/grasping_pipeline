@@ -57,6 +57,72 @@ states_keys = {States.GRASP: 'g',
 
 
 class UserInput(smach.State):
+    """ Initial smach state for the statemachine
+    Serves as simple user interface in the terminal
+    Captures input from the terimal and sets userdata
+    Sets outcomes depending on the input
+
+    Userdata:
+        Input keys:
+            found_grasp_poses {geometry_msgs/PoseStamped[]}:
+                    result from find_grasppoint action
+
+        Output keys:
+            find_grasppoint_method {int}:
+                    method identifier, 1-4
+                    1 - detectron and HAF grasping
+                    2 - verefine pipeline
+                    3 - verefine pipeline and HAF
+                    4 - pyrapose pipeline
+
+            objects_to_find {list of str}: object names that are considered
+                                           in find_grasppoint action
+
+            params {dic}: additional parameters
+                use_map: When True, robot moves to fixed points
+                         on the map, otherwise only relative movement
+                grasp_check: When True, robot twists the hand
+                             after grasp to ensure a stable grasp
+                clean_table: When True, robot is in clear table routine,
+                             grasps and handovers are performed until
+                             the table is empty
+
+            find_grasppoint_tries {int}: how often find_grasppoint was
+                                         called in a grasp run, relevant
+                                         for table clearing routine
+
+    Outcomes:
+        quitting: input "q", the statemachine will transition to
+                  it's final outcome and end the program.
+
+        neutral: input "n", transition to GO_TO_NEUTRAL State,
+                 robot will assume a fixed position staring down
+
+        grasping: input "g", transition to FIND_GRASPPOINT State,
+                  robot will search a grasppoint and execute it
+                  expects a second input to choose method
+                  This outcome is only possible when the map
+                  is not used (self.use_map == False)
+                  or input "t", Clean table routine that will not
+                  go back to this state after an succesful attempt
+                  and rather grasp objects until the table is empty
+
+        opening: input "o", transition to OPENING State,
+                 will open the gripper
+
+        find_grasp: input "f", transition to ONLY_FIND_GRASPPOINT State,
+                    no grasp execution after finding a grasppoint
+                    expects a second input to choose method
+
+        execute_grasp: input "e", transition to EXECUTE_GRASP State,
+                       only possible if ONLY_FIND_GRASPPOINT State was
+                       executed before
+
+        go_to_table: input "g" or "t", transition to GO_TO_TABLE State,
+                     robot will drive to the table before searching a
+                     grasppoint and executing it
+    """
+
     def __init__(self):
         smach.State.__init__(self, outcomes=['quitting', 'neutral', 'grasping', 'opening',
                                              'find_grasp', 'execute_grasp', 'go_to_table'],
@@ -132,7 +198,7 @@ class UserInput(smach.State):
                     while True:
                         user_input = input('CMD> ')
                         if user_input.isdigit():
-                            if int(user_input) < len(self.objects_keys)+1:
+                            if int(user_input) < len(self.objects_keys) + 1:
                                 print('chosen number is {}'.format(user_input))
                                 userdata.objects_to_find = [
                                     self.objects_keys[user_input]]
@@ -159,7 +225,7 @@ class UserInput(smach.State):
                     while True:
                         user_input = input('CMD> ')
                         if user_input.isdigit():
-                            if int(user_input) < len(self.objects_keys)+1:
+                            if int(user_input) < len(self.objects_keys) + 1:
                                 print('chosen number is {}'.format(user_input))
                                 userdata.objects_to_find = [
                                     self.objects_keys[user_input]]
@@ -191,7 +257,7 @@ class UserInput(smach.State):
                 try:
                     print(userdata.found_grasp_poses)
 
-                except:
+                except BaseException:
                     print(
                         'No grasp pose found yet. Have you executed "FIND_GRASP" before?')
             # Show commands
@@ -228,7 +294,7 @@ class UserInput(smach.State):
                     while True:
                         user_input = input('CMD> ')
                         if user_input.isdigit():
-                            if int(user_input) < len(self.objects_keys)+1:
+                            if int(user_input) < len(self.objects_keys) + 1:
                                 userdata.objects_to_find = [
                                     self.objects_keys[user_input]]
                                 return 'find_grasp'
@@ -248,7 +314,7 @@ class UserInput(smach.State):
                     while True:
                         user_input = input('CMD> ')
                         if user_input.isdigit():
-                            if int(user_input) < len(self.objects_keys)+1:
+                            if int(user_input) < len(self.objects_keys) + 1:
                                 userdata.objects_to_find = [
                                     self.objects_keys[user_input]]
                                 return 'find_grasp'
@@ -266,7 +332,7 @@ class UserInput(smach.State):
                 rospy.loginfo('Execute last found grasp')
                 try:
                     return 'execute_grasp'
-                except:
+                except BaseException:
                     print(
                         'No grasp pose found yet. Have you executed "FIND_GRASP" before?')
                     self.print_help()
@@ -281,7 +347,9 @@ class UserInput(smach.State):
                         q = [pose_goal.pose.orientation.x, pose_goal.pose.orientation.y,
                              pose_goal.pose.orientation.z, pose_goal.pose.orientation.w]
                         br = tf.TransformBroadcaster()
-                        br.sendTransform((pose_goal.pose.position.x, pose_goal.pose.position.y, pose_goal.pose.position.z),
+                        br.sendTransform((pose_goal.pose.position.x,
+                                          pose_goal.pose.position.y,
+                                          pose_goal.pose.position.z),
                                          q,
                                          rospy.Time.now(),
                                          'grasp_poses',
@@ -330,15 +398,48 @@ class UserInput(smach.State):
                 rospy.logwarn('Unrecognized command %s', char_in)
 
     def print_help(self):
+        """ prints states_keys and their names
+        e.g.:
+        states_keys = {States.EXAMPLE: 'a',
+                    States.ANOTHER_ONE: 'b'}
+        output:
+               a - EXAMPLE
+               b - ANOTHER_ONE
+                ...
+        """
         for name, member in States.__members__.items():
             print(states_keys[member] + ' - ' + name)
 
     def print_objects(self):
+        """ prints object names and their identifiers
+        defined in config/standard.yaml
+        """
         for i in range(len(self.objects_display_names)):
-            print('{} - {}'.format(i+1, self.objects_display_names[str(i+1)]))
+            print('{} - {}'.format(i + 1,
+                                   self.objects_display_names[str(i + 1)]))
 
 
 class GoToNeutral(smach.State):
+    """ Smach state that will move the robots joints to a
+    predefined position, gazing at a fixed point.
+
+    Userdata:
+        Input Keys:
+            params {dic}: additional parameters
+                use_map: When True, robot moves to fixed points
+                         on the map, otherwise only relative movement
+                grasp_check: When True, robot twists the hand
+                             after grasp to ensure a stable grasp
+                clean_table: When True, robot is in clear table routine,
+                             grasps and handovers are performed until
+                             the table is empty
+
+    Outcomes:
+        succeeded: transition to USER_INPUT State
+        continuing: in the clear table routine,
+                    transition to GO_TO_TABLE State
+    """
+
     def __init__(self):
         smach.State.__init__(self, input_keys=['params'], outcomes=[
                              'succeeded', 'continuing'])
@@ -351,7 +452,7 @@ class GoToNeutral(smach.State):
     def execute(self, userdata):
         rospy.loginfo('Executing state GoToNeutral')
         self.whole_body.move_to_neutral()
-        self.whole_body.move_to_joint_positions({'arm_roll_joint': pi/2})
+        self.whole_body.move_to_joint_positions({'arm_roll_joint': pi / 2})
         self.whole_body.gaze_point((0.8, 0.05, 0.4))
         if userdata.params.get('clean_table'):
             return 'continuing'
@@ -359,6 +460,39 @@ class GoToNeutral(smach.State):
 
 
 class GoBackAndNeutral(smach.State):
+    """ Smach state that will move the robot either backwards (use_map is False)
+    or to a predefined position on the map (use_map is True)
+    Also moves the joints to the neutral position
+    Grasp check (turning the wrist) will be done here if enabled
+
+    Userdata:
+        Input Keys:
+            params {dic}: additional parameters
+                use_map: When True, robot moves to fixed points
+                         on the map, otherwise only relative movement
+                grasp_check: When True, robot twists the hand
+                             after grasp to ensure a stable grasp
+                clean_table: When True, robot is in clear table routine,
+                             grasps and handovers are performed until
+                             the table is empty
+        Output keys:
+            find_grasppoint_method {int}:
+                    method identifier, 1-4
+                    1 - detectron and HAF grasping
+                    2 - verefine pipeline
+                    3 - verefine pipeline and HAF
+                    4 - pyrapose pipeline
+
+            find_grasppoint_tries {int}: how often find_grasppoint was
+                                         called in a grasp run, relevant
+                                         for table clearing routine
+
+    Outcomes:
+        succeeded: transition to USER_INPUT State
+        continuing: in the clear table routine,
+                    transition to GO_TO_TABLE State
+    """
+
     def __init__(self):
         smach.State.__init__(self, input_keys=['params'],
                              output_keys=['find_grasppoint_tries',
@@ -375,6 +509,7 @@ class GoBackAndNeutral(smach.State):
     def execute(self, userdata):
         rospy.loginfo('Executing state GoToNeutral')
         userdata.find_grasppoint_tries = 0
+        # TODO check if and why that is necessary?
         userdata.find_grasppoint_method = 2
         if userdata.params.get('use_map'):
             move_goal = MoveBaseGoal()
@@ -398,6 +533,12 @@ class GoBackAndNeutral(smach.State):
 
 
 class Opening(smach.State):
+    """ Opens the robots gripper
+
+    Outcomes:
+        succeeded: transitions to USER_INPUT State
+    """
+
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded'])
 
@@ -412,6 +553,15 @@ class Opening(smach.State):
 
 
 class GoToTable(smach.State):
+    """ robot moves to a fixed position near the table
+    using a move_base action goal
+    also moves joints to neutral position
+
+    Outcomes:
+        succeeded: transitions to FIND_GRASPPOINT State
+        aborted: transitions to USER_INPUT State
+    """
+
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded', 'aborted'])
         self.move_client = actionlib.SimpleActionClient(
@@ -432,6 +582,7 @@ class GoToTable(smach.State):
 
         if result:
             # go to neutral
+            # TODO use this command in other neutral position moves too
             self.whole_body.move_to_joint_positions(neutral_joint_positions)
             rospy.sleep(1.0)
 
@@ -446,6 +597,43 @@ class GoToTable(smach.State):
 
 
 class NoGrasppointFound(smach.State):
+    """ Smach state that will move the robot either backwards (use_map is False)
+    or to a predefined position on the map (use_map is True)
+    Also moves the joints to the neutral position
+    Grasp check (turning the wrist) will be done here if enabled
+
+    Userdata:
+        Input Keys:
+            params {dic}: additional parameters
+                use_map: When True, robot moves to fixed points
+                         on the map, otherwise only relative movement
+                grasp_check: When True, robot twists the hand
+                             after grasp to ensure a stable grasp
+                clean_table: When True, robot is in clear table routine,
+                             grasps and handovers are performed until
+                             the table is empty
+
+            find_grasppoint_tries {int}: how often find_grasppoint was
+                                         called in a grasp run, relevant
+                                         for table clearing routine
+        Output keys:
+            find_grasppoint_method {int}:
+                    method identifier, 1-4
+                    1 - detectron and HAF grasping
+                    2 - verefine pipeline
+                    3 - verefine pipeline and HAF
+                    4 - pyrapose pipeline
+
+            find_grasppoint_tries {int}: how often find_grasppoint was
+                                         called in a grasp run, relevant
+                                         for table clearing routine
+
+    Outcomes:
+        find_grasp: transition to FIND_GRASPPOINT State
+        user_input: transition to USER_INPUT State,
+                    ends clear table routine
+    """
+
     def __init__(self):
         smach.State.__init__(self, output_keys=['find_grasppoint_tries', 'find_grasppoint_method'],
                              input_keys=['params', 'find_grasppoint_tries'],

@@ -50,7 +50,7 @@ class ExecuteGraspServer:
         t = self.tf.getLatestCommonTime('/odom', '/base_link')
         transform = self.tf.lookupTransform('/odom', '/base_link', t)
         move_group.set_workspace(
-            (-1.5+transform[0][0], -1.5+transform[0][1], -1, 1.5+transform[0][0], 1.5+transform[0][1], 3))
+            (-1.5 + transform[0][0], -1.5 + transform[0][1], -1, 1.5 + transform[0][0], 1.5 + transform[0][1], 3))
 
         move_group.allow_replanning(True)
         # move_group.set_num_planning_attempts(5)
@@ -79,11 +79,11 @@ class ExecuteGraspServer:
             safety_distance = + \
                 rospy.get_param("/safety_distance", default=0.08)
             grasp_pose.pose.position.x = grasp_pose.pose.position.x + \
-                safety_distance*approach_vector[0]
+                safety_distance * approach_vector[0]
             grasp_pose.pose.position.y = grasp_pose.pose.position.y + \
-                safety_distance*approach_vector[1]
+                safety_distance * approach_vector[1]
             grasp_pose.pose.position.z = grasp_pose.pose.position.z + \
-                safety_distance*approach_vector[2]
+                safety_distance * approach_vector[2]
 
             t = self.tf.getLatestCommonTime(
                 '/odom', grasp_pose.header.frame_id)
@@ -134,7 +134,8 @@ class ExecuteGraspServer:
             rospy.logerr('grasping failed')
             self.server.set_aborted()
 
-    def add_box(self, name, position_x=0, position_y=0, position_z=0, size_x=0.1, size_y=0.1, size_z=0.1):
+    def add_box(self, name, position_x=0, position_y=0,
+                position_z=0, size_x=0.1, size_y=0.1, size_z=0.1):
         rospy.sleep(0.2)
         box_pose = geometry_msgs.msg.PoseStamped()
         box_pose.header.frame_id = "map"
@@ -146,7 +147,7 @@ class ExecuteGraspServer:
         self.scene.add_box(box_name, box_pose, size=(size_x, size_y, size_z))
 
     def create_collision_environment(self):
-        #if self.use_map:
+        # if self.use_map:
         #    self.add_box('table', 0.39, -0.765, 0.175, 0.52, 0.52, 0.35)
         #    self.add_box('cupboard', 1.4, 1.1, 1, 2.5, 1, 2)
         #    self.add_box('desk', -1.5, -0.9, 0.4, 0.8, 1.8, 0.8)
@@ -155,6 +156,11 @@ class ExecuteGraspServer:
         self.add_box('floor', 0, 0, -0.1, 15, 15, 0.1)
 
     def add_marker(self, pose_goal):
+        """ publishes a grasp marker to /grasping_pipeline/grasp_marker
+
+        Arguments:
+            pose_goal {geometry_msgs.msg.PoseStamped} -- pose for the grasp marker
+        """
         br = tf.TransformBroadcaster()
         br.sendTransform((pose_goal.pose.position.x, pose_goal.pose.position.y, pose_goal.pose.position.z),
                          [pose_goal.pose.orientation.x, pose_goal.pose.orientation.y,
@@ -175,7 +181,7 @@ class ExecuteGraspServer:
 
         q2 = [pose_goal.pose.orientation.w, pose_goal.pose.orientation.x,
               pose_goal.pose.orientation.y, pose_goal.pose.orientation.z]
-        q = tf.transformations.quaternion_about_axis(pi/2, (0, 1, 0))
+        q = tf.transformations.quaternion_about_axis(pi / 2, (0, 1, 0))
         q = tf.transformations.quaternion_multiply(q, q2)
 
         marker.pose.orientation.w = q[0]

@@ -72,17 +72,18 @@ class FindGrasppointServer:
             rospy.loginfo('Chosen Method is Detectron + HAF')
             #rough_grasp_object_center = self.get_grasp_object_center_yolo(object_names)
 
-            # use detectron and find a rough grasp center, that is needed for HAF grasping
+            # use detectron and find a rough grasp center, that is needed for
+            # HAF grasping
             rough_grasp_object_center = self.get_grasp_object_center_detectron(
                 object_names)
-            
+
             if rough_grasp_object_center == -1:
                 self.server.set_aborted()
                 return
 
             grasp_result_haf = self.call_haf_grasping(
                 rough_grasp_object_center)
-            
+
             if grasp_result_haf.graspOutput.eval <= 0:
                 rospy.logerr(
                     'HAF grasping did not deliver successful result. Eval below 0')
@@ -99,7 +100,7 @@ class FindGrasppointServer:
             rospy.loginfo('Chosen Method is VEREFINE')
             try:
                 object_poses_result = self.verefine_get_poses()
-            except:
+            except BaseException:
                 rospy.loginfo('Aborted: error when calling get_poses service.')
                 self.server.set_aborted()
                 return
@@ -152,12 +153,13 @@ class FindGrasppointServer:
             rospy.loginfo('Chosen Method is VeREFINE + HAF')
             #rough_grasp_object_center = self.get_grasp_object_center_yolo(object_names)
 
-            # use detectron and find a rough grasp center, that is needed for HAF grasping
+            # use detectron and find a rough grasp center, that is needed for
+            # HAF grasping
             self.verefine_object_found = False
             rospy.loginfo('Chosen Method is VEREFINE')
             try:
                 object_poses_result = self.verefine_get_poses()
-            except:
+            except BaseException:
                 rospy.loginfo('Aborted: error when calling get_poses service.')
                 self.server.set_aborted()
                 return
@@ -215,7 +217,7 @@ class FindGrasppointServer:
             try:
                 object_poses_result = self.pyrapose_get_poses()
                 print(object_poses_result)
-            except:
+            except BaseException:
                 rospy.loginfo('Aborted: error when calling get_poses service.')
                 self.server.set_aborted()
                 return
@@ -266,6 +268,21 @@ class FindGrasppointServer:
         self.detectron_detection = data
 
     def get_grasp_object_center_detectron(self, object_names):
+        """ gets Detectron2 detections, chooses the closest object
+        to the robot from the detections. Only consideres detections that
+        are listed in object_names, since most detections are not relevant
+        for grasping, e.g. "dining table" or "person"
+
+        Arguments:
+            object_names {list of str} -- names of the objects that are
+                considered for grasping. Detections like e.g. "bottle"
+                or "sports ball" are graspable objects that could be listed.
+
+
+        Returns:
+            geometry_msgs.msg.PointStamped -- rough object position in
+                "base_link" frame
+        """
         # get detections from detectron
         self.start_detectron()
         detections = rospy.wait_for_message(
@@ -285,10 +302,10 @@ class FindGrasppointServer:
         if chosen_object.score == 0:
             return -1
 
-        image_x = int(chosen_object.bbox.xmin + \
-            (chosen_object.bbox.xmax-chosen_object.bbox.xmin)/2)
-        image_y = int(chosen_object.bbox.ymin + \
-            (chosen_object.bbox.ymax-chosen_object.bbox.ymin)/2)
+        image_x = int(chosen_object.bbox.xmin +
+                      (chosen_object.bbox.xmax - chosen_object.bbox.xmin) / 2)
+        image_y = int(chosen_object.bbox.ymin +
+                      (chosen_object.bbox.ymax - chosen_object.bbox.ymin) / 2)
         self.object_name = chosen_object.name
 
         # get bounding box center from pointcloud
@@ -297,13 +314,13 @@ class FindGrasppointServer:
         self.my_cloud = self.cloud
         points = pc2.read_points_list(
             self.my_cloud, field_names=None, skip_nans=False)
-        index = image_y*self.my_cloud.width+image_x
+        index = image_y * self.my_cloud.width + image_x
         center = points[index]
         # check if there is a valid point, otherwise go down a row
         while isnan(center[0]):
-            index = index+self.my_cloud.width
+            index = index + self.my_cloud.width
             rospy.loginfo('index = {}'.format(index))
-            if index > len(points)-1:
+            if index > len(points) - 1:
                 return -1
             center = points[index]
 
@@ -363,6 +380,21 @@ class FindGrasppointServer:
     #   return point_transformed
 
     def call_haf_grasping(self, search_center):
+        """ Writes the goal for HAF grasping action, calls the action and
+        returns the result
+        The approach vector is set to [0,0,1]
+
+        Arguments:
+            search_center {geometry_msgs.msg.PointStamped} --
+                rough x-,y-position, that is the center of the area
+                where grasps are searched
+
+        Returns:
+            haf_grasping.msg.CalcGraspPointsServerActionResult --
+                Result from HAF grasping
+                Result contains a GraspOutput message:
+                https://github.com/davidfischinger/haf_grasping/blob/master/msg/GraspOutput.msg
+        """
         # approach vector for top grasps
         self.approach_vector_x = 0.0
         self.approach_vector_y = 0.0
@@ -372,7 +404,7 @@ class FindGrasppointServer:
         grasp_goal.goal.graspinput.goal_frame_id = search_center.header.frame_id
         grasp_goal.goal.graspinput.grasp_area_center.x = search_center.point.x
         grasp_goal.goal.graspinput.grasp_area_center.y = search_center.point.y
-        grasp_goal.goal.graspinput.grasp_area_center.z = search_center.point.z+0.1
+        grasp_goal.goal.graspinput.grasp_area_center.z = search_center.point.z + 0.1
         grasp_goal.goal.graspinput.grasp_area_length_x = 20
         grasp_goal.goal.graspinput.grasp_area_length_y = 20
 
@@ -390,6 +422,20 @@ class FindGrasppointServer:
         return grasp_result
 
     def convert_haf_result_for_moveit(self, grasp_result_haf):
+        """ Takes the result from HAF grasping and converts it to a
+        PoseStamped in "odom" frame. HAF does not return a quaternion
+        for the orientation, therefore this conversion is necessary.
+
+        Arguments:
+            grasp_result_haf {haf_grasping.msg.CalcGraspPointsServerActionResult} --
+                Result from HAF grasping
+                Result contains a GraspOutput message:
+                https://github.com/davidfischinger/haf_grasping/blob/master/msg/GraspOutput.msg
+
+        Returns:
+            [list of geometry_msgs.msg.PoseStamped] -- The transformed PoseStamped
+                in "odom" frame
+        """
         av = unit_vector([-grasp_result_haf.graspOutput.approachVector.x,
                           -grasp_result_haf.graspOutput.approachVector.y,
                           -grasp_result_haf.graspOutput.approachVector.z])
@@ -402,7 +448,7 @@ class FindGrasppointServer:
                         grasp_result_haf.graspOutput.graspPoint2.y,
                         grasp_result_haf.graspOutput.graspPoint2.z])
 
-        gc = unit_vector(gp2-gp1)
+        gc = unit_vector(gp2 - gp1)
         c = np.cross(gc, av)
         #rot_mat = np.array([[av[0], gc[0], c[0], 0], [av[1], gc[1], c[1], 0], [av[2], gc[2], c[2], 0], [0,0,0,1]])
         rot_mat = np.array([[c[0], gc[0], av[0], 0], [c[1], gc[1], av[1], 0], [
@@ -419,11 +465,11 @@ class FindGrasppointServer:
         grasp_pose_bl.pose.orientation.z = q[2]
         grasp_pose_bl.pose.orientation.w = q[3]
         grasp_pose_bl.pose.position.x = grasp_result_haf.graspOutput.averagedGraspPoint.x - \
-            rospy.get_param("/grasppoint_offset_haf", default=0.04)*av[0]
+            rospy.get_param("/grasppoint_offset_haf", default=0.04) * av[0]
         grasp_pose_bl.pose.position.y = grasp_result_haf.graspOutput.averagedGraspPoint.y - \
-            rospy.get_param("/grasppoint_offset_haf", default=0.04)*av[1]
+            rospy.get_param("/grasppoint_offset_haf", default=0.04) * av[1]
         grasp_pose_bl.pose.position.z = grasp_result_haf.graspOutput.averagedGraspPoint.z - \
-            rospy.get_param("/grasppoint_offset_haf", default=0.04)*av[2]
+            rospy.get_param("/grasppoint_offset_haf", default=0.04) * av[2]
         grasp_pose_bl.header.frame_id = 'base_link'
 
         self.add_marker(grasp_pose_bl)
@@ -433,6 +479,11 @@ class FindGrasppointServer:
         return grasp_pose
 
     def add_marker(self, pose_goal):
+        """ publishes a grasp marker to /grasping_pipeline/grasp_marker
+
+        Arguments:
+            pose_goal {geometry_msgs.msg.PoseStamped} -- pose for the grasp marker
+        """
         marker_pub = rospy.Publisher(
             '/grasping_pipeline/grasp_marker', Marker, queue_size=10, latch=True)
         marker = Marker()
@@ -445,7 +496,7 @@ class FindGrasppointServer:
 
         q2 = [pose_goal.pose.orientation.w, pose_goal.pose.orientation.x,
               pose_goal.pose.orientation.y, pose_goal.pose.orientation.z]
-        q = quaternion_about_axis(pi/2, (0, 1, 0))
+        q = quaternion_about_axis(pi / 2, (0, 1, 0))
         q = quaternion_multiply(q, q2)
 
         marker.pose.orientation.w = q[0]
