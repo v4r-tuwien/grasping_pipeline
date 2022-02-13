@@ -35,6 +35,11 @@ class ExecuteGraspServer:
         self.server.start()
 
     def moveit_init(self):
+        """ Initializes MoveIt, sets workspace and creates collision environment
+
+        Returns:
+            MoveGroupCommander -- MoveIt interface
+        """        
         moveit_commander.roscpp_initialize(sys.argv)
         self.robot_cmd = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
@@ -136,6 +141,17 @@ class ExecuteGraspServer:
 
     def add_box(self, name, position_x=0, position_y=0,
                 position_z=0, size_x=0.1, size_y=0.1, size_z=0.1):
+        """ Adds a box in the map frame to the MoveIt scene.
+
+        Arguments:
+            name {str}
+            position_x {int} -- x coordinate in map frame (default: {0})
+            position_y {int} -- y coordinate in map frame (default: {0})
+            position_z {int} -- z coordinate in map frame (default: {0})
+            size_x {float} -- size in x direction in meter (default: {0.1})
+            size_y {float} -- size in y direction in meter (default: {0.1})
+            size_z {float} -- size in z direction in meter (default: {0.1})
+        """        
         rospy.sleep(0.2)
         box_pose = geometry_msgs.msg.PoseStamped()
         box_pose.header.frame_id = "map"
@@ -147,6 +163,8 @@ class ExecuteGraspServer:
         self.scene.add_box(box_name, box_pose, size=(size_x, size_y, size_z))
 
     def create_collision_environment(self):
+        """ Creates the collision environment by adding boxes to the MoveIt scene
+        """        
         # if self.use_map:
         #    self.add_box('table', 0.39, -0.765, 0.175, 0.52, 0.52, 0.35)
         #    self.add_box('cupboard', 1.4, 1.1, 1, 2.5, 1, 2)
@@ -205,6 +223,14 @@ class ExecuteGraspServer:
 
 
 def qv_mult(q, v):
+    """ Rotating the vector v by quaternion q
+    Arguments:
+        q {list of float} -- Quaternion w,x,y,z
+        v {list} -- Vector x,y,z
+
+    Returns:
+        numpy array -- rotated vector
+    """    
     rot_mat = tf.transformations.quaternion_matrix(q)[:3, :3]
     v = np.array(v)
     return rot_mat.dot(v)

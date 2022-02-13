@@ -26,6 +26,23 @@ from grasp_checker import check_grasp_hsr, get_tf_transform, get_transmat_from_t
 
 
 class FindGrasppointServer:
+    """ ActionServer that finds and selects grasp poses.
+    
+    
+    goal:
+        method {uint32} -- Specify which method to use
+                            1: Detectron2 & HAF
+                            2: Verefine Pipeline
+                            3: Verefine & HAF
+                            4: PyraPose
+        object_names {list of str} -- names of the detections that are 
+                            considered for grasping.
+    
+    result:
+        grasp_poses {list of geometry_msgs.msg.PoseStamped} -- 
+                            grasp poses of an selected object
+
+    """    
     def __init__(self):
         self.server = actionlib.SimpleActionServer(
             'find_grasppoint', FindGrasppointAction, self.execute, False)
@@ -56,7 +73,7 @@ class FindGrasppointServer:
             '/detectron2_service/stop', stop)
         rospy.loginfo('Initializing FindGrasppointServer done')
 
-    def execute(self, goal):
+    def execute(self, goal):      
         if not goal.object_names:
             rospy.logerr("No object names given. Abort.")
             self.server.set_aborted()
@@ -65,213 +82,289 @@ class FindGrasppointServer:
         object_names = goal.object_names
 
         rospy.loginfo('Method Number: {}'.format(goal.method))
-        result = FindGrasppointActionResult().result
 
 # method 1, unknown objects, uses detectron and haf grasping
         if goal.method == 1:
-            rospy.loginfo('Chosen Method is Detectron + HAF')
-            #rough_grasp_object_center = self.get_grasp_object_center_yolo(object_names)
-
-            # use detectron and find a rough grasp center, that is needed for
-            # HAF grasping
-            rough_grasp_object_center = self.get_grasp_object_center_detectron(
-                object_names)
-
-            if rough_grasp_object_center == -1:
-                self.server.set_aborted()
-                return
-
-            grasp_result_haf = self.call_haf_grasping(
-                rough_grasp_object_center)
-
-            if grasp_result_haf.graspOutput.eval <= 0:
-                rospy.logerr(
-                    'HAF grasping did not deliver successful result. Eval below 0')
-                self.server.set_aborted()
-                return
-            grasp_pose = self.convert_haf_result_for_moveit(grasp_result_haf)
-
-            result.grasp_poses = grasp_pose
-            self.server.set_succeeded(result)
+            self.method1_detectron_and_haf(object_names)
 
 # method 2, known objects, uses verefine
         elif goal.method == 2:
-            self.verefine_object_found = False
-            rospy.loginfo('Chosen Method is VEREFINE')
-            try:
-                object_poses_result = self.verefine_get_poses()
-            except BaseException:
-                rospy.loginfo('Aborted: error when calling get_poses service.')
-                self.server.set_aborted()
-                return
-            confidence = 0
-            object_nr = 0
-
-            # choose object with highest confidence from verefine
-            for i in range(0, len(object_poses_result.poses)):
-                print(object_poses_result.poses[i].name)
-                # TODO add all objects option
-                if object_poses_result.poses[i].name in object_names:
-                    if confidence < object_poses_result.poses[i].confidence:
-                        confidence = object_poses_result.poses[i].confidence
-                        object_nr = i
-                        self.verefine_object_found = True
-            if not self.verefine_object_found:
-                rospy.logerr('No object pose found')
-                self.server.set_aborted()
-                return
-
-            grasp_object = object_poses_result.poses[object_nr]
-
-            rospy.wait_for_message(self.pointcloud_topic,
-                                   PointCloud2, timeout=15)
-            scene_cloud = self.cloud
-            # if rospy.get_param('/use_table_grasp_checker'):
-            #  from get_table_plane import GetTablePlane
-            #  TableGetter = GetTablePlane()
-            #  table_plane = TableGetter.get_table_plane()
-            #  print(table_plane)
-            # else:
-            #  table_plane = None
-            table_plane = None
-
-            valid_poses = check_grasp_hsr(
-                grasp_object, scene_cloud, table_plane=table_plane, visualize=True)
-
-            if len(valid_poses) == 0:
-                rospy.loginfo('no grasp found')
-                self.server.set_aborted()
-                return
-
-            result.grasp_poses = valid_poses
-
-            self.add_marker(valid_poses[0])
-            self.server.set_succeeded(result)
+            self.method2_verefine_pipeline(object_names)
 
 # method 3, known objects, but with HAF
         elif goal.method == 3:
-            rospy.loginfo('Chosen Method is VeREFINE + HAF')
-            #rough_grasp_object_center = self.get_grasp_object_center_yolo(object_names)
-
-            # use detectron and find a rough grasp center, that is needed for
-            # HAF grasping
-            self.verefine_object_found = False
-            rospy.loginfo('Chosen Method is VEREFINE')
-            try:
-                object_poses_result = self.verefine_get_poses()
-            except BaseException:
-                rospy.loginfo('Aborted: error when calling get_poses service.')
-                self.server.set_aborted()
-                return
-            confidence = 0
-            object_nr = 0
-            # choose object with highest confidence from verefine
-            for i in range(0, len(object_poses_result.poses)):
-                print(object_poses_result.poses[i].name)
-                # TODO add all objects option
-                if object_poses_result.poses[i].name in object_names:
-                    if confidence < object_poses_result.poses[i].confidence:
-                        confidence = object_poses_result.poses[i].confidence
-                        object_nr = i
-                        self.verefine_object_found = True
-            if not self.verefine_object_found:
-                rospy.logerr('No object pose found')
-                self.server.set_aborted()
-                return
-
-            rospy.wait_for_message(self.pointcloud_topic,
-                                   PointCloud2, timeout=15)
-            self.my_cloud = self.cloud
-
-            grasp_pose = geometry_msgs.msg.PointStamped()
-            grasp_pose.point = object_poses_result.poses[object_nr].pose.position
-            grasp_pose.header.frame_id = 'head_rgbd_sensor_rgb_frame'  # head_rgbd_sensor_link
-            self.Transformer.waitForTransform(
-                'base_link', 'head_rgbd_sensor_rgb_frame', rospy.Time(), rospy.Duration(4.0))
-            grasp_pose = self.Transformer.transformPoint(
-                'base_link', grasp_pose)
-
-            rough_grasp_object_center = grasp_pose
-            if rough_grasp_object_center == -1:
-                self.server.set_aborted()
-                return
-
-            grasp_result_haf = self.call_haf_grasping(
-                rough_grasp_object_center)
-            if grasp_result_haf.graspOutput.eval <= -20:
-                rospy.logerr(
-                    'HAF grasping did not deliver successful result. Eval below 0')
-                self.server.set_aborted()
-                return
-            grasp_pose = self.convert_haf_result_for_moveit(grasp_result_haf)
-            if grasp_pose == 0:
-                self.server.set_aborted()
-                return
-            result.grasp_poses = grasp_pose
-            self.server.set_succeeded(result)
+            self.method3_verefine_haf(object_names)
 
 # method 4, known objects, uses pyrapose
         elif goal.method == 4:
-            self.pyrapose_object_found = False
-            rospy.loginfo('Chosen Method is PYRAPOSE')
-            try:
-                object_poses_result = self.pyrapose_get_poses()
-                print(object_poses_result)
-            except BaseException:
-                rospy.loginfo('Aborted: error when calling get_poses service.')
-                self.server.set_aborted()
-                return
-            confidence = 0
-            object_nr = 0
-            # choose object with highest confidence from pyrapose
-            for i in range(0, len(object_poses_result.poses)):
-                print(object_poses_result.poses[i].name)
-                # TODO add all objects option
-                if object_poses_result.poses[i].name in object_names:
-                    if confidence < object_poses_result.poses[i].confidence:
-                        confidence = object_poses_result.poses[i].confidence
-                        object_nr = i
-                        self.pyrapose_object_found = True
-            if not self.pyrapose_object_found:
-                rospy.logerr('No object pose found')
-                self.server.set_aborted()
-                return
-
-            grasp_object = object_poses_result.poses[object_nr]
-
-            rospy.wait_for_message(self.pointcloud_topic,
-                                   PointCloud2, timeout=15)
-            scene_cloud = self.cloud
-            valid_poses = check_grasp_hsr(grasp_object, scene_cloud, True)
-
-            if len(valid_poses) == 0:
-                rospy.loginfo('no grasp found')
-                self.server.set_aborted()
-                return
-
-            result.grasp_poses = valid_poses
-
-            self.add_marker(grasp_pose)
-            self.server.set_succeeded(result)
+            self.method4_pyrapose(object_names)
 
         else:
             rospy.loginfo('Method not implemented')
             self.server.set_aborted()
 
+ 
+    def method1_detectron_and_haf(self, object_names):
+        """ Method 1: Detectron and HAF Grasping
+        
+        Calls Detectron2 to find a rough object center of an object.
+        If no object that is listed in object_names is found, 
+        sets ActionServer to aborted and exits function. 
+        If an object is found, calls HAF Grasping to find a grasp pose.
+        No succesful result -> aborts server.
+        Otherwise, converts HAF result for MoveIt, writes the pose to the
+        result and sets the server to succeeded.  
+
+        Arguments:
+            object_names {list of str} -- names of the detections that are 
+                considered for grasping. Strings have to match detection results
+        """
+        result = FindGrasppointActionResult().result
+        rospy.loginfo('Chosen Method is Detectron + HAF')
+        
+        # use detectron and find a rough grasp center
+        rough_grasp_object_center = self.get_grasp_object_center_detectron(
+            object_names)
+
+        if rough_grasp_object_center == -1:
+            self.server.set_aborted()
+            return
+
+        grasp_result_haf = self.call_haf_grasping(
+            rough_grasp_object_center)
+
+        if grasp_result_haf.graspOutput.eval <= 0:
+            rospy.logerr(
+                'HAF grasping did not deliver successful result. Eval below 0')
+            self.server.set_aborted()
+            return
+        grasp_pose = self.convert_haf_result_for_moveit(grasp_result_haf)
+
+        result.grasp_poses = grasp_pose
+        self.server.set_succeeded(result)
+
+    def method2_verefine_pipeline(self, object_names):
+        """Method 2: Verefine Pipeline
+        
+        Calls the "get_poses" service from the verefine pipeline. 
+        If this fails, the ActionServer will be set to aborted and the 
+        function ends.
+        If the service call succeeds, it will return a list of named poses 
+        with confidence values. The object whose name is listed in object_names 
+        and has the highest confidence value is selected.
+        For this object, grasp poses are selected. 
+        If there is at least one valid grasp pose, a marker for that pose 
+        will be published and the poses are written to the result and the
+        server succeeds.
+
+        Arguments:
+            object_names {list of str} -- names of the detections that are 
+                considered for grasping. Strings have to match detection results
+        """        
+        result = FindGrasppointActionResult().result
+        self.verefine_object_found = False
+        rospy.loginfo('Chosen Method is VEREFINE')
+        try:
+            object_poses_result = self.verefine_get_poses()
+        except BaseException:
+            rospy.loginfo('Aborted: error when calling get_poses service.')
+            self.server.set_aborted()
+            return
+        confidence = 0
+        object_nr = 0
+
+        # choose object with highest confidence from verefine
+        for i in range(0, len(object_poses_result.poses)):
+            print(object_poses_result.poses[i].name)
+            # TODO add all objects option
+            if object_poses_result.poses[i].name in object_names:
+                if confidence < object_poses_result.poses[i].confidence:
+                    confidence = object_poses_result.poses[i].confidence
+                    object_nr = i
+                    self.verefine_object_found = True
+        if not self.verefine_object_found:
+            rospy.logerr('No object pose found')
+            self.server.set_aborted()
+            return
+
+        grasp_object = object_poses_result.poses[object_nr]
+
+        rospy.wait_for_message(self.pointcloud_topic,
+                               PointCloud2, timeout=15)
+        scene_cloud = self.cloud
+        # if rospy.get_param('/use_table_grasp_checker'):
+        #  from get_table_plane import GetTablePlane
+        #  TableGetter = GetTablePlane()
+        #  table_plane = TableGetter.get_table_plane()
+        #  print(table_plane)
+        # else:
+        #  table_plane = None
+        table_plane = None
+
+        valid_poses = check_grasp_hsr(
+            grasp_object, scene_cloud, table_plane=table_plane, visualize=True)
+
+        if len(valid_poses) == 0:
+            rospy.loginfo('no grasp found')
+            self.server.set_aborted()
+            return
+
+        result.grasp_poses = valid_poses
+
+        self.add_marker(valid_poses[0])
+        self.server.set_succeeded(result)
+
+    def method3_verefine_haf(self, object_names):
+        """Method 3: Verefine Pipeline and HAF Grasping
+        
+        Calls the "get_poses" service from the verefine pipeline. 
+        If this fails, the ActionServer will be set to aborted and the 
+        function ends.
+        If the service call succeeds, it will return a list of named poses 
+        with confidence values. The object whose name is listed in object_names 
+        and has the highest confidence value is selected.
+        The object pose will be transformed to the base_link frame, and acts 
+        then as the search center for HAF Grasping.
+        The result from HAF Grasping is converted for MoveIt and then set as
+        the servers result. 
+
+        Arguments:
+            object_names {list of str} -- names of the detections that are 
+                considered for grasping. Strings have to match detection results
+        """  
+        result = FindGrasppointActionResult().result
+        rospy.loginfo('Chosen Method is VeREFINE + HAF')
+        # use detectron and find a rough grasp center, that is needed for
+        # HAF grasping
+        self.verefine_object_found = False
+        rospy.loginfo('Chosen Method is VEREFINE')
+        try:
+            object_poses_result = self.verefine_get_poses()
+        except BaseException:
+            rospy.loginfo('Aborted: error when calling get_poses service.')
+            self.server.set_aborted()
+            return
+        confidence = 0
+        object_nr = 0
+        # choose object with highest confidence from verefine
+        for i in range(0, len(object_poses_result.poses)):
+            print(object_poses_result.poses[i].name)
+            # TODO add all objects option
+            if object_poses_result.poses[i].name in object_names:
+                if confidence < object_poses_result.poses[i].confidence:
+                    confidence = object_poses_result.poses[i].confidence
+                    object_nr = i
+                    self.verefine_object_found = True
+        if not self.verefine_object_found:
+            rospy.logerr('No object pose found')
+            self.server.set_aborted()
+            return
+
+        rospy.wait_for_message(self.pointcloud_topic,
+                               PointCloud2, timeout=15)
+        self.my_cloud = self.cloud
+
+        grasp_pose = geometry_msgs.msg.PointStamped()
+        grasp_pose.point = object_poses_result.poses[object_nr].pose.position
+        grasp_pose.header.frame_id = 'head_rgbd_sensor_rgb_frame'  # head_rgbd_sensor_link
+        self.Transformer.waitForTransform(
+            'base_link', 'head_rgbd_sensor_rgb_frame', rospy.Time(), rospy.Duration(4.0))
+        grasp_pose = self.Transformer.transformPoint(
+            'base_link', grasp_pose)
+
+        rough_grasp_object_center = grasp_pose
+        if rough_grasp_object_center == -1:
+            self.server.set_aborted()
+            return
+
+        grasp_result_haf = self.call_haf_grasping(
+            rough_grasp_object_center)
+        if grasp_result_haf.graspOutput.eval <= -20:
+            rospy.logerr(
+                'HAF grasping did not deliver successful result. Eval below 0')
+            self.server.set_aborted()
+            return
+        grasp_pose = self.convert_haf_result_for_moveit(grasp_result_haf)
+        if grasp_pose == 0:
+            self.server.set_aborted()
+            return
+        result.grasp_poses = grasp_pose
+        self.server.set_succeeded(result)
+
+    def method4_pyrapose(self, object_names):
+        """Method 4: PyraPose Pipeline
+        
+        Calls the "return_poses" service from the PyraPose pipeline. 
+        If this fails, the ActionServer will be set to aborted and the 
+        function ends.
+        If the service call succeeds, it will return a list of named poses 
+        with confidence values. The object whose name is listed in object_names 
+        and has the highest confidence value is selected.
+        For this object, grasp poses are selected. 
+        If there is at least one valid grasp pose, a marker for that pose 
+        will be published and the poses are written to the result and the
+        server succeeds.
+
+        Arguments:
+            object_names {list of str} -- names of the detections that are 
+                considered for grasping. Strings have to match detection results
+        """   
+        result = FindGrasppointActionResult().result
+        self.pyrapose_object_found = False
+        rospy.loginfo('Chosen Method is PYRAPOSE')
+        try:
+            object_poses_result = self.pyrapose_get_poses()
+            print(object_poses_result)
+        except BaseException:
+            rospy.loginfo('Aborted: error when calling get_poses service.')
+            self.server.set_aborted()
+            return
+        confidence = 0
+        object_nr = 0
+            # choose object with highest confidence from pyrapose
+        for i in range(0, len(object_poses_result.poses)):
+            print(object_poses_result.poses[i].name)
+                # TODO add all objects option
+            if object_poses_result.poses[i].name in object_names:
+                if confidence < object_poses_result.poses[i].confidence:
+                    confidence = object_poses_result.poses[i].confidence
+                    object_nr = i
+                    self.pyrapose_object_found = True
+        if not self.pyrapose_object_found:
+            rospy.logerr('No object pose found')
+            self.server.set_aborted()
+            return
+
+        grasp_object = object_poses_result.poses[object_nr]
+
+        rospy.wait_for_message(self.pointcloud_topic,
+                                   PointCloud2, timeout=15)
+        scene_cloud = self.cloud
+        valid_poses = check_grasp_hsr(grasp_object, scene_cloud, True)
+
+        if len(valid_poses) == 0:
+            rospy.loginfo('no grasp found')
+            self.server.set_aborted()
+            return
+
+        result.grasp_poses = valid_poses
+
+        self.add_marker(valid_poses[0])
+        self.server.set_succeeded(result)
+
     def pointcloud_cb(self, data):
         self.cloud = data
-
-    # def yolo_detection_cb(self, data):
-    #   self.yolo_detection = data
 
     def detectron_cb(self, data):
         self.detectron_detection = data
 
     def get_grasp_object_center_detectron(self, object_names):
         """ gets Detectron2 detections, chooses the closest object
-        to the robot from the detections. Only consideres detections that
-        are listed in object_names, since most detections are not relevant
-        for grasping, e.g. "dining table" or "person"
+        to the robot from the detections and returns the pose of this object. 
+        Only consideres detections that are listed in object_names, 
+        since many detections like "dining table" or "person" are 
+        not relevant for grasping, 
+        
 
         Arguments:
             object_names {list of str} -- names of the objects that are
@@ -336,48 +429,6 @@ class FindGrasppointServer:
         point_transformed = self.Transformer.transformPoint(
             'base_link', point)
         return point_transformed
-
-    # def get_grasp_object_center_yolo(self, object_names):
-    #   rospy.wait_for_message('/yolo2_node/detections', DetectionArray)
-    #   detection = self.yolo_detection
-    #   chosen_object = Detection()
-    #   chosen_object.label.confidence = 0
-    #   #use detection with biggest confidence
-    #   for i in range(len(detection.detections)):
-    #       name = detection.detections[i].label.name
-    #       if name in object_names:
-    #           if detection.detections[i].label.confidence > chosen_object.label.confidence:
-    #               chosen_object = detection.detections[i]
-    #   if chosen_object.label.confidence == 0:
-    #     return -1
-
-    #   image_x = int(chosen_object.x)
-    #   image_y = int(chosen_object.y)
-    #   self.object_name = chosen_object.label.name
-    #   rospy.wait_for_message(self.pointcloud_topic, PointCloud2, timeout=15)
-    #   rospy.sleep(0.5)
-    #   self.my_cloud = self.cloud
-    #   points = pc2.read_points_list(self.my_cloud, field_names=None, skip_nans=False)
-
-    #   index = image_y*self.my_cloud.width+image_x
-
-    #   center = points[index]
-    #   rospy.loginfo('len of points {}'.format(len(points)))
-    #   while isnan(center[0]):
-    #       index = index+self.my_cloud.width
-    #       rospy.loginfo('index = {}'.format(index))
-    #       if index>len(points)-1:
-    #         return -1
-    #       center = points[index]
-
-    #   self.Transformer.waitForTransform('base_link', '/head_rgbd_sensor_link', rospy.Time(), rospy.Duration(4.0))
-    #   point = geometry_msgs.msg.PointStamped()
-    #   point.point.x = center[0]
-    #   point.point.y = center[1]
-    #   point.point.z = center[2]
-    #   point.header.frame_id = '/head_rgbd_sensor_link'
-    #   point_transformed = self.Transformer.transformPoint('base_link', point)
-    #   return point_transformed
 
     def call_haf_grasping(self, search_center):
         """ Writes the goal for HAF grasping action, calls the action and
