@@ -1,7 +1,6 @@
 import numpy as np
 import open3d as o3d
 import copy
-import random
 import os
 
 REACHABLE_TOLERANCE = 0.1  # 0.05

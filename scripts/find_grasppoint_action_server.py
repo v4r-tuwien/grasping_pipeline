@@ -22,7 +22,7 @@ from tf.transformations import (quaternion_about_axis, quaternion_from_matrix,
 from tmc_vision_msgs.msg import Detection, DetectionArray
 from visualization_msgs.msg import Marker
 
-from grasp_checker import check_grasp_hsr, get_tf_transform, get_transmat_from_tf_trans
+from grasp_checker import check_grasp_hsr
 
 
 class FindGrasppointServer:
