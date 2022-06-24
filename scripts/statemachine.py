@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # Copyright (C) 2016 Toyota Motor Corporation
-from enum import Enum
+from enum import Enum, IntEnum
 from math import pi
+from tkinter import TOP
 
 import actionlib
 import rospy
@@ -12,14 +13,31 @@ from actionlib_msgs.msg import GoalStatus
 from grasping_pipeline.msg import (ExecuteGraspAction, ExecuteGraspGoal,
                                    FindGrasppointAction, FindGrasppointGoal)
 from handover.msg import HandoverAction
-from hsrb_interface import Robot
+from hsrb_interface import Robot, geometry, collision_world
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from helper_function import *
+from sensor_msgs.msg import PointCloud2
+from placement.msg import *
+from lib_cloud_conversion_between_Open3D_and_ROS import convertCloudFromOpen3dToRos, convertCloudFromRosToOpen3d
+from tmc_placement_area_detector.srv import *
+from tmc_geometric_shapes_msgs.msg import Shape
+from tmc_geometric_shapes_msgs.srv import CacheMeshData, GetMeshData
+from geometry_msgs.msg import Point, Vector3, Pose
+import open3d
 
 # neutral joint positions
 neutral_joint_positions = {'arm_flex_joint': 0.0,
                            'arm_lift_joint': 0.0,
                            'arm_roll_joint': 1.570,
                            'hand_motor_joint': 1.0,
+                           'head_pan_joint': 0.0,
+                           'head_tilt_joint': -0.75,
+                           'wrist_flex_joint': -1.57,
+                           'wrist_roll_joint': 0.0}
+
+neutral_joint_positions_4 = {'arm_flex_joint': 0.0,
+                           'arm_lift_joint': 0.0,
+                           'arm_roll_joint': 1.570,
                            'head_pan_joint': 0.0,
                            'head_tilt_joint': -0.75,
                            'wrist_flex_joint': -1.57,
@@ -40,6 +58,8 @@ class States(Enum):
     PRINT_USERDATA = 9
     CONFIG = 10
     CLEAN_TABLE = 11
+    MOVE_TO_TABLE = 12
+    DETECT_PLACEMENT_AREA = 13
 
 
 # Mapping of states to characters
@@ -53,7 +73,29 @@ states_keys = {States.GRASP: 'g',
                States.EXECUTE_GRASP: 'e',
                States.PRINT_USERDATA: 'u',
                States.CONFIG: 'c',
-               States.CLEAN_TABLE: 't'}
+               States.CLEAN_TABLE: 't',
+               States.MOVE_TO_TABLE: 'm',
+               States.DETECT_PLACEMENT_AREA: 'd'}
+
+class PlaneMethod(IntEnum):
+    RANSAC = 0
+
+class CollisionMethod(IntEnum):
+    ADD = 0
+    REMOVE = 1
+    ATTACH = 2
+    DETACH = 3
+
+class GraspMode(IntEnum):
+    NORMAL = 0
+    INVERT = 1
+    TOP = 2
+
+class SortMethod(IntEnum):
+    MIDDLE = 0
+    EDGE = 1
+    NEAR = 2
+    FAR = 3
 
 
 class UserInput(smach.State):
@@ -125,7 +167,7 @@ class UserInput(smach.State):
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['quitting', 'neutral', 'grasping', 'opening',
-                                             'find_grasp', 'execute_grasp', 'go_to_table'],
+                                             'find_grasp', 'execute_grasp', 'go_to_table', 'detect_placement_area'],
                              input_keys=['found_grasp_poses'],
                              output_keys=['find_grasppoint_method', 'objects_to_find',
                                           'params', 'find_grasppoint_tries'])
@@ -393,6 +435,15 @@ class UserInput(smach.State):
                     return 'go_to_table'
                 return 'grasping'
 
+
+            elif char_in == states_keys[States.MOVE_TO_TABLE]:
+                rospy.loginfo('Move to table')
+                return 'go_to_table'
+
+            elif char_in == states_keys[States.DETECT_PLACEMENT_AREA]:
+                rospy.loginfo('Detect Placement Area')
+                return 'detect_placement_area'
+
             # Unrecognized command
             else:
                 rospy.logwarn('Unrecognized command %s', char_in)
@@ -454,6 +505,7 @@ class GoToNeutral(smach.State):
         self.whole_body.move_to_neutral()
         self.whole_body.move_to_joint_positions({'arm_roll_joint': pi / 2})
         self.whole_body.gaze_point((0.8, 0.05, 0.4))
+
         if userdata.params.get('clean_table'):
             return 'continuing'
         return 'succeeded'
@@ -552,7 +604,7 @@ class Opening(smach.State):
         return 'succeeded'
 
 
-class GoToTable(smach.State):
+class GoToWaypoint1(smach.State):
     """ robot moves to a fixed position near the table
     using a move_base action goal
     also moves joints to neutral position
@@ -572,10 +624,10 @@ class GoToTable(smach.State):
     def execute(self, userdata):
         move_goal = MoveBaseGoal()
         move_goal.target_pose.header.frame_id = 'map'
-        move_goal.target_pose.pose.position.x = 0
-        move_goal.target_pose.pose.position.y = 0
-        move_goal.target_pose.pose.orientation.z = 0.95
-        move_goal.target_pose.pose.orientation.w = 0.05
+        move_goal.target_pose.pose.position.x = 0.778
+        move_goal.target_pose.pose.position.y = -0.011
+        move_goal.target_pose.pose.orientation.z = 0.7157
+        move_goal.target_pose.pose.orientation.w = 0.698
         self.move_client.wait_for_server()
         self.move_client.send_goal(move_goal)
         result = self.move_client.wait_for_result()
@@ -584,6 +636,142 @@ class GoToTable(smach.State):
             # go to neutral
             # TODO use this command in other neutral position moves too
             self.whole_body.move_to_joint_positions(neutral_joint_positions)
+            rospy.sleep(1.0)
+
+            vel = self.whole_body.joint_velocities
+            while all(abs(i) > 0.05 for i in vel.values()):
+                vel = self.whole_body.joint_velocities
+            rospy.sleep(2)
+
+            return 'succeeded'
+        else:
+            return 'aborted'
+
+class GoToWaypoint2(smach.State):
+    """ robot moves to a fixed position near the table
+    using a move_base action goal
+    also moves joints to neutral position
+
+    Outcomes:
+        succeeded: transitions to FIND_GRASPPOINT State
+        aborted: transitions to USER_INPUT State
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['succeeded', 'aborted'])
+        self.move_client = actionlib.SimpleActionClient(
+            '/move_base/move', MoveBaseAction)
+        self.robot = Robot()
+        self.whole_body = self.robot.try_get('whole_body')
+        self.robot = Robot()
+        self.gripper = self.robot.try_get('gripper')
+           	    	
+    def execute(self, userdata):
+        move_goal = MoveBaseGoal()
+        move_goal.target_pose.header.frame_id = 'map'
+        move_goal.target_pose.pose.position.x = -0.241
+        move_goal.target_pose.pose.position.y = 2.046
+        move_goal.target_pose.pose.orientation.z = 0.7
+        move_goal.target_pose.pose.orientation.w = 0.714
+        self.move_client.wait_for_server()
+        self.move_client.send_goal(move_goal)
+        result = self.move_client.wait_for_result()
+        
+        if result:
+            # go to neutral
+            # TODO use this command in other neutral position moves too
+            neutral_joint_positions = {'arm_flex_joint': 0.0,
+                               'arm_lift_joint': 0.1,
+                               'arm_roll_joint': 1.570,
+                               'wrist_flex_joint': -1.57,
+                               'wrist_roll_joint': 0.0}
+            self.whole_body.move_to_joint_positions(neutral_joint_positions)
+            rospy.sleep(1.0)
+            self.whole_body.gaze_point((0.7, 0.1, 0.76))
+
+            vel = self.whole_body.joint_velocities
+            while all(abs(i) > 0.05 for i in vel.values()):
+                vel = self.whole_body.joint_velocities
+            rospy.sleep(2)
+            return 'succeeded'
+        else:
+            return 'aborted'
+
+class GoToWaypoint3(smach.State):
+    """ robot moves to a fixed position near the table
+    using a move_base action goal
+    also moves joints to neutral position
+
+    Outcomes:
+        succeeded: transitions to FIND_GRASPPOINT State
+        aborted: transitions to USER_INPUT State
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['succeeded', 'aborted'])
+        self.move_client = actionlib.SimpleActionClient(
+            '/move_base/move', MoveBaseAction)
+        self.robot = Robot()
+        self.whole_body = self.robot.try_get('whole_body')
+
+    def execute(self, userdata):
+        move_goal = MoveBaseGoal()
+        move_goal.target_pose.header.frame_id = 'map'
+        move_goal.target_pose.pose.position.x = -0.217
+        move_goal.target_pose.pose.position.y = 0.37
+        move_goal.target_pose.pose.orientation.z = 1
+        move_goal.target_pose.pose.orientation.w = 0.05699
+        self.move_client.wait_for_server()
+        self.move_client.send_goal(move_goal)
+        result = self.move_client.wait_for_result()
+
+        if result:
+            # go to neutral
+            # TODO use this command in other neutral position moves too
+            self.whole_body.move_to_joint_positions(neutral_joint_positions)
+            rospy.sleep(1.0)
+
+            vel = self.whole_body.joint_velocities
+            while all(abs(i) > 0.05 for i in vel.values()):
+                vel = self.whole_body.joint_velocities
+            rospy.sleep(2)
+
+            return 'succeeded'
+        else:
+            return 'aborted'
+
+class GoToWaypoint4(smach.State):
+    """ robot moves to a fixed position near the table
+    using a move_base action goal
+    also moves joints to neutral position
+
+    Outcomes:
+        succeeded: transitions to FIND_GRASPPOINT State
+        aborted: transitions to USER_INPUT State
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['succeeded', 'aborted'])
+        self.move_client = actionlib.SimpleActionClient(
+            '/move_base/move', MoveBaseAction)
+        self.robot = Robot()
+        self.whole_body = self.robot.try_get('whole_body')
+
+    def execute(self, userdata):
+        move_goal = MoveBaseGoal()
+        move_goal.target_pose.header.frame_id = 'map'
+        move_goal.target_pose.pose.position.x = -0.259
+        move_goal.target_pose.pose.position.y = 0.9146
+        move_goal.target_pose.pose.orientation.z = 0.00823
+        move_goal.target_pose.pose.orientation.w = 1
+        self.move_client.wait_for_server()
+        self.move_client.send_goal(move_goal)
+        result = self.move_client.wait_for_result()
+
+        if result:
+            # go to neutral
+            # TODO use this command in other neutral position moves too
+            self.whole_body.move_to_joint_positions(neutral_joint_positions_4)
             rospy.sleep(1.0)
 
             vel = self.whole_body.joint_velocities
@@ -653,6 +841,527 @@ class NoGrasppointFound(smach.State):
             return 'user_input'
 
 
+class PlaceAtTable2(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['succeeded', 'aborted'], input_keys=['grasped_pose'])
+        self.robot = Robot()
+        self.whole_body = self.robot.try_get('whole_body')
+        self.tf = tf.TransformListener()
+        self.robot = Robot()
+        self.gripper = self.robot.try_get('gripper')
+        self.collision_world = self.robot.try_get('global_collision_world')
+        self.collision_world.remove_all()
+           	    	
+    def execute(self, userdata):
+
+        pose = userdata.grasped_pose
+        t = self.tf.getLatestCommonTime(
+            '/map', pose.header.frame_id)
+        pose.header.stamp = t
+        pose = self.tf.transformPose('/map', pose)
+        print(pose)
+
+        safety = 0.07
+
+        x = 2.98
+        y = 1
+        z = 0.833
+        quat = [pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w]
+        euler = tf.transformations.euler_from_quaternion(quat)
+
+        table_pose = geometry.pose(x=2.98, y=0.6, z=0.76/2)
+        self.collision_world.add_box(x=0.26, y=2, z=0.76, pose=table_pose, frame_id='map')  
+        rospy.sleep(0.5)
+        self.whole_body.move_end_effector_pose(geometry.pose(x + 0.05, y, z + safety, euler[0], euler[1], euler[2]), 'map')
+
+
+        wrist_flex = self.whole_body.joint_positions.get('wrist_flex_joint')
+        lift = self.whole_body.joint_positions.get('arm_lift_joint')
+
+        self.whole_body.move_to_joint_positions({'wrist_flex_joint':wrist_flex - 0.4})
+
+        self.whole_body.move_to_joint_positions({'arm_lift_joint':lift - 0.02})
+
+        self.gripper.command(1.0)
+
+        self.whole_body.move_end_effector_pose(geometry.pose(x - 2 * safety, y, z, euler[0], euler[1], euler[2]), 'map')
+        
+        return 'succeeded'
+
+# class Placement(smach.State):
+#     def __init__(self):
+#         smach.State.__init__(self, outcomes=['succeeded', 'aborted'], input_keys=['grasped_pose'])
+#         # init robot
+#         self.robot = Robot()
+#         self.gripper = self.robot.try_get('gripper')
+#         self.whole_body = self.robot.try_get('whole_body')
+#         self.omni = self.robot.try_get('omni_base')
+
+#         # read parameter from startup.yaml
+#         self.point_cloud_topic = rospy.get_param("/point_cloud_topic")
+#         self.global_frame = rospy.get_param("/global_frame")
+#         self.placement_object_dimensions = rospy.get_param("/placement_object_dimensions")
+#         self.placement_resolution = rospy.get_param("/placement_resolution")
+#         self.allow_placement = rospy.get_param("/allow_placement")
+#         self.placement_grasp = rospy.get_param("/placement_grasp")
+#         self.placement_steps = rospy.get_param("/placement_steps")
+#         self.placement_sort = rospy.get_param("/placement_sort")
+#         self.point_cloud_topic = rospy.get_param("/point_cloud_topic")
+#         self.global_frame = rospy.get_param("/global_frame")
+#         self.camera_frame = rospy.get_param("/camera_frame")
+#         self.file_name = rospy.get_param("/file_name")
+#         self.use_mesh = rospy.get_param("/use_mesh")
+           	    	
+#     def execute(self, userdata):
+
+#         # init action servers
+#         calcGripperPose_client = actionlib.SimpleActionClient('PlacementCalcGripperPose', PlacementCalcGripperPoseAction)
+#         calcGripperPose_client.wait_for_server()
+
+#         calculateAndSortPoses_client = actionlib.SimpleActionClient('PlacementCalculateAndSortPoses', PlacementCalculateAndSortPosesAction)
+#         calculateAndSortPoses_client.wait_for_server()
+
+#         collisionEnvironment_client = actionlib.SimpleActionClient('PlacementCollisionEnvironment', PlacementCollisionEnvironmentAction)
+#         collisionEnvironment_client.wait_for_server()
+
+#         detectPlane_client = actionlib.SimpleActionClient('PlacementDetectPlane', PlacementDetectPlaneAction)
+#         detectPlane_client.wait_for_server()
+
+#         placeAndMoveAway_client = actionlib.SimpleActionClient('PlacementPlaceAndMoveAway', PlacementPlaceAndMoveAwayAction)
+#         placeAndMoveAway_client.wait_for_server()
+
+#         calcGripperPose_goal = PlacementCalcGripperPoseGoal()
+#         calculateAndSortPoses_goal = PlacementCalculateAndSortPosesGoal()
+#         collisionEnvironment_goal = PlacementCollisionEnvironmentGoal()
+#         detectPlane_goal = PlacementDetectPlaneGoal()
+#         placeAndMoveAway_goal = PlacementPlaceAndMoveAwayGoal()
+
+#         # move to init position
+#         # move hand to left side to get a free view
+#         neutral_joint_positions ={'arm_flex_joint': 0.0,
+#                 'arm_lift_joint': 0.0,
+#                 'arm_roll_joint': 1.570,
+#                 'hand_motor_joint': 1.0,
+#                 'head_pan_joint': 0.0,
+#                 'head_tilt_joint': -0.75,
+#                 'wrist_flex_joint': -1.57,
+#                 'wrist_roll_joint': 0.0} 
+#         self.whole_body.move_to_joint_positions(neutral_joint_positions)
+#         self.whole_body.gaze_point((0.7, 0.1, 0.4))
+
+#         # detect plane
+#         rospy.loginfo("Step 1/5: Detect plane")
+
+#         # wait for point cloud
+#         cloud = rospy.wait_for_message(self.point_cloud_topic, PointCloud2)
+
+#         detectPlane_goal.pcl = cloud
+#         detectPlane_goal.target_frame = self.global_frame
+#         detectPlane_goal.plane_method = PlaneMethod.RANSAC
+
+#         detectPlane_client.send_goal(detectPlane_goal)
+#         detectPlane_client.wait_for_result()
+#         detectPlane_result = detectPlane_client.get_result()
+
+#         if detectPlane_result.error == "No Error":
+#             planeParams = detectPlane_result.planeParams
+#         else:
+#             print(detectPlane_result.error)
+#             exit(1)
+
+#         # create collision environment
+#         rospy.loginfo("Step 2/5: Create Collision Environment")
+
+#         pose = self.omni.get_pose()
+
+#         # walls
+#         collisionObject_list = list()
+
+#         # collisionObject_list include pose and not pose stamped -change
+        
+#         # left wall
+#         collisionObject = CollisionObject()
+#         left_pose = Pose()
+#         left_pose.position.y = pose.pos.y + 1.3
+#         left_pose.position.x = pose.pos.x
+#         left_pose.position.z = planeParams.center_pose.position.z / 2
+#         left_pose.orientation.w = pose.ori.w
+#         collisionObject.pose = left_pose
+#         collisionObject.size_x = 3
+#         collisionObject.size_y = 0.01
+#         collisionObject.size_z = planeParams.center_pose.position.z
+#         collisionObject.name = "wall_left"
+#         collisionObject.frame = self.global_frame
+#         collisionObject.method = CollisionMethod.ADD
+#         collisionObject_list.append(collisionObject)
+
+#         # right wall
+#         collisionObject = CollisionObject()
+#         right_pose = Pose()
+#         right_pose.position.y = pose.pos.y - 1.3
+#         right_pose.position.x = pose.pos.x
+#         right_pose.position.z = planeParams.center_pose.position.z / 2
+#         right_pose.orientation.w = pose.ori.w
+#         collisionObject.pose = right_pose
+#         collisionObject.size_x = 3
+#         collisionObject.size_y = 0.01
+#         collisionObject.size_z = planeParams.center_pose.position.z
+#         collisionObject.name = "wall_right"
+#         collisionObject.frame = self.global_frame
+#         collisionObject.method = CollisionMethod.ADD
+#         collisionObject_list.append(collisionObject)
+
+#         # behind wall
+#         collisionObject = CollisionObject()
+#         behind_pose = Pose()
+#         behind_pose.position.x = pose.pos.x + 1.2
+#         behind_pose.position.y = pose.pos.y
+#         behind_pose.position.z = planeParams.center_pose.position.z / 2
+#         behind_pose.orientation.w = pose.ori.w
+#         collisionObject.pose = behind_pose
+#         collisionObject.size_x = 0.01
+#         collisionObject.size_y = 3
+#         collisionObject.size_z = planeParams.center_pose.position.z
+#         collisionObject.name = "wall_behind"
+#         collisionObject.frame = self.global_frame
+#         collisionObject.method = CollisionMethod.ADD
+#         collisionObject_list.append(collisionObject)
+
+#         # front wall
+#         collisionObject = CollisionObject()
+#         front_pose = Pose()
+#         front_pose.position.x = pose.pos.x - 1.2
+#         front_pose.position.y = pose.pos.y
+#         front_pose.position.z = planeParams.center_pose.position.z / 2
+#         front_pose.orientation.w = pose.ori.w
+#         collisionObject.pose = front_pose
+#         collisionObject.size_x = 0.01
+#         collisionObject.size_y = 3
+#         collisionObject.size_z = planeParams.center_pose.position.z
+#         collisionObject.name = "wall_front"
+#         collisionObject.frame = self.global_frame
+#         collisionObject.method = CollisionMethod.ADD
+#         collisionObject_list.append(collisionObject)
+
+#         # table
+#         table_name = "table1"
+#         collisionObject = CollisionObject()
+#         table_pose = Pose()
+#         table_pose.position.x = planeParams.center_pose.position.x
+#         table_pose.position.y = planeParams.center_pose.position.y
+#         table_pose.position.z = planeParams.center_pose.position.z / 2
+#         table_pose.orientation.w = pose.ori.w
+#         collisionObject.pose = table_pose
+#         collisionObject.size_x = planeParams.height
+#         collisionObject.size_y = planeParams.width
+#         collisionObject.size_z = planeParams.center_pose.position.z
+#         collisionObject.name = table_name
+#         collisionObject.frame = self.global_frame
+#         collisionObject.method = CollisionMethod.ADD
+#         collisionObject_list.append(collisionObject)
+
+#         # floor
+#         collisionObject = CollisionObject()
+#         floor_pose = Pose()
+#         floor_pose.position.x = pose.pos.x
+#         floor_pose.position.y = pose.pos.y
+#         floor_pose.position.z = -0.1
+#         floor_pose.orientation.w = pose.ori.w
+#         collisionObject.pose = floor_pose
+#         collisionObject.size_x = 15
+#         collisionObject.size_y = 15
+#         collisionObject.size_z = 0.1
+#         collisionObject.name = "floor"
+#         collisionObject.frame = self.global_frame
+#         collisionObject.method = CollisionMethod.ADD
+#         collisionObject_list.append(collisionObject)
+
+#         # attach object in gripper
+#         gripper_z_offset = 0.05
+#         gripper_y_offset = 0.06
+#         nx_dim, px_dim, z_dim = self.placement_object_dimensions
+#         collisionObject = CollisionObject()
+#         placement_box_pose = Pose()
+#         placement_box_pose.orientation.w = 1.0
+#         placement_box_pose.position.z = gripper_z_offset
+#         # calculate z for different placement directions
+#         if self.placement_grasp == GraspMode.NORMAL or self.placement_grasp == GraspMode.INVERT:
+#             placement_box_pose.position.x = placement_box_pose.position.x - (nx_dim - px_dim) / 2 
+#         placement_box_pose.position.z = placement_box_pose.position.z + z_dim / 2
+#         distance = self.gripper.get_distance()
+#         collisionObject.pose = placement_box_pose
+#         collisionObject.size_x = nx_dim + px_dim
+#         collisionObject.size_y = distance + gripper_y_offset
+#         collisionObject.size_z = z_dim
+#         collisionObject.name = "placement_object"
+#         collisionObject.frame = "eef_link"
+#         collisionObject.method = CollisionMethod.ATTACH
+#         collisionObject_list.append(collisionObject)
+
+#         # send goal
+#         collisionEnvironment_goal.collisionObject_list = collisionObject_list
+#         collisionEnvironment_client.send_goal(collisionEnvironment_goal)
+#         collisionEnvironment_client.wait_for_result()
+#         collisionEnvironment_result = collisionEnvironment_client.get_result()
+
+#         if not collisionEnvironment_result.isDone:
+#             print("Error while creating the collision environment")
+#             exit(1)
+
+#         # calculate center gripper pose
+#         rospy.loginfo("Step 3/5: Calculate center pose for gripper")
+
+#         objectDimension = ObjectDimension()
+#         objectDimension.x_neg = nx_dim
+#         objectDimension.x_pos = px_dim
+#         objectDimension.z = z_dim
+
+#         grasped_pose = userdata.grasped_pose
+#         ori = grasped_pose.pose.orientation
+#         euler = euler_from_quaternion(ori.x, ori.y, ori.z, ori.w)
+
+#         if (euler[0] > 2.5):
+#             self.placement_grasp = GraspMode.TOP
+#         elif (euler[0] * euler[2] < 0):
+#             self.placement_grasp = GraspMode.NORMAL
+#         elif (euler[0] * euler[2] > 0):
+#             self.placement_grasp = GraspMode.INVERT
+#         else:
+#             self.placement_grasp = GraspMode.NORMAL
+        
+#         calcGripperPose_goal.planeParams = planeParams
+#         calcGripperPose_goal.objectDimension = objectDimension
+#         calcGripperPose_goal.grasp_mode = self.placement_grasp
+#         calcGripperPose_goal.target_frame = self.global_frame
+
+#         calcGripperPose_client.send_goal(calcGripperPose_goal)
+#         calcGripperPose_client.wait_for_result()
+#         calcGripperPose_result = calcGripperPose_client.get_result()
+
+#         # calc and sort all poses
+#         rospy.loginfo("Step 4/5: Calculate and sort all poses for gripper")
+
+#         calculateAndSortPoses_goal.sort_method = self.placement_sort
+#         calculateAndSortPoses_goal.grasp_mode = self.placement_grasp
+#         calculateAndSortPoses_goal.target_frame = self.global_frame
+#         calculateAndSortPoses_goal.source_frame = self.camera_frame
+#         calculateAndSortPoses_goal.planeParams = planeParams
+#         calculateAndSortPoses_goal.objectDimension = objectDimension
+#         calculateAndSortPoses_goal.center_pose = calcGripperPose_result.center_pose
+#         calculateAndSortPoses_goal.pcl = cloud
+#         calculateAndSortPoses_goal.placement_resolution = self.placement_resolution
+#         calculateAndSortPoses_goal.placement_steps = self.placement_steps
+
+#         calculateAndSortPoses_client.send_goal(calculateAndSortPoses_goal)
+#         calculateAndSortPoses_client.wait_for_result()
+#         calculateAndSortPoses_result = calculateAndSortPoses_client.get_result()
+
+#         print(len(calculateAndSortPoses_result.pose_list))
+
+#         # place and move away
+#         rospy.loginfo("Step 5/5: Place object and move away")
+#         placeAndMoveAway_goal.pose_list = calculateAndSortPoses_result.pose_list
+#         placeAndMoveAway_goal.order = calculateAndSortPoses_result.order
+#         placeAndMoveAway_goal.target_frame = self.global_frame
+#         placeAndMoveAway_goal.support_surface_name = table_name
+
+#         placeAndMoveAway_goal.name = "placement_object"
+
+#         placeAndMoveAway_client.send_goal(placeAndMoveAway_goal)
+#         placeAndMoveAway_client.wait_for_result()
+#         placeAndMoveAway_result = placeAndMoveAway_client.get_result()
+
+#         self.whole_body.move_to_neutral()
+
+#         print(placeAndMoveAway_result.error)
+        
+#         return 'succeeded'
+
+class AttachObject(smach.State):
+    """ robot moves to a fixed position near the table
+    using a move_base action goal
+    also moves joints to neutral position
+
+    Outcomes:
+        succeeded: transitions to FIND_GRASPPOINT State
+        aborted: transitions to USER_INPUT State
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['succeeded', 'aborted'])
+        self.placement_object_dimensions = rospy.get_param("/placement_object_dimensions")
+        self.robot = Robot()
+        self.omni = self.robot.try_get('omni_base')
+
+    def execute(self, userdata):
+        collisionEnvironment_client = actionlib.SimpleActionClient('PlacementCollisionEnvironment', PlacementCollisionEnvironmentAction)
+        collisionEnvironment_client.wait_for_server()
+        collisionEnvironment_goal = PlacementCollisionEnvironmentGoal()
+
+        
+        # walls
+        collisionObject_list = list()
+
+        # collisionObject_list include pose and not pose stamped -change
+        # attach object in gripper
+        gripper_z_offset = 0.05
+        gripper_y_offset = 0.06
+        collisionObject = CollisionObject()
+        placement_box_pose = Pose()
+        placement_box_pose.orientation.w = 1.0
+        placement_box_pose.position.z = gripper_z_offset
+        collisionObject.pose = placement_box_pose
+        collisionObject.size_x = 0.1
+        collisionObject.size_y = 0.1
+        collisionObject.size_z = 0.1
+        collisionObject.name = "placement_object"
+        collisionObject.frame = "eef_link"
+        collisionObject.method = CollisionMethod.ATTACH
+        collisionObject_list.append(collisionObject)
+
+        pose = self.omni.get_pose()
+
+        # floor
+        collisionObject = CollisionObject()
+        floor_pose = Pose()
+        floor_pose.position.x = pose.pos.x
+        floor_pose.position.y = pose.pos.y
+        floor_pose.position.z = -0.1
+        floor_pose.orientation.w = pose.ori.w
+        collisionObject.pose = floor_pose
+        collisionObject.size_x = 15
+        collisionObject.size_y = 15
+        collisionObject.size_z = 0.1
+        collisionObject.name = "floor"
+        collisionObject.frame = "map"
+        collisionObject.method = CollisionMethod.ADD
+        collisionObject_list.append(collisionObject)
+
+        # send goal
+        collisionEnvironment_goal.collisionObject_list = collisionObject_list
+        collisionEnvironment_client.send_goal(collisionEnvironment_goal)
+        collisionEnvironment_client.wait_for_result()
+        collisionEnvironment_result = collisionEnvironment_client.get_result()
+
+        if not collisionEnvironment_result.isDone:
+            print("Error while creating the collision environment")
+            return 'aborted'
+
+        return 'succeeded'
+
+class PlacementAreaDetector(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['succeeded', 'aborted'], output_keys=['placement_area'], input_keys=['grasped_pose'])
+        # init robot
+        self.robot = Robot()
+        self.gripper = self.robot.try_get('gripper')
+        self.whole_body = self.robot.try_get('whole_body')
+        self.omni = self.robot.try_get('omni_base')
+
+        # read parameter from startup.yaml
+        self.global_frame = rospy.get_param("/global_frame")
+        self.placement_object_dimensions = rospy.get_param("/placement_object_dimensions")
+        self.placement_sort = rospy.get_param("/placement_sort")
+        self.global_frame = rospy.get_param("/global_frame")
+           	    	
+    def execute(self, userdata):
+
+        # Detect Placement Area Service
+        #string frame_id
+        #geometry_msgs/Point target_point
+        #geometry_msgs/Vector3 box_filter_range
+        #geometry_msgs/Vector3 vertical_axis
+        #float64 tilt_threshold
+        #float64 distance_threshold
+        #tmc_geometric_shapes_msgs/Shape object_shape
+        #geometry_msgs/Pose object_to_surface
+        #float64 surface_range
+
+        grasped_pose = userdata.grasped_pose.pose
+        frame = 'head_rgbd_sensor_rgb_frame'
+        #print(userdata.grasped_pose)
+        # grasped_pose = Pose()
+        # grasped_pose.position.x = 0.189611
+        # grasped_pose.position.y = 0.0962238
+        # grasped_pose.position.z = 0.618759
+        # grasped_pose.orientation.x = -0.457528
+        # grasped_pose.orientation.y = 0.122534712
+        # grasped_pose.orientation.z = 0.730142
+        # grasped_pose.orientation.w = -0.492488698
+
+        grasped_pose = transform_pose(self.global_frame , frame, grasped_pose).pose
+
+        robot_pose = self.omni.get_pose()
+        
+        frame_id = self.global_frame 
+        target_point = Point()
+        target_point.x = robot_pose.pos.x
+        target_point.y = robot_pose.pos.y
+        target_point.z = 0.55
+
+        box_filter_range = Vector3()
+        box_filter_range.x = 4.0
+        box_filter_range.y = 4.0
+        box_filter_range.z = 1.0
+
+        vertical_axis = Vector3()
+        vertical_axis.x = 0.0
+        vertical_axis.y = 0.0
+        vertical_axis.z = 1.0
+
+        tilt_threshold = np.pi * 60/180
+        distance_threshold = 1.0
+
+        object_shape = Shape()
+        object_shape.type = Shape.MESH
+        mesh = open3d.geometry.TriangleMesh.create_box(self.placement_object_dimensions[0], self.placement_object_dimensions[1], self.placement_object_dimensions[2])
+        vertices_list = []
+        for p in np.asarray(mesh.vertices):
+            vertices_list.append(Point(p[0], p[1], p[2]))
+        object_shape.triangles = np.asarray(mesh.triangles).flatten()
+        object_shape.vertices = vertices_list
+
+        object_to_surface = Pose()
+        object_to_surface.position.x = 0
+        object_to_surface.position.y = 0
+        object_to_surface.position.z = 0
+        object_to_surface.orientation.x = 0
+        object_to_surface.orientation.y = 0
+        object_to_surface.orientation.z = 0
+        object_to_surface.orientation.w = 1
+
+        surface_range = 1.0
+
+        rospy.wait_for_service('detect_placement_area')
+
+        try:
+            detect_placement_area = rospy.ServiceProxy('detect_placement_area', DetectPlacementArea)
+            response = detect_placement_area(frame_id, target_point, box_filter_range, vertical_axis, tilt_threshold, distance_threshold, object_shape, object_to_surface, surface_range)
+        except rospy.ServiceException as e:
+            print("DetectPlacmentAreaService call failed: %s" %e)
+
+        userdata.placement_area = response.placement_area
+
+        if response.error_code.val == 1:
+            return 'succeeded'
+        elif response.error_code.val == -1:
+            print("ErrorCode: FAIL")
+        elif response.error_code.val == -2:
+            print("ErrorCode: INVALID_FRAME")
+        elif response.error_code.val == -3:
+            print("ErrorCode: NO_POINTCLOUD")
+        elif response.error_code.val == -4:
+            print("ErrorCode: NI_ACCEPTABLE_PLANE")
+        elif response.error_code.val == -5:
+            print("ErrorCode: INVALID_OBJECT_SURFACE")
+        elif response.error_code.val == -1:
+            print("ErrorCode: NON_POSITIVE")
+        elif response.error_code.val == -1:
+            print("ErrorCode: ZERO_VECTOR")
+        
+        return 'aborted'
+
+
 def main():
     rospy.init_node('grasping_statemachine')
 
@@ -666,17 +1375,62 @@ def main():
                                             'opening': 'OPENING',
                                             'find_grasp': 'ONLY_FIND_GRASPPOINT',
                                             'execute_grasp': 'EXECUTE_GRASP',
-                                            'go_to_table': 'GO_TO_TABLE'})
+                                            'go_to_table': 'GO_TO_WAYPOINT_1',
+                                            'detect_placement_area': 'DETECT_PLACEMENT_AREA'}) 
 
-        smach.StateMachine.add('GO_TO_TABLE',
-                               GoToTable(),
-                               transitions={'succeeded': 'FIND_GRASPPOINT',
+        smach.StateMachine.add('GO_TO_WAYPOINT_1',
+                               GoToWaypoint1(),
+                               transitions={'succeeded': 'USER_INPUT',
                                             'aborted': 'USER_INPUT'})
+        
+        smach.StateMachine.add('GO_TO_WAYPOINT_2',
+                               GoToWaypoint2(),
+                               transitions={'succeeded': 'DETECT_PLACEMENT_AREA',
+                                            'aborted': 'USER_INPUT'})
+
+        smach.StateMachine.add('GO_TO_WAYPOINT_3',
+                        GoToWaypoint3(),
+                        transitions={'succeeded': 'DETECT_PLACEMENT_AREA',
+                                    'aborted': 'USER_INPUT'})
+
+        smach.StateMachine.add('GO_TO_WAYPOINT_4',
+                GoToWaypoint4(),
+                transitions={'succeeded': 'ATTACH_OBJECT',
+                            'aborted': 'USER_INPUT'})
+
+        smach.StateMachine.add('ATTACH_OBJECT',
+                AttachObject(),
+                transitions={'succeeded': 'DETECT_PLACEMENT_AREA',
+                            'aborted': 'USER_INPUT'})
+
+
+        # smach.StateMachine.add('PLACE_OBJECT',
+        #                        PlaceAtTable2(),
+        #                        transitions={'succeeded': 'JUST_GO_TO_TABLE2',
+        #                                     'aborted': 'USER_INPUT'})
+
+        # smach.StateMachine.add('PLACE_OBJECT2',
+        #                        Placement(),
+        #                        transitions={'succeeded': 'JUST_GO_TO_TABLE2',
+        #                                     'aborted': 'USER_INPUT'})
+
+        smach.StateMachine.add('DETECT_PLACEMENT_AREA',
+                               PlacementAreaDetector(),
+                               transitions={'succeeded': 'PLACEMENT_PLACE',
+                                            'aborted': 'USER_INPUT'})
+
+        smach.StateMachine.add('PLACEMENT_PLACE',
+                               smach_ros.SimpleActionState('placement_place', PlacementPlaceAction,
+                                                           goal_slots=['placement_area', 'grasped_pose'],
+                                                           result_slots=['error']),
+                                transitions={'succeeded': 'USER_INPUT',
+                                            'aborted': 'USER_INPUT',
+                                            'preempted': 'USER_INPUT'})
 
         smach.StateMachine.add('GO_TO_NEUTRAL',
                                GoToNeutral(),
                                transitions={'succeeded': 'USER_INPUT',
-                                            'continuing': 'GO_TO_TABLE'})
+                                            'continuing': 'GO_TO_WAYPOINT_1'})
 
         smach.StateMachine.add('OPENING',
                                Opening(),
@@ -713,8 +1467,9 @@ def main():
 
         smach.StateMachine.add('EXECUTE_GRASP',
                                smach_ros.SimpleActionState('execute_grasp', ExecuteGraspAction,
-                                                           goal_slots=['grasp_poses']),
-                               transitions={'succeeded': 'NEUTRAL_BEFORE_HANDOVER',
+                                                           goal_slots=['grasp_poses'], 
+                                                           result_slots=['grasped_pose']),
+                               transitions={'succeeded': 'GO_TO_WAYPOINT_4', #GO_TO_TABLE2
                                             'preempted': 'USER_INPUT',
                                             'aborted': 'GO_TO_NEUTRAL'},
                                remapping={'grasp_poses': 'found_grasp_poses'})

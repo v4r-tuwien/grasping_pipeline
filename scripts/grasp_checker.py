@@ -286,7 +286,7 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, table_plane=None, visualize=False
         dist = np.linalg.norm(grasp_try_wrist[:3, 3])
         dist_to_wrist.append(dist)
         pose = PoseStamped()
-        pose.header.frame_id = '/head_rgbd_sensor_rgb_frame'
+        pose.header.frame_id = 'head_rgbd_sensor_rgb_frame'
         pose.pose.position.x = grasp_try[0, 3]
         pose.pose.position.y = grasp_try[1, 3]
         pose.pose.position.z = grasp_try[2, 3]

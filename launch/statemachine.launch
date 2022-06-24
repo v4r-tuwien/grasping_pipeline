@@ -3,9 +3,17 @@
 
     <!-- Load parameters -->
     <rosparam command="load" ns="" file="$(find grasping_pipeline)/config/standard.yaml"/>
+    <rosparam command="load" ns="" file="$(find placement)/config/startup.yaml"/>
     <node name="execute_grasp_server" pkg="grasping_pipeline" type="execute_grasp_action_server.py"/>
     <node name="find_grasppoint_server" pkg="grasping_pipeline" type="find_grasppoint_action_server.py"/>
     <node name="handover_server" pkg="handover" type="handover_server.py"/>
+    <!--<node name="PlacementCalcGripperPose" pkg="placement" type="placement_calc_gripper_pose_as.py"/>-->
+    <!--<node name="PlacementCalculateAndSortPoses" pkg="placement" type="placement_calc_sort_poses_as.py"/>-->
+    <node name="PlacementCollisionEnvironment" pkg="placement" type="placement_collision_environment_as.py"/>
+    <!--<node name="PlacementDetectPlane" pkg="placement" type="placement_detect_plane_as.py"/>-->
+    <!--<node name="PlacementPlaceAndMoveAway" pkg="placement" type="placement_place_and_move_away_as.py"/>-->
+    <node name="placement_place" pkg="placement" type="placement_place_as.py"/>
     <node name="grasping_statemachine" pkg="grasping_pipeline" type="statemachine.py"  output="screen"/>
-    <node name="map_cloud_publisher" pkg="grasping_pipeline" type="map_cloud_publisher.py" output="screen"/>
+    <!--<node name="map_publisher" pkg="grasping_pipeline" type="map_cloud_publisher.py" output="screen"/>-->
+
 </launch>
