@@ -55,7 +55,6 @@ states_keys = {States.GRASP: 'g',
                States.CONFIG: 'c',
                States.CLEAN_TABLE: 't'}
 
-
 class UserInput(smach.State):
     """ Initial smach state for the statemachine
     Serves as simple user interface in the terminal
@@ -144,7 +143,7 @@ class UserInput(smach.State):
 
         objects_to_find = list(self.objects_keys.values())
         objects_to_find.extend(
-            ['teddy bear', 'banana', 'bottle', 'sports ball', 'dog', '000002'])
+            ['teddy bear', 'banana', 'bottle', 'sports ball', 'bowl', 'cup'])
         userdata.objects_to_find = objects_to_find
         self.print_help()
         while not rospy.is_shutdown():
@@ -170,7 +169,7 @@ class UserInput(smach.State):
                 rospy.loginfo('Grasping object')
                 print('Choose a method for grasppoint calculation')
                 print('\t1 - unknown object')
-                print('\t2 - known object')
+                print('\t2 - known object lol')
                 print('\t3 - choose known object')
                 print('\t4 - known object with HAF')
                 print('\t5 - PyraPose known objects')
@@ -514,10 +513,10 @@ class GoBackAndNeutral(smach.State):
         if userdata.params.get('use_map'):
             move_goal = MoveBaseGoal()
             move_goal.target_pose.header.frame_id = 'map'
-            move_goal.target_pose.pose.position.x = 0.4
-            move_goal.target_pose.pose.position.y = 0.0
-            move_goal.target_pose.pose.orientation.z = 0.707
-            move_goal.target_pose.pose.orientation.w = 0.707
+            move_goal.target_pose.pose.position.x = 0.2
+            move_goal.target_pose.pose.position.y = 0.1
+            move_goal.target_pose.pose.orientation.z = 0.0
+            move_goal.target_pose.pose.orientation.w = 1.0
             self.move_client.wait_for_server()
             self.move_client.send_goal(move_goal)
             result = self.move_client.wait_for_result()
@@ -572,10 +571,10 @@ class GoToTable(smach.State):
     def execute(self, userdata):
         move_goal = MoveBaseGoal()
         move_goal.target_pose.header.frame_id = 'map'
-        move_goal.target_pose.pose.position.x = 0
-        move_goal.target_pose.pose.position.y = 0
-        move_goal.target_pose.pose.orientation.z = 0.95
-        move_goal.target_pose.pose.orientation.w = 0.05
+        move_goal.target_pose.pose.position.x = 0.5
+        move_goal.target_pose.pose.position.y = 0.1
+        move_goal.target_pose.pose.orientation.z = 0.0
+        move_goal.target_pose.pose.orientation.w = 1.0
         self.move_client.wait_for_server()
         self.move_client.send_goal(move_goal)
         result = self.move_client.wait_for_result()

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SESSION=VEREFINE
-WS_PATH=~/demos
+WS_PATH=~/Christian/grasping_tests
 
 tmux -2 new-session -d -s $SESSION
 tmux set -g mouse on
@@ -13,7 +13,7 @@ tmux new-window -t $SESSION:1
 tmux select-window -t $SESSION:0
 tmux split-window -h
 tmux select-pane -t 0
-tmux send-keys "source $WS_PATH/devel/setup.bash" C-m
+tmux send-keys "source /home/v4r/demos/devel/setup.bash" C-m
 tmux select-pane -t 1
 tmux send-keys "source $WS_PATH/devel/setup.bash" C-m
 tmux select-pane -t 0

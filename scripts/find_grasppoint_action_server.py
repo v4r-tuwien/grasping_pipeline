@@ -73,7 +73,7 @@ class FindGrasppointServer:
             '/detectron2_service/stop', stop)
         rospy.loginfo('Initializing FindGrasppointServer done')
 
-    def execute(self, goal):      
+    def execute(self, goal):   
         if not goal.object_names:
             rospy.logerr("No object names given. Abort.")
             self.server.set_aborted()
@@ -379,7 +379,7 @@ class FindGrasppointServer:
         # get detections from detectron
         self.start_detectron()
         detections = rospy.wait_for_message(
-            '/detectron2_service/detections', DetectronDetections, timeout=10)
+            '/detectron2_service/detections', DetectronDetections, timeout=20)
         print('detection received')
         self.stop_detectron()
         print('stop detectron')
@@ -456,15 +456,15 @@ class FindGrasppointServer:
         grasp_goal.goal.graspinput.grasp_area_center.x = search_center.point.x
         grasp_goal.goal.graspinput.grasp_area_center.y = search_center.point.y
         grasp_goal.goal.graspinput.grasp_area_center.z = search_center.point.z + 0.1
-        grasp_goal.goal.graspinput.grasp_area_length_x = 20
-        grasp_goal.goal.graspinput.grasp_area_length_y = 20
+        grasp_goal.goal.graspinput.grasp_area_length_x = 30
+        grasp_goal.goal.graspinput.grasp_area_length_y = 30
 
         grasp_goal.goal.graspinput.approach_vector.x = self.approach_vector_x
         grasp_goal.goal.graspinput.approach_vector.y = self.approach_vector_y
         grasp_goal.goal.graspinput.approach_vector.z = self.approach_vector_z
 
         grasp_goal.goal.graspinput.input_pc = self.my_cloud
-        grasp_goal.goal.graspinput.max_calculation_time = rospy.Duration(15)
+        grasp_goal.goal.graspinput.max_calculation_time = rospy.Duration(25)
         grasp_goal.goal.graspinput.gripper_opening_width = 1
         self.haf_client.wait_for_server()
         self.haf_client.send_goal(grasp_goal.goal)

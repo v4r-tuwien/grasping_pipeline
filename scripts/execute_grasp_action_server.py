@@ -18,6 +18,21 @@ from visualization_msgs.msg import Marker
 from math import pi
 import numpy as np
 
+from table_plane_extractor.srv import TablePlaneExtractor
+from table_plane_extractor.msg import Plane
+import open3d as o3d
+from open3d_ros_helper import open3d_ros_helper as orh
+from sensor_msgs.msg import PointCloud2
+import copy
+from placement.msg import *
+from geometry_msgs.msg import Pose
+from enum import IntEnum
+
+class CollisionMethod(IntEnum):
+    ADD = 0
+    REMOVE = 1
+    ATTACH = 2
+    DETACH = 3
 
 class ExecuteGraspServer:
     def __init__(self):
@@ -66,6 +81,9 @@ class ExecuteGraspServer:
     def execute(self, goal):
         res = ExecuteGraspActionResult()
         self.create_collision_environment()
+
+        coll_objects = self.get_table_collision_object()
+        self.add_table_collision_object(coll_objects)
 
         self.clear_octomap()
         plan_found = False
@@ -138,6 +156,90 @@ class ExecuteGraspServer:
             res.result.success = False
             rospy.logerr('grasping failed')
             self.server.set_aborted()
+
+    def add_table_collision_object(self, coll_objects):
+
+        rospy.logerr("Step 2: add coll obj")
+        rospy.logerr(coll_objects)
+        collisionEnvironment_client = actionlib.SimpleActionClient('PlacementCollisionEnvironment', PlacementCollisionEnvironmentAction)
+        collisionEnvironment_client.wait_for_server()
+        collisionEnvironment_goal = PlacementCollisionEnvironmentGoal()
+
+        # walls
+        collisionObject_list = list()
+
+        counter = 1
+
+        for obj in coll_objects:
+            collisionObject = CollisionObject()
+            pose = Pose()
+            pose.position.x = obj.center[0]
+            pose.position.y = obj.center[1]
+            pose.position.z = obj.center[2]
+            pose.orientation.x = 0.0
+            pose.orientation.y = 0.0
+            pose.orientation.z = 0.0
+            pose.orientation.w = 1.0
+            collisionObject.pose = pose
+            collisionObject.size_x = obj.extent[0]
+            collisionObject.size_y = obj.extent[1]
+            collisionObject.size_z = obj.extent[2]
+            collisionObject.name = "collision_object" + str(counter)
+            collisionObject.frame = "map"
+            collisionObject.method = CollisionMethod.ADD
+            collisionObject_list.append(collisionObject)
+            counter += 1
+
+        rospy.logerr(collisionObject_list)
+
+        # send goal
+        collisionEnvironment_goal.collisionObject_list = collisionObject_list
+        collisionEnvironment_client.send_goal(collisionEnvironment_goal)
+        collisionEnvironment_client.wait_for_result()
+        collisionEnvironment_result = collisionEnvironment_client.get_result()
+
+        rospy.logerr(collisionEnvironment_result)
+
+        if not collisionEnvironment_result.isDone:
+            print("Error while creating the collision environment")
+
+
+        rospy.sleep(10)
+
+    def get_table_collision_object(self):
+
+        rospy.logerr("Step 1: get table plane")
+    
+        topic = rospy.get_param('/point_cloud_topic')
+        rospy.wait_for_service('/test/table_plane_extractor')
+        bb_list = []
+
+        try:
+            table_extractor = rospy.ServiceProxy('/test/table_plane_extractor', TablePlaneExtractor)
+            response = table_extractor(topic)
+            for pcd in response.clouds:
+                cloud = orh.rospc_to_o3dpc(pcd)
+                bb_cloud = cloud.get_oriented_bounding_box()
+
+                if bb_cloud.center[2] < 0.2:
+                    continue
+
+                bb_cloud.color = (0, 1, 0)
+                bb_cloud_mod = copy.deepcopy(bb_cloud)
+                bb_cloud_mod.color = (0, 0, 1)
+
+                bb_cloud_mod.center = (bb_cloud_mod.center[0], bb_cloud_mod.center[1], (bb_cloud_mod.center[2] + (bb_cloud_mod.extent[2] / 2)) / 2)
+                bb_cloud_mod.extent = (bb_cloud_mod.extent[0]+0.04, bb_cloud_mod.extent[1]+0.04, bb_cloud.center[2] + (bb_cloud_mod.extent[2] / 2))
+
+                bb_list.append(bb_cloud_mod)
+                #print(bb_cloud_mod.center)
+                #print(bb_cloud_mod.extent)
+                #o3d.visualization.draw_geometries([cloud, bb_cloud, bb_cloud_mod])
+
+        except rospy.ServiceException as e:
+            print(e)
+
+        return bb_list
 
     def add_box(self, name, position_x=0, position_y=0,
                 position_z=0, size_x=0.1, size_y=0.1, size_z=0.1):

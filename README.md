@@ -2,7 +2,7 @@
 Grasping pipeline for grasping YCBV objects with VeRefine and unkown objects with HAF grasping. 
 
 ## Dependencies
-- [HAF](https://github.com/v4r-tuwien/haf_grasping.git)
+- [HAF](https://github.com/davidfischinger/haf_grasping.git)
 - [object_detector_msgs](https://github.com/v4r-tuwien/object_detector_msgs)
 - [sasha_handover](https://github.com/v4r-tuwien/sasha_handover)
 - [open3d_ros_helper](https://github.com/SeungBack/open3d-ros-helper.git)
