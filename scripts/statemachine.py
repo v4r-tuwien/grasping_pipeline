@@ -597,10 +597,9 @@ class GoToTable(smach.State):
 
 
 class NoGrasppointFound(smach.State):
-    """ Smach state that will move the robot either backwards (use_map is False)
-    or to a predefined position on the map (use_map is True)
-    Also moves the joints to the neutral position
-    Grasp check (turning the wrist) will be done here if enabled
+    """ Will check how often a method has been tried
+        in the clear table routine and change the method
+        or go back to user input accordingly.
 
     Userdata:
         Input Keys:
