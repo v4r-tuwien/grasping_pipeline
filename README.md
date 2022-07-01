@@ -67,7 +67,7 @@ States:
 - **GoBackAndNeutral:** Smach state that will move the robot either backwards (use_map is False) or to a predefined position on the map (use_map is True). Also moves the joints to the neutral position. Grasp check (turning the wrist) will be done here if enabled.
 - **Opening:** Opens the robots gripper.
 - **GoToTable:** Robot moves to a fixed position near the table using a move_base action goal. Also moves joints to neutral position.
-- **NoGrasppointFound:** In the clear table routine, it will how often a method has been tried, and change it or go back to user input accordingly.
+- **NoGrasppointFound:** Will check how often a method has been tried in the clear table routine and change the method or go back to user input accordingly.
 
 ### Find Grasp Point Server
 ActionServer that finds and selects grasp poses.
