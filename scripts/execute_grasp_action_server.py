@@ -39,6 +39,7 @@ class ExecuteGraspServer:
         self.robot = Robot()
         self.whole_body = self.robot.try_get('whole_body')
         self.gripper = self.robot.get('gripper')
+        self.omni_base = self.robot.try_get('omni_base')
         self.tf = tf.TransformListener()
         self.use_map = rospy.get_param('/use_map', False)
 
@@ -58,6 +59,7 @@ class ExecuteGraspServer:
         moveit_commander.roscpp_initialize(sys.argv)
         self.robot_cmd = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
+        rospy.sleep(1)
         self.group_name = "whole_body"
         move_group = moveit_commander.MoveGroupCommander(self.group_name)
         display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path',
@@ -73,6 +75,9 @@ class ExecuteGraspServer:
             (-1.5 + transform[0][0], -1.5 + transform[0][1], -1, 1.5 + transform[0][0], 1.5 + transform[0][1], 3))
 
         move_group.allow_replanning(True)
+        self.scene.remove_attached_object(self.eef_link)
+        self.scene.remove_world_object()
+        move_group.clear_pose_targets()
         # move_group.set_num_planning_attempts(5)
         self.create_collision_environment()
 
@@ -144,6 +149,7 @@ class ExecuteGraspServer:
         self.whole_body.move_end_effector_pose(new_pose)
 
         self.whole_body.move_end_effector_by_line((0, 0, 1), -safety_distance)
+        self.omni_base.go_rel(-0.2, 0.0, 0.0, 10)
         self.whole_body.move_to_neutral()
 
         # check if object is in gripper
@@ -155,17 +161,14 @@ class ExecuteGraspServer:
         else:
             res.result.success = False
             rospy.logerr('grasping failed')
+            self.gripper.command(1.0)
             self.server.set_aborted()
 
     def add_table_collision_object(self, coll_objects):
-
-        rospy.logerr("Step 2: add coll obj")
-        rospy.logerr(coll_objects)
         collisionEnvironment_client = actionlib.SimpleActionClient('PlacementCollisionEnvironment', PlacementCollisionEnvironmentAction)
         collisionEnvironment_client.wait_for_server()
         collisionEnvironment_goal = PlacementCollisionEnvironmentGoal()
 
-        # walls
         collisionObject_list = list()
 
         counter = 1
@@ -175,7 +178,7 @@ class ExecuteGraspServer:
             pose = Pose()
             pose.position.x = obj.center[0]
             pose.position.y = obj.center[1]
-            pose.position.z = obj.center[2]
+            pose.position.z = obj.center[2] - 0.1
             pose.orientation.x = 0.0
             pose.orientation.y = 0.0
             pose.orientation.z = 0.0
@@ -190,7 +193,84 @@ class ExecuteGraspServer:
             collisionObject_list.append(collisionObject)
             counter += 1
 
-        rospy.logerr(collisionObject_list)
+        # add floor
+        pose = self.omni_base.get_pose()
+        collisionObject = CollisionObject()
+        floor_pose = Pose()
+        floor_pose.position.x = pose.pos.x
+        floor_pose.position.y = pose.pos.y
+        floor_pose.position.z = -0.07
+        floor_pose.orientation.w = pose.ori.w
+        collisionObject.pose = floor_pose
+        collisionObject.size_x = 15
+        collisionObject.size_y = 15
+        collisionObject.size_z = 0.1
+        collisionObject.name = "floor"
+        collisionObject.frame = "map"
+        collisionObject.method = CollisionMethod.ADD
+        collisionObject_list.append(collisionObject)
+
+        # add walls around the robot
+
+        collisionObject = CollisionObject()
+        floor_pose = Pose()
+        floor_pose.position.x = pose.pos.x + 1.5
+        floor_pose.position.y = pose.pos.y
+        floor_pose.position.z = 0.05
+        floor_pose.orientation.w = pose.ori.w
+        collisionObject.pose = floor_pose
+        collisionObject.size_x = 0.01
+        collisionObject.size_y = 4
+        collisionObject.size_z = 0.1
+        collisionObject.name = "front_wall"
+        collisionObject.frame = "map"
+        collisionObject.method = CollisionMethod.ADD
+        collisionObject_list.append(collisionObject)
+
+        collisionObject = CollisionObject()
+        floor_pose = Pose()
+        floor_pose.position.x = pose.pos.x - 1.5
+        floor_pose.position.y = pose.pos.y
+        floor_pose.position.z = 0.05
+        floor_pose.orientation.w = pose.ori.w
+        collisionObject.pose = floor_pose
+        collisionObject.size_x = 0.01
+        collisionObject.size_y = 4
+        collisionObject.size_z = 0.1
+        collisionObject.name = "behind_wall"
+        collisionObject.frame = "map"
+        collisionObject.method = CollisionMethod.ADD
+        collisionObject_list.append(collisionObject)
+
+        collisionObject = CollisionObject()
+        floor_pose = Pose()
+        floor_pose.position.x = pose.pos.x
+        floor_pose.position.y = pose.pos.y + 2.0
+        floor_pose.position.z = 0.05
+        floor_pose.orientation.w = pose.ori.w
+        collisionObject.pose = floor_pose
+        collisionObject.size_x = 4
+        collisionObject.size_y = 0.01
+        collisionObject.size_z = 0.1
+        collisionObject.name = "left_wall"
+        collisionObject.frame = "map"
+        collisionObject.method = CollisionMethod.ADD
+        collisionObject_list.append(collisionObject)
+
+        collisionObject = CollisionObject()
+        floor_pose = Pose()
+        floor_pose.position.x = pose.pos.x
+        floor_pose.position.y = pose.pos.y - 1.0
+        floor_pose.position.z = 0.05
+        floor_pose.orientation.w = pose.ori.w
+        collisionObject.pose = floor_pose
+        collisionObject.size_x = 4
+        collisionObject.size_y = 0.01
+        collisionObject.size_z = 0.1
+        collisionObject.name = "right_wall"
+        collisionObject.frame = "map"
+        collisionObject.method = CollisionMethod.ADD
+        collisionObject_list.append(collisionObject)
 
         # send goal
         collisionEnvironment_goal.collisionObject_list = collisionObject_list
@@ -198,18 +278,12 @@ class ExecuteGraspServer:
         collisionEnvironment_client.wait_for_result()
         collisionEnvironment_result = collisionEnvironment_client.get_result()
 
-        rospy.logerr(collisionEnvironment_result)
-
         if not collisionEnvironment_result.isDone:
             print("Error while creating the collision environment")
 
-
-        rospy.sleep(10)
+        rospy.sleep(2)
 
     def get_table_collision_object(self):
-
-        rospy.logerr("Step 1: get table plane")
-    
         topic = rospy.get_param('/point_cloud_topic')
         rospy.wait_for_service('/test/table_plane_extractor')
         bb_list = []

@@ -340,7 +340,10 @@ class FindGrasppointServer:
         rospy.wait_for_message(self.pointcloud_topic,
                                    PointCloud2, timeout=15)
         scene_cloud = self.cloud
-        valid_poses = check_grasp_hsr(grasp_object, scene_cloud, True)
+        table_plane = None
+
+        valid_poses = check_grasp_hsr(
+            grasp_object, scene_cloud, table_plane=table_plane, visualize=False)
 
         if len(valid_poses) == 0:
             rospy.loginfo('no grasp found')

@@ -143,7 +143,7 @@ class UserInput(smach.State):
 
         objects_to_find = list(self.objects_keys.values())
         objects_to_find.extend(
-            ['teddy bear', 'banana', 'bottle', 'sports ball', 'bowl', 'cup'])
+            ['teddy bear', 'banana', 'bottle', 'sports ball', 'bowl', 'cup', 'book', 'transparent_canister', 'chair', 'baseball glove', 'handbag'])
         userdata.objects_to_find = objects_to_find
         self.print_help()
         while not rospy.is_shutdown():
@@ -168,10 +168,10 @@ class UserInput(smach.State):
             elif char_in == states_keys[States.GRASP]:
                 rospy.loginfo('Grasping object')
                 print('Choose a method for grasppoint calculation')
-                print('\t1 - unknown object')
-                print('\t2 - known object lol')
-                print('\t3 - choose known object')
-                print('\t4 - known object with HAF')
+                print('\t1 - Detectron unknown object')
+                print('\t2 - Verefine known object')
+                print('\t3 - Verefine choose known object')
+                print('\t4 - Verefine known object with HAF')
                 print('\t5 - PyraPose known objects')
                 print('\t6 - PyraPose choose object')
 
@@ -268,10 +268,10 @@ class UserInput(smach.State):
             elif char_in == states_keys[States.FIND_GRASP]:
                 rospy.loginfo('Finding a grasp pose')
                 print('Choose a method for grasppoint calculation')
-                print('\t1 - unknown object')
-                print('\t2 - known object')
-                print('\t3 - choose known object')
-                print('\t4 - known object with HAF')
+                print('\t1 - Detectron unknown object')
+                print('\t2 - Verefine known object')
+                print('\t3 - Verefine choose known object')
+                print('\t4 - Verefine known object with HAF')
                 print('\t5 - PyraPose known objects')
                 print('\t6 - PyraPose choose object')
 
