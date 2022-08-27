@@ -11,6 +11,8 @@ haf_grasping
 sensor_msgs
 handover
 object_detector_msgs
+vision_msgs
+table_plane_extractor
 )
 
 ## Generate actions in the 'action' folder
