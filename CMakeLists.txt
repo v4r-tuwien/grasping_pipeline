@@ -8,7 +8,10 @@ actionlib_msgs
 geometry_msgs
 hsrb_interface_py
 haf_grasping
-sensor_msgs)
+sensor_msgs
+handover
+object_detector_msgs
+)
 
 ## Generate actions in the 'action' folder
  add_action_files(
@@ -23,6 +26,7 @@ sensor_msgs)
    std_msgs  
    actionlib_msgs
    geometry_msgs
+   object_detector_msgs
  )
 
 catkin_package()
