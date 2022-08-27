@@ -16,11 +16,12 @@ from hsrb_interface import Robot
 from object_detector_msgs.msg import Detection as DetectronDetection
 from object_detector_msgs.msg import Detections as DetectronDetections
 from object_detector_msgs.srv import get_poses, start, stop
+from table_plane_extractor.srv import GetObjectsOnTable
 from sensor_msgs.msg import PointCloud2
 from tf.transformations import (quaternion_about_axis, quaternion_from_matrix,
                                 quaternion_multiply, unit_vector)
 from tmc_vision_msgs.msg import Detection, DetectionArray
-from visualization_msgs.msg import Marker
+from visualization_msgs.msg import Marker, MarkerArray
 
 from grasp_checker import check_grasp_hsr
 
@@ -71,6 +72,7 @@ class FindGrasppointServer:
             '/detectron2_service/start', start)
         self.stop_detectron = rospy.ServiceProxy(
             '/detectron2_service/stop', stop)
+        self.get_objects_on_table = rospy.ServiceProxy('/objects_on_table/get_bounding_boxes', GetObjectsOnTable)
         rospy.loginfo('Initializing FindGrasppointServer done')
 
     def execute(self, goal):      
@@ -99,6 +101,9 @@ class FindGrasppointServer:
         elif goal.method == 4:
             self.method4_pyrapose(object_names)
 
+# method 5 unknown objects, finds objects on table plane
+        elif goal.method == 5:
+            self.method5_objects_on_table_plane()
         else:
             rospy.loginfo('Method not implemented')
             self.server.set_aborted()
@@ -352,6 +357,61 @@ class FindGrasppointServer:
         self.add_marker(valid_poses[0])
         self.server.set_succeeded(result)
 
+    def method5_objects_on_table_plane(self):
+        result = FindGrasppointActionResult().result
+        rospy.loginfo('Chosen Method is get objects on table plane + HAF')
+        rospy.wait_for_message(self.pointcloud_topic,
+                               PointCloud2, timeout=15)
+        self.my_cloud = self.cloud
+        try:
+            res = self.get_objects_on_table(self.my_cloud)
+        except BaseException:
+            rospy.loginfo("Aborted: Error when calling get_objects_on_table service")
+            self.server.set_aborted()
+            return
+        detected_objects = res.detected_objects
+
+        if len(detected_objects.boxes) < 1:
+            rospy.loginfo("Aborted: No objects found")
+            self.server.set_aborted()
+            return
+
+        self.publish_bounding_boxes(detected_objects)
+
+        dist = 10E50
+        obj = None
+        for obj_bb in detected_objects.boxes:
+            pos = obj_bb.center.position
+            obj_dist_squared = pos.x*pos.x + pos.y*pos.y + pos.z*pos.z
+            if obj_dist_squared < dist:
+                dist = obj_dist_squared
+                obj = obj_bb
+
+        center = geometry_msgs.msg.PointStamped()
+        center.header.frame_id = detected_objects.header.frame_id
+        center.point = obj.center.position
+
+        self.my_cloud.header.stamp = rospy.get_rostime()
+        # convert from meters to centimeters * safety factor
+        grasp_area_length_x =  obj.size.x*100*1.5
+        grasp_area_length_y = obj.size.y*100*1.5
+        grasp_area_length_x = max(grasp_area_length_x, 20)
+        grasp_area_length_y = max(grasp_area_length_y, 20)
+        # z+=0.1 needed for smaller objects (otherwise problems with tableplane)
+        grasp_result_haf = self.call_haf_grasping(center, 0.1, grasp_area_length_x, grasp_area_length_y)
+        if grasp_result_haf.graspOutput.eval <= 0:
+            rospy.logerr(
+                'HAF grasping did not deliver successful result. Eval below 0\n' +
+                'Eval: ' + str(grasp_result_haf.graspOutput.eval))
+            self.server.set_aborted()
+            return
+        else:
+            rospy.loginfo('eval:' + str(grasp_result_haf.graspOutput.eval))
+        grasp_pose = self.convert_haf_result_for_moveit(grasp_result_haf)
+        result.grasp_poses = grasp_pose
+        self.server.set_succeeded(result)
+        
+
     def pointcloud_cb(self, data):
         self.cloud = data
 
@@ -430,7 +490,7 @@ class FindGrasppointServer:
             'base_link', point)
         return point_transformed
 
-    def call_haf_grasping(self, search_center):
+    def call_haf_grasping(self, search_center, search_center_z_add = 0.1, grasp_area_length_x=20, grasp_area_length_y=20):
         """ Writes the goal for HAF grasping action, calls the action and
         returns the result
         The approach vector is set to [0,0,1]
@@ -446,6 +506,7 @@ class FindGrasppointServer:
                 Result contains a GraspOutput message:
                 https://github.com/davidfischinger/haf_grasping/blob/master/msg/GraspOutput.msg
         """
+        rospy.logerr('called with:  g_a_l_x: ' + str(grasp_area_length_x) + ' gal_y:' + str(grasp_area_length_y))
         # approach vector for top grasps
         self.approach_vector_x = 0.0
         self.approach_vector_y = 0.0
@@ -455,9 +516,9 @@ class FindGrasppointServer:
         grasp_goal.goal.graspinput.goal_frame_id = search_center.header.frame_id
         grasp_goal.goal.graspinput.grasp_area_center.x = search_center.point.x
         grasp_goal.goal.graspinput.grasp_area_center.y = search_center.point.y
-        grasp_goal.goal.graspinput.grasp_area_center.z = search_center.point.z + 0.1
-        grasp_goal.goal.graspinput.grasp_area_length_x = 20
-        grasp_goal.goal.graspinput.grasp_area_length_y = 20
+        grasp_goal.goal.graspinput.grasp_area_center.z = search_center.point.z + search_center_z_add
+        grasp_goal.goal.graspinput.grasp_area_length_x = grasp_area_length_x
+        grasp_goal.goal.graspinput.grasp_area_length_y = grasp_area_length_y
 
         grasp_goal.goal.graspinput.approach_vector.x = self.approach_vector_x
         grasp_goal.goal.graspinput.approach_vector.y = self.approach_vector_y
@@ -528,6 +589,33 @@ class FindGrasppointServer:
         grasp_pose.append(
             self.Transformer.transformPose('odom', grasp_pose_bl))
         return grasp_pose
+    
+    def publish_bounding_boxes(self, boundingBoxArr):
+        obj_on_table_vis = rospy.Publisher("objectsOnTableVisualizer", MarkerArray, queue_size=3)
+        marker_delete_all = Marker()
+        marker_delete_all.action = marker_delete_all.DELETEALL
+        marker_delete_all.ns = "ObjectsOnTable"
+        marker_arr = MarkerArray()
+        marker_arr.markers = []
+        marker_arr.markers.append(marker_delete_all)
+        id = 0
+        # add marker for each detected object
+        for obj in boundingBoxArr.boxes:
+            marker = Marker()
+            marker.header.frame_id = boundingBoxArr.header.frame_id
+            marker.header.stamp = rospy.get_rostime()
+            marker.ns = "ObjectsOnTable"
+            marker.id = id
+            id = id + 1
+            marker.type = marker.CUBE
+            marker.action = marker.ADD
+            marker.pose = obj.center
+            marker.scale = obj.size
+            marker.color.g = 1.0
+            marker.color.a = 0.6
+            marker_arr.markers.append(marker)
+        obj_on_table_vis.publish(marker_arr)
+
 
     def add_marker(self, pose_goal):
         """ publishes a grasp marker to /grasping_pipeline/grasp_marker
