@@ -12,6 +12,8 @@ Grasping pipeline for grasping YCBV objects with VeRefine and unkown objects wit
 - [hsrb_moveit](https://git.hsr.io/tmc/hsrb_moveit)
 - [verefine_pipeline](https://github.com/v4r-tuwien/verefine_pipeline)
 - [detectron2_ros](https://github.com/v4r-tuwien/detectron2_ros)
+- [table_plane_extractor](https://github.com/v4r-tuwien/table_plane_extractor)
+- [CMakeLists.txt](CMakeLists.txt)
 
 ## Usage
 

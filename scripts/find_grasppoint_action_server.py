@@ -358,11 +358,25 @@ class FindGrasppointServer:
         self.server.set_succeeded(result)
 
     def method5_objects_on_table_plane(self):
+        """Method 5: Unknown Object on Plane and HAF Grasping
+        
+        Calls the "get_objects_on_table" service to get bounding boxes
+        from objects on a table plane.
+        If this fails, the ActionServer will be set to aborted and the 
+        function ends.
+        If the service call succeeds, it will return a list of bounding boxes.
+        The closest bounding box is selected and used as the search center 
+        and search area for HAF Grasping.
+        The result from HAF Grasping is converted for MoveIt and then set as
+        the servers result. 
+        """  
         result = FindGrasppointActionResult().result
-        rospy.loginfo('Chosen Method is get objects on table plane + HAF')
+        rospy.loginfo('Chosen Method is unknown objects on table plane + HAF')
+
         rospy.wait_for_message(self.pointcloud_topic,
                                PointCloud2, timeout=15)
         self.my_cloud = self.cloud
+
         try:
             res = self.get_objects_on_table(self.my_cloud)
         except BaseException:
@@ -378,6 +392,7 @@ class FindGrasppointServer:
 
         self.publish_bounding_boxes(detected_objects)
 
+        # get closest bounding box
         dist = 10E50
         obj = None
         for obj_bb in detected_objects.boxes:
@@ -391,12 +406,17 @@ class FindGrasppointServer:
         center.header.frame_id = detected_objects.header.frame_id
         center.point = obj.center.position
 
+        # update to current time because otherwise haf fails as the original time stamp is too old.
+        # should not be a problem because we already assume that the scene does not change during the calculations.
         self.my_cloud.header.stamp = rospy.get_rostime()
+
         # convert from meters to centimeters * safety factor
         grasp_area_length_x =  obj.size.x*100*1.5
         grasp_area_length_y = obj.size.y*100*1.5
+        # min 20 cm for haf to work reliably
         grasp_area_length_x = max(grasp_area_length_x, 20)
         grasp_area_length_y = max(grasp_area_length_y, 20)
+
         # z+=0.1 needed for smaller objects (otherwise problems with tableplane)
         grasp_result_haf = self.call_haf_grasping(center, 0.1, grasp_area_length_x, grasp_area_length_y)
         if grasp_result_haf.graspOutput.eval <= 0:
@@ -407,6 +427,7 @@ class FindGrasppointServer:
             return
         else:
             rospy.loginfo('eval:' + str(grasp_result_haf.graspOutput.eval))
+        
         grasp_pose = self.convert_haf_result_for_moveit(grasp_result_haf)
         result.grasp_poses = grasp_pose
         self.server.set_succeeded(result)
@@ -499,6 +520,12 @@ class FindGrasppointServer:
             search_center {geometry_msgs.msg.PointStamped} --
                 rough x-,y-position, that is the center of the area
                 where grasps are searched
+            search_center_z_add {float} --
+                length in m that gets added to the search-center z-component
+            grasp_area_length_x {float} -- 
+                length in cm that defines the search area for haf-grasping
+            grasp_area_length_y {float} --
+                length in cm that defines the search are for haf-grasping
 
         Returns:
             haf_grasping.msg.CalcGraspPointsServerActionResult --
@@ -506,7 +533,6 @@ class FindGrasppointServer:
                 Result contains a GraspOutput message:
                 https://github.com/davidfischinger/haf_grasping/blob/master/msg/GraspOutput.msg
         """
-        rospy.logerr('called with:  g_a_l_x: ' + str(grasp_area_length_x) + ' gal_y:' + str(grasp_area_length_y))
         # approach vector for top grasps
         self.approach_vector_x = 0.0
         self.approach_vector_y = 0.0
@@ -591,6 +617,13 @@ class FindGrasppointServer:
         return grasp_pose
     
     def publish_bounding_boxes(self, boundingBoxArr):
+        '''
+        Converts a BoundingBox3DArray into a rviz MarkerArray and publishes the MarkerArray for visualization
+        
+        Arguments:
+            boundingBoxArr {vision_msgs.msg.BoundingBox3DArray} --
+                array of object bounding boxes
+        '''
         obj_on_table_vis = rospy.Publisher("objectsOnTableVisualizer", MarkerArray, queue_size=3)
         marker_delete_all = Marker()
         marker_delete_all.action = marker_delete_all.DELETEALL
