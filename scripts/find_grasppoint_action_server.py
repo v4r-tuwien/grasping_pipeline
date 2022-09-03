@@ -16,12 +16,12 @@ from hsrb_interface import Robot
 from object_detector_msgs.msg import Detection as DetectronDetection
 from object_detector_msgs.msg import Detections as DetectronDetections
 from object_detector_msgs.srv import get_poses, start, stop
-from table_plane_extractor.srv import GetObjectsOnTable
+from table_plane_extractor.srv import GetBBOfObjectsOnTable
 from sensor_msgs.msg import PointCloud2
 from tf.transformations import (quaternion_about_axis, quaternion_from_matrix,
                                 quaternion_multiply, unit_vector)
 from tmc_vision_msgs.msg import Detection, DetectionArray
-from visualization_msgs.msg import Marker, MarkerArray
+from visualization_msgs.msg import Marker
 
 from grasp_checker import check_grasp_hsr
 
@@ -72,7 +72,7 @@ class FindGrasppointServer:
             '/detectron2_service/start', start)
         self.stop_detectron = rospy.ServiceProxy(
             '/detectron2_service/stop', stop)
-        self.get_objects_on_table = rospy.ServiceProxy('/objects_on_table/get_bounding_boxes', GetObjectsOnTable)
+        self.get_objects_on_table = rospy.ServiceProxy('/objects_on_table/get_bounding_boxes', GetBBOfObjectsOnTable)
         rospy.loginfo('Initializing FindGrasppointServer done')
 
     def execute(self, goal):      
@@ -390,8 +390,6 @@ class FindGrasppointServer:
             self.server.set_aborted()
             return
 
-        self.publish_bounding_boxes(detected_objects)
-
         # get closest bounding box
         dist = 10E50
         obj = None
@@ -615,40 +613,6 @@ class FindGrasppointServer:
         grasp_pose.append(
             self.Transformer.transformPose('odom', grasp_pose_bl))
         return grasp_pose
-    
-    def publish_bounding_boxes(self, boundingBoxArr):
-        '''
-        Converts a BoundingBox3DArray into a rviz MarkerArray and publishes the MarkerArray for visualization
-        
-        Arguments:
-            boundingBoxArr {vision_msgs.msg.BoundingBox3DArray} --
-                array of object bounding boxes
-        '''
-        obj_on_table_vis = rospy.Publisher("objectsOnTableVisualizer", MarkerArray, queue_size=3)
-        marker_delete_all = Marker()
-        marker_delete_all.action = marker_delete_all.DELETEALL
-        marker_delete_all.ns = "ObjectsOnTable"
-        marker_arr = MarkerArray()
-        marker_arr.markers = []
-        marker_arr.markers.append(marker_delete_all)
-        id = 0
-        # add marker for each detected object
-        for obj in boundingBoxArr.boxes:
-            marker = Marker()
-            marker.header.frame_id = boundingBoxArr.header.frame_id
-            marker.header.stamp = rospy.get_rostime()
-            marker.ns = "ObjectsOnTable"
-            marker.id = id
-            id = id + 1
-            marker.type = marker.CUBE
-            marker.action = marker.ADD
-            marker.pose = obj.center
-            marker.scale = obj.size
-            marker.color.g = 1.0
-            marker.color.a = 0.6
-            marker_arr.markers.append(marker)
-        obj_on_table_vis.publish(marker_arr)
-
 
     def add_marker(self, pose_goal):
         """ publishes a grasp marker to /grasping_pipeline/grasp_marker
