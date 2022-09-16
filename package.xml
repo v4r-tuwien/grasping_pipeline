@@ -15,7 +15,7 @@
   <depend>haf_grasping</depend>
   <depend>sensor_msgs</depend>
   <depend>vision_msgs</depend>
-  <depend>taple_plane_extractor</depend>
+  <depend>table_plane_extractor</depend>
   <depend>handover</depend>
   <depend>object_detector_msgs</depend>
   <build_depend>message_generation</build_depend>
