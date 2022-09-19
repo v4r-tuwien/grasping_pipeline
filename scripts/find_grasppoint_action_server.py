@@ -378,19 +378,18 @@ class FindGrasppointServer:
         self.my_cloud = self.cloud
 
         try:
-            res = self.get_objects_on_table(self.my_cloud)
+            detected_objects = self.get_objects_on_table(self.my_cloud).detected_objects
         except BaseException:
             rospy.loginfo("Aborted: Error when calling get_objects_on_table service")
             self.server.set_aborted()
             return
-        detected_objects = res.detected_objects
 
         if len(detected_objects.boxes) < 1:
             rospy.loginfo("Aborted: No objects found")
             self.server.set_aborted()
             return
 
-        # get closest bounding box
+        # get "closest" bounding box
         dist = 10E50
         obj = None
         for obj_bb in detected_objects.boxes:
@@ -509,7 +508,7 @@ class FindGrasppointServer:
             'base_link', point)
         return point_transformed
 
-    def call_haf_grasping(self, search_center, search_center_z_add = 0.1, grasp_area_length_x=20, grasp_area_length_y=20):
+    def call_haf_grasping(self, search_center, search_center_z_offset = 0.1, grasp_area_length_x=20, grasp_area_length_y=20):
         """ Writes the goal for HAF grasping action, calls the action and
         returns the result
         The approach vector is set to [0,0,1]
@@ -518,7 +517,7 @@ class FindGrasppointServer:
             search_center {geometry_msgs.msg.PointStamped} --
                 rough x-,y-position, that is the center of the area
                 where grasps are searched
-            search_center_z_add {float} --
+            search_center_z_offset {float} --
                 length in m that gets added to the search-center z-component
             grasp_area_length_x {float} -- 
                 length in cm that defines the search area for haf-grasping
@@ -540,7 +539,7 @@ class FindGrasppointServer:
         grasp_goal.goal.graspinput.goal_frame_id = search_center.header.frame_id
         grasp_goal.goal.graspinput.grasp_area_center.x = search_center.point.x
         grasp_goal.goal.graspinput.grasp_area_center.y = search_center.point.y
-        grasp_goal.goal.graspinput.grasp_area_center.z = search_center.point.z + search_center_z_add
+        grasp_goal.goal.graspinput.grasp_area_center.z = search_center.point.z + search_center_z_offset
         grasp_goal.goal.graspinput.grasp_area_length_x = grasp_area_length_x
         grasp_goal.goal.graspinput.grasp_area_length_y = grasp_area_length_y
 
