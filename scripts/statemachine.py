@@ -169,12 +169,13 @@ class UserInput(smach.State):
             elif char_in == states_keys[States.GRASP]:
                 rospy.loginfo('Grasping object')
                 print('Choose a method for grasppoint calculation')
-                print('\t1 - unknown object')
-                print('\t2 - known object')
-                print('\t3 - choose known object')
+                print('\t1 - Detectron unknown object')
+                print('\t2 - Verefine known object')
+                print('\t3 - Verefine choose known object')
                 print('\t4 - known object with HAF')
                 print('\t5 - PyraPose known objects')
                 print('\t6 - PyraPose choose object')
+                print('\t7 - unknown objects on table with HAF')
 
                 while True:
                     user_input = input('CMD> ')
@@ -236,6 +237,11 @@ class UserInput(smach.State):
                             self.print_help()
                             break
                         print('Please enter a valid number')
+                elif char_in == '7':
+                    userdata.find_grasppoint_method = 5
+                    if self.use_map:
+                        return 'go_to_table'
+                    return 'grasping'
                 else:
                     userdata.find_grasppoint_method = 0
                     print('Not a valid method')
@@ -269,12 +275,13 @@ class UserInput(smach.State):
             elif char_in == states_keys[States.FIND_GRASP]:
                 rospy.loginfo('Finding a grasp pose')
                 print('Choose a method for grasppoint calculation')
-                print('\t1 - unknown object')
-                print('\t2 - known object')
-                print('\t3 - choose known object')
+                print('\t1 - Detectron unknown object')
+                print('\t2 - Verefine known object')
+                print('\t3 - Verefine choose known object')
                 print('\t4 - known object with HAF')
                 print('\t5 - PyraPose known objects')
                 print('\t6 - PyraPose choose object')
+                print('\t7 - unknown objects on table with HAF')
 
                 while True:
                     user_input = input('CMD> ')
@@ -322,6 +329,9 @@ class UserInput(smach.State):
                             self.print_help()
                             break
                         print('Please enter a valid number')
+                elif char_in == '7':
+                    userdata.find_grasppoint_method = 5
+                    return 'find_grasp'
                 else:
                     userdata.find_grasppoint_method = 0
                     print('Not a valid method')
