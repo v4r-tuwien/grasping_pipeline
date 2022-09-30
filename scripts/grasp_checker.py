@@ -274,19 +274,49 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, table_plane=None, visualize=False
     shortest_dist = 1.0
     dist_to_wrist = []
     grasp_poses_ros = []
+
+    trans = get_tf_transform(
+        'wrist_flex_link', 'head_rgbd_sensor_rgb_frame')
+
+    cam_to_wrist = get_transmat_from_tf_trans(trans)
+
+    # make wrist's cam look up
+    trans_to_world = get_tf_transform(
+        'base_link', 'wrist_flex_link')
+    wrist_to_world = get_transmat_from_tf_trans(trans_to_world)
+
+    base_to_cam = get_tf_transform(
+        'head_rgbd_sensor_rgb_frame', 'base_link')
+    base_to_cam = get_transmat_from_tf_trans(base_to_cam)
+
+    counter = 1
     for pose, i in zip(grasp_poses, range(len(grasp_poses))):
         grasp_try = np.eye(4)
         grasp_try = np.matmul(object_pose, pose)
         res = grasp_checker.is_grasp_valid(
             o3dcloud, grasp_try, table_plane=table_plane, cam_to_base=cam_to_base)
-        trans = get_tf_transform(
-            'wrist_flex_link', 'head_rgbd_sensor_rgb_frame')
-        cam_to_wrist = get_transmat_from_tf_trans(trans)
+        
         grasp_try_wrist = np.matmul(cam_to_wrist, grasp_try)
+
+        # make wrist's cam look up
+
+        grasp_in_world = np.matmul(wrist_to_world, grasp_try_wrist)
+        x, y, z = tf3d.euler.mat2euler(grasp_in_world[:3, :3], 'sxyz')
+
+        #if z > 0.0:
+        #    z -= np.pi
+        #    rospy.logerr("{} out of {} - Turn cam up".format(counter, len(grasp_poses)))
+        #    grasp_in_world[:3, :3] = tf3d.euler.euler2mat(x, y, z, 'sxyz')
+        #    grasp_try = np.matmul(base_to_cam, grasp_in_world)
+        #else:
+        #    rospy.logerr("{} out of {} - Cam is correct".format(counter, len(grasp_poses)))
+        
+        counter += 1
+
         dist = np.linalg.norm(grasp_try_wrist[:3, 3])
         dist_to_wrist.append(dist)
         pose = PoseStamped()
-        pose.header.frame_id = '/head_rgbd_sensor_rgb_frame'
+        pose.header.frame_id = 'head_rgbd_sensor_rgb_frame'
         pose.pose.position.x = grasp_try[0, 3]
         pose.pose.position.y = grasp_try[1, 3]
         pose.pose.position.z = grasp_try[2, 3]

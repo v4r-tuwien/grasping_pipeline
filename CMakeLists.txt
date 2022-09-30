@@ -13,6 +13,8 @@ handover
 object_detector_msgs
 vision_msgs
 table_plane_extractor
+placement
+v4r_util
 )
 
 ## Generate actions in the 'action' folder
