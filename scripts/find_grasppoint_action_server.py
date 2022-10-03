@@ -75,7 +75,7 @@ class FindGrasppointServer:
         self.get_objects_on_table = rospy.ServiceProxy('/objects_on_table/get_bounding_boxes', GetBBOfObjectsOnTable)
         rospy.loginfo('Initializing FindGrasppointServer done')
 
-    def execute(self, goal):      
+    def execute(self, goal):   
         if not goal.object_names:
             rospy.logerr("No object names given. Abort.")
             self.server.set_aborted()
@@ -345,7 +345,10 @@ class FindGrasppointServer:
         rospy.wait_for_message(self.pointcloud_topic,
                                    PointCloud2, timeout=15)
         scene_cloud = self.cloud
-        valid_poses = check_grasp_hsr(grasp_object, scene_cloud, True)
+        table_plane = None
+
+        valid_poses = check_grasp_hsr(
+            grasp_object, scene_cloud, table_plane=table_plane, visualize=False)
 
         if len(valid_poses) == 0:
             rospy.loginfo('no grasp found')
@@ -457,7 +460,7 @@ class FindGrasppointServer:
         # get detections from detectron
         self.start_detectron()
         detections = rospy.wait_for_message(
-            '/detectron2_service/detections', DetectronDetections, timeout=10)
+            '/detectron2_service/detections', DetectronDetections, timeout=20)
         print('detection received')
         self.stop_detectron()
         print('stop detectron')
@@ -508,7 +511,7 @@ class FindGrasppointServer:
             'base_link', point)
         return point_transformed
 
-    def call_haf_grasping(self, search_center, search_center_z_offset = 0.1, grasp_area_length_x=20, grasp_area_length_y=20):
+    def call_haf_grasping(self, search_center, search_center_z_offset = 0.1, grasp_area_length_x=30, grasp_area_length_y=30):
         """ Writes the goal for HAF grasping action, calls the action and
         returns the result
         The approach vector is set to [0,0,1]
@@ -548,7 +551,7 @@ class FindGrasppointServer:
         grasp_goal.goal.graspinput.approach_vector.z = self.approach_vector_z
 
         grasp_goal.goal.graspinput.input_pc = self.my_cloud
-        grasp_goal.goal.graspinput.max_calculation_time = rospy.Duration(15)
+        grasp_goal.goal.graspinput.max_calculation_time = rospy.Duration(25)
         grasp_goal.goal.graspinput.gripper_opening_width = 1
         self.haf_client.wait_for_server()
         self.haf_client.send_goal(grasp_goal.goal)
