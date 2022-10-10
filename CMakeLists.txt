@@ -23,7 +23,14 @@ v4r_util
    FILES
    FindGrasppoint.action
    ExecuteGrasp.action
+   CreateCollisionEnvironment.action
  )
+
+  add_message_files(
+  FILES
+  CollisionObject.msg
+)
+
 ## Generate added messages and services with any dependencies listed here
  generate_messages(
    DEPENDENCIES
@@ -31,6 +38,7 @@ v4r_util
    actionlib_msgs
    geometry_msgs
    object_detector_msgs
+   grasping_pipeline
  )
 
 catkin_package()

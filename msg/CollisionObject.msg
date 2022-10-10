@@ -1,0 +1,9 @@
+string name
+string frame
+uint8 METHOD_ADD_BOX=0
+uint8 METHOD_REMOVE_BOX=1
+uint8 METHOD_ATTACH_BOX=2
+uint8 METHOD_DETACH_BOX=3
+int32 method 
+geometry_msgs/Pose pose
+geometry_msgs/Vector3 size
