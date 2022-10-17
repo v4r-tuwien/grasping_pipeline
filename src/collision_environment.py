@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 
+from os import remove
 import rospy
 import actionlib
 import tf
@@ -14,6 +15,30 @@ from sensor_msgs.msg import PointCloud2
 from grasping_pipeline.msg import CreateCollisionEnvironmentAction, CollisionObject, CreateCollisionEnvironmentResult, CreateCollisionEnvironmentGoal
 from table_plane_extractor.srv import TablePlaneExtractor
 from std_srvs.srv import Empty
+
+
+def create_collision_object(name, frame, method, pose, size):
+    coll_obj = CollisionObject()
+    coll_obj.name = name
+    coll_obj.frame = frame
+    coll_obj.method = method
+    coll_obj.pose = pose
+    coll_obj.size = size
+    return coll_obj
+
+
+def create_collision_object_helper(name, frame, method, translation, orientation_w, size):
+    pose = Pose()
+    pose.position.x = translation[0]
+    pose.position.y = translation[1]
+    pose.position.z = translation[2]
+    pose.orientation.w = orientation_w
+    size = Vector3(size[0], size[1], size[2])
+    return create_collision_object(name, frame, method, pose, size)
+
+
+def remove_collision_object(name):
+    return create_collision_object(name, '', CollisionObject.METHOD_REMOVE_BOX, Pose(), Vector3())
 
 
 class CreateCollisionEnvironmentServer:
@@ -39,12 +64,6 @@ class CreateCollisionEnvironmentServer:
         self.move_group.set_num_planning_attempts(2)
         self.move_group.set_goal_position_tolerance(0.01)
 
-        # remove all objects
-        self.scene.remove_attached_object(self.eef_link)
-        self.scene.remove_world_object()
-        self.move_group.clear_pose_targets()
-        rospy.sleep(1)
-
         # server init
         self.server = actionlib.SimpleActionServer(
             'CreateCollisionEnvironmentServer', CreateCollisionEnvironmentAction, self.execute, False)
@@ -53,13 +72,56 @@ class CreateCollisionEnvironmentServer:
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
-        self.clear_octomap = rospy.ServiceProxy('/clear_octomap', Empty)
         rospy.wait_for_service('/get_planning_scene', 10.0)
+
+        self.init_world()
 
         self.server.start()
 
+    def init_world(self):
+        self.scene.remove_attached_object(self.eef_link)
+        self.scene.remove_world_object()
+        self.move_group.clear_pose_targets()
+        rospy.sleep(1)
+
+        clear_octomap = rospy.ServiceProxy('/clear_octomap', Empty)
+        clear_octomap()
+
+        collision_objects = list()
+        pose = self.omni_base.get_pose()
+        pos = pose.pos
+        ori = pose.ori
+        coll_obj = create_collision_object_helper(
+            'floor', 'map', CollisionObject.METHOD_ADD_BOX, [pos.x, pos.y, -0.07], ori.w, [15, 15, 0.1])
+        collision_objects.append(coll_obj)
+
+        # add walls around the robot
+        coll_obj = create_collision_object_helper(
+            'front_wall', 'map', CollisionObject.METHOD_ADD_BOX, [pos.x + 2.0, pos.y, 0.05], ori.w, [0.01, 4, 0.1])
+        collision_objects.append(coll_obj)
+
+        coll_obj = create_collision_object_helper(
+            'back_wall', 'map', CollisionObject.METHOD_ADD_BOX, [pos.x - 1.5, pos.y, 0.05], ori.w, [0.01, 4, 0.1])
+        collision_objects.append(coll_obj)
+
+        coll_obj = create_collision_object_helper(
+            'left_wall', 'map', CollisionObject.METHOD_ADD_BOX, [pos.x, pos.y + 2.0, 0.05], ori.w, [4, 0.01, 0.1])
+        collision_objects.append(coll_obj)
+
+        coll_obj = create_collision_object_helper(
+            'right_wall', 'map', CollisionObject.METHOD_ADD_BOX, [pos.x, pos.y - 2.0, 0.05], ori.w, [4, 0.01, 0.1])
+        collision_objects.append(coll_obj)
+
+        for collisionObject in collision_objects:
+            size = (collisionObject.size.x,
+                    collisionObject.size.y,
+                    collisionObject.size.z)
+            assert (collisionObject.method == CollisionObject.METHOD_ADD_BOX)
+            if self.add_box(collisionObject.name, collisionObject.pose, collisionObject.frame, size) is False:
+                rospy.logerr(
+                    f"CreateCollisionEnvironmentServer failed initialization of {CollisionObject = }")
+
     def execute(self, goal):
-        self.clear_octomap()
         rospy.loginfo('Execute ActionServer CollisionEnvironment')
         isDone = True
 
@@ -149,57 +211,45 @@ class CreateCollisionEnvironmentServer:
 
 class CreateCollisionObjects(smach.State):
 
-    def __init__(self):
-        smach.State.__init__(self, outcomes=['succeeded', 'aborted'])
+    def __init__(self, input_keys=None):
+        smach.State.__init__(
+            self, outcomes=['succeeded', 'aborted'], input_keys=input_keys)
         self.robot = Robot()
         self.omni_base = self.robot.try_get('omni_base')
         self.topic = rospy.get_param('/point_cloud_topic')
         self.collision_env_client = actionlib.SimpleActionClient(
             'CreateCollisionEnvironmentServer', CreateCollisionEnvironmentAction)
         self.collision_env_client.wait_for_server()
+        self.last_object_bb_idx = 0
 
     def execute(self, userdata):
         table_bbs = self.get_table_plane_bbs()
+        object_bbs = userdata.object_bbs
+        object_bb_base_name = 'BoundingBox'
 
         collision_objects = list()
 
-        try:
-            idx = 0
-            for table_bb in table_bbs.boxes:
-                name = 'Table_plane_' + str(idx)
-                idx = idx + 1
-                table_bb.size.z = table_bb.size.z - 0.1
-                coll_obj = self.create_collision_object(
-                    name, table_bbs.header.frame_id, CollisionObject.METHOD_ADD_BOX, table_bb.center, table_bb.size)
-                collision_objects.append(coll_obj)
-        except rospy.ServiceException as e:
-            print(e)
-            return 'aborted'
+        idx = 0
+        for idx in range(self.last_object_bb_idx):
+            collision_objects.append(remove_collision_object(
+                object_bb_base_name + str(idx)))
 
-        # Floor
-        pose = self.omni_base.get_pose()
-        pos = pose.pos
-        ori = pose.ori
-        coll_obj = self.create_collision_object_helper(
-            'floor', 'map', CollisionObject.METHOD_ADD_BOX, [pos.x, pos.y, -0.06], ori.w, [15, 15, 0.1])
-        collision_objects.append(coll_obj)
-
-        # add walls around the robot
-        coll_obj = self.create_collision_object_helper(
-            'front_wall', 'map', CollisionObject.METHOD_ADD_BOX, [pos.x + 2.0, pos.y, 0.05], ori.w, [0.01, 4, 0.1])
-        collision_objects.append(coll_obj)
-
-        coll_obj = self.create_collision_object_helper(
-            'back_wall', 'map', CollisionObject.METHOD_ADD_BOX, [pos.x - 1.5, pos.y, 0.05], ori.w, [0.01, 4, 0.1])
-        collision_objects.append(coll_obj)
-
-        coll_obj = self.create_collision_object_helper(
-            'left_wall', 'map', CollisionObject.METHOD_ADD_BOX, [pos.x, pos.y + 2.0, 0.05], ori.w, [4, 0.01, 0.1])
-        collision_objects.append(coll_obj)
-
-        coll_obj = self.create_collision_object_helper(
-            'right_wall', 'map', CollisionObject.METHOD_ADD_BOX, [pos.x, pos.y - 2.0, 0.05], ori.w, [4, 0.01, 0.1])
-        collision_objects.append(coll_obj)
+        for table_bb in table_bbs.boxes:
+            name = 'Table_plane_' + str(idx)
+            idx = idx + 1
+            # shift table plane slightly downwards or else moveit has problems with planning for flat objects
+            table_bb.size.z = table_bb.size.z - 0.02
+            coll_obj = create_collision_object(
+                name, table_bbs.header.frame_id, CollisionObject.METHOD_ADD_BOX, table_bb.center, table_bb.size)
+            collision_objects.append(coll_obj)
+        idx = 0
+        for object_bb in object_bbs.boxes:
+            name = object_bb_base_name + str(idx)
+            idx = idx + 1
+            coll_obj = create_collision_object(
+                name, object_bbs.header.frame_id, CollisionObject.METHOD_ADD_BOX, object_bb.center, object_bb.size)
+            collision_objects.append(coll_obj)
+        self.last_object_bb_idx = idx
 
         goal = CreateCollisionEnvironmentGoal()
         # send goal
@@ -230,24 +280,6 @@ class CreateCollisionObjects(smach.State):
             size.z = old_center_z + size.z/2
 
         return response.plane_bounding_boxes
-
-    def create_collision_object(self, name, frame, method, pose, size):
-        coll_obj = CollisionObject()
-        coll_obj.name = name
-        coll_obj.frame = frame
-        coll_obj.method = method
-        coll_obj.pose = pose
-        coll_obj.size = size
-        return coll_obj
-
-    def create_collision_object_helper(self, name, frame, method, translation, orientation_w, size):
-        pose = Pose()
-        pose.position.x = translation[0]
-        pose.position.y = translation[1]
-        pose.position.z = translation[2]
-        pose.orientation.w = orientation_w
-        size = Vector3(size[0], size[1], size[2])
-        return self.create_collision_object(name, frame, method, pose, size)
 
 
 if __name__ == '__main__':

@@ -39,6 +39,7 @@ v4r_util
    geometry_msgs
    object_detector_msgs
    grasping_pipeline
+   vision_msgs
  )
 
 catkin_package()

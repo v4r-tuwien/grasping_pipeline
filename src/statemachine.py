@@ -32,14 +32,14 @@ def create_statemachine():
         smach.StateMachine.add('METHOD_DECISION', decider, transitions={
                                'succeeded': 'FIND_GRASP'})
         find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction, goal_slots=[
-                                                             'method', 'object_names'], result_slots=['grasp_poses'])
+                                                             'method', 'object_names'], result_slots=['grasp_poses', 'object_bbs'])
         smach.StateMachine.add('FIND_GRASP', find_grasp_actionstate, transitions={
                                'succeeded': 'EXECUTE_GRASP_USERINPUT', 'aborted': 'FIND_GRASP_USERINPUT', 'preempted': 'FIND_GRASP_USERINPUT'})
         map = {'g': ['grasp', 'grasp object'], 't': ['retry', 'try again']}
         smach.StateMachine.add('EXECUTE_GRASP_USERINPUT', UserInput(map), transitions={
                                'grasp': 'CREATE_COLLISION_ENVIRONMENT', 'retry': 'FIND_GRASP'})
-        smach.StateMachine.add('CREATE_COLLISION_ENVIRONMENT', CreateCollisionObjects(),
-                               transitions={'succeeded': 'EXECUTE_GRASP', 'aborted': 'FIND_GRASP_USERINPUT'})
+        smach.StateMachine.add('CREATE_COLLISION_ENVIRONMENT', CreateCollisionObjects(input_keys=['object_bbs']),
+                               transitions={'succeeded': 'EXECUTE_GRASP', 'aborted': 'FIND_GRASP_USERINPUT'}, )
         execute_grasp_actionstate = smach_ros.SimpleActionState(
             'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses'])
         smach.StateMachine.add('EXECUTE_GRASP', execute_grasp_actionstate, transitions={
@@ -69,7 +69,7 @@ def create_statemachine2():
 
 if __name__ == '__main__':
     rospy.init_node('sasha_statemachine')
-    sm = create_statemachine2()
+    sm = create_statemachine()
 
     try:
         # Create and start the introspection server
