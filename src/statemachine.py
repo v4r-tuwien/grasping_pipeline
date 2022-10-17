@@ -15,44 +15,57 @@ def decision(userdata):
     return 'succeeded'
 
 
-def create_statemachine():
-    sm = smach.StateMachine(outcomes=['end'])
-    smach.CBState
-    with sm:
-        smach.StateMachine.add('GO_TO_NEUTRAL', GoToNeutral(), transitions={
-                               'succeeded': 'OPEN_GRIPPER'})
-        smach.StateMachine.add('OPEN_GRIPPER', OpenGripper(), transitions={
-                               'succeeded': 'FIND_GRASP_USERINPUT'})
-        map = {'f': ['find_grasp', 'find grasp point'],
-               'r': ['reset', 'reset state machine']}
-        smach.StateMachine.add('FIND_GRASP_USERINPUT', UserInput(map), transitions={
-                               'find_grasp': 'METHOD_DECISION', 'reset': 'GO_TO_NEUTRAL'})
+def create_statemachine(enable_userinput=True):
+    #sm = smach.StateMachine(outcomes=['end'])
+    seq = smach.Sequence(outcomes=['end'], connector_outcome='succeeded')
+
+    with seq:
+        smach.Sequence.add('GO_TO_NEUTRAL', GoToNeutral())
+
+        smach.Sequence.add('OPEN_GRIPPER', OpenGripper())
+
+        if enable_userinput:
+            abort_state = 'FIND_GRASP_USERINPUT'
+            map = {'f': ['succeeded', 'find grasp point'],
+                   'r': ['reset', 'reset state machine']}
+            smach.Sequence.add('FIND_GRASP_USERINPUT', UserInput(
+                map), transitions={'reset': 'GO_TO_NEUTRAL'})
+        else:
+            abort_state = 'FIND_GRASP'
+
         decider = smach.CBState(decision, output_keys=[
                                 'method', 'object_names'], outcomes=['succeeded'])
-        smach.StateMachine.add('METHOD_DECISION', decider, transitions={
-                               'succeeded': 'FIND_GRASP'})
+        smach.Sequence.add('METHOD_DECISION', decider)
+
         find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction, goal_slots=[
                                                              'method', 'object_names'], result_slots=['grasp_poses', 'object_bbs'])
-        smach.StateMachine.add('FIND_GRASP', find_grasp_actionstate, transitions={
-                               'succeeded': 'EXECUTE_GRASP_USERINPUT', 'aborted': 'FIND_GRASP_USERINPUT', 'preempted': 'FIND_GRASP_USERINPUT'})
-        map = {'g': ['grasp', 'grasp object'], 't': ['retry', 'try again']}
-        smach.StateMachine.add('EXECUTE_GRASP_USERINPUT', UserInput(map), transitions={
-                               'grasp': 'CREATE_COLLISION_ENVIRONMENT', 'retry': 'FIND_GRASP'})
-        smach.StateMachine.add('CREATE_COLLISION_ENVIRONMENT', CreateCollisionObjects(input_keys=['object_bbs']),
-                               transitions={'succeeded': 'EXECUTE_GRASP', 'aborted': 'FIND_GRASP_USERINPUT'}, )
+        smach.Sequence.add('FIND_GRASP', find_grasp_actionstate, transitions={
+            'aborted': abort_state, 'preempted': abort_state})
+
+        if enable_userinput:
+            map = {'g': ['succeeded', 'grasp object'],
+                   't': ['retry', 'try again']}
+            smach.Sequence.add('EXECUTE_GRASP_USERINPUT', UserInput(
+                map), transitions={'retry': 'FIND_GRASP'})
+
+        smach.Sequence.add('CREATE_COLLISION_ENVIRONMENT', CreateCollisionObjects(input_keys=['object_bbs']),
+                           transitions={'aborted': abort_state}, )
+
         execute_grasp_actionstate = smach_ros.SimpleActionState(
             'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses'])
-        smach.StateMachine.add('EXECUTE_GRASP', execute_grasp_actionstate, transitions={
-                               'succeeded': 'GO_BACK_BEFORE_HANDOVER', 'aborted': 'GO_TO_NEUTRAL', 'preempted': 'GO_TO_NEUTRAL'})
-        smach.StateMachine.add('GO_BACK_BEFORE_HANDOVER',
-                               GoBack(),
-                               transitions={'succeeded': 'HANDOVER'})
-        smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
-                               transitions={'succeeded': 'GO_TO_NEUTRAL',
-                                            'preempted': 'GO_TO_NEUTRAL',
-                                            'aborted': 'GO_TO_NEUTRAL'})
 
-    return sm
+        smach.Sequence.add('EXECUTE_GRASP', execute_grasp_actionstate, transitions={
+                           'aborted': 'GO_TO_NEUTRAL', 'preempted': 'GO_TO_NEUTRAL'})
+
+        smach.Sequence.add('GO_BACK_BEFORE_HANDOVER',
+                           GoBack())
+
+        smach.Sequence.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
+                           transitions={'succeeded': 'GO_TO_NEUTRAL',
+                                        'preempted': 'GO_TO_NEUTRAL',
+                                        'aborted': 'GO_TO_NEUTRAL'})
+
+    return seq
 
 
 def create_statemachine2():
@@ -69,7 +82,7 @@ def create_statemachine2():
 
 if __name__ == '__main__':
     rospy.init_node('sasha_statemachine')
-    sm = create_statemachine()
+    sm = create_statemachine(enable_userinput=False)
 
     try:
         # Create and start the introspection server
