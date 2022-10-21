@@ -1,4 +1,3 @@
 CollisionObject[] collision_objects
 ---
-bool isDone
 ---

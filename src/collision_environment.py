@@ -12,7 +12,7 @@ from hsrb_interface import Robot
 from v4r_util.util import ros_bb_to_o3d_bb
 from geometry_msgs.msg import PoseStamped, Pose, Vector3
 from sensor_msgs.msg import PointCloud2
-from grasping_pipeline.msg import CreateCollisionEnvironmentAction, CollisionObject, CreateCollisionEnvironmentResult, CreateCollisionEnvironmentGoal
+from grasping_pipeline.msg import CreateCollisionEnvironmentAction, CollisionObject
 from table_plane_extractor.srv import TablePlaneExtractor
 from std_srvs.srv import Empty
 
@@ -145,9 +145,10 @@ class CreateCollisionEnvironmentServer:
                 if self.detach_box(collisionObject.name) is False:
                     isDone = False
 
-        self.result = CreateCollisionEnvironmentResult()
-        self.result.isDone = isDone
-        self.server.set_succeeded(self.result)
+        if isDone:
+            self.server.set_succeeded()
+        else:
+            self.server.set_aborted()
 
     def remove_box(self, name, timeout=4):
         self.scene.remove_world_object(name)
@@ -211,64 +212,63 @@ class CreateCollisionEnvironmentServer:
 
 class CreateCollisionObjects(smach.State):
 
-    def __init__(self, input_keys=None):
+    def __init__(self):
         smach.State.__init__(
-            self, outcomes=['succeeded', 'aborted'], input_keys=input_keys)
-        self.robot = Robot()
-        self.omni_base = self.robot.try_get('omni_base')
+            self, outcomes=['succeeded'], input_keys=['object_bbs'], output_keys=['collision_objects'])
         self.topic = rospy.get_param('/point_cloud_topic')
-        self.collision_env_client = actionlib.SimpleActionClient(
-            'CreateCollisionEnvironmentServer', CreateCollisionEnvironmentAction)
-        self.collision_env_client.wait_for_server()
+        self.table_extractor_service = '/test/table_plane_extractor'
         self.last_object_bb_idx = 0
+        self.last_table_bb_idx = 0
 
     def execute(self, userdata):
         table_bbs = self.get_table_plane_bbs()
         object_bbs = userdata.object_bbs
         object_bb_base_name = 'BoundingBox'
+        table_plane_base_name = 'TablePlane'
 
         collision_objects = list()
 
         idx = 0
-        for idx in range(self.last_object_bb_idx):
-            collision_objects.append(remove_collision_object(
-                object_bb_base_name + str(idx)))
-
+        # add tables as collision objects
         for table_bb in table_bbs.boxes:
-            name = 'Table_plane_' + str(idx)
+            name = table_plane_base_name + str(idx)
             idx = idx + 1
             # shift table plane slightly downwards or else moveit has problems with planning for flat objects
             table_bb.size.z = table_bb.size.z - 0.02
             coll_obj = create_collision_object(
                 name, table_bbs.header.frame_id, CollisionObject.METHOD_ADD_BOX, table_bb.center, table_bb.size)
             collision_objects.append(coll_obj)
+
+        # remove rest of table collision objects from last call
+        for remove_idx in range(idx, self.last_table_bb_idx):
+            collision_objects.append(remove_collision_object(
+                table_plane_base_name + str(remove_idx)))
+        self.last_table_bb_idx = idx
+
         idx = 0
-        for object_bb in object_bbs.boxes:
-            name = object_bb_base_name + str(idx)
-            idx = idx + 1
-            coll_obj = create_collision_object(
-                name, object_bbs.header.frame_id, CollisionObject.METHOD_ADD_BOX, object_bb.center, object_bb.size)
-            collision_objects.append(coll_obj)
+        if object_bbs is not None:
+            # add objects of interest as collision objects
+            for object_bb in object_bbs.boxes:
+                name = object_bb_base_name + str(idx)
+                idx = idx + 1
+                coll_obj = create_collision_object(
+                    name, object_bbs.header.frame_id, CollisionObject.METHOD_ADD_BOX, object_bb.center, object_bb.size)
+                collision_objects.append(coll_obj)
+        # remove remaining objects from last call
+        for remove_idx in range(idx, self.last_object_bb_idx):
+            collision_objects.append(remove_collision_object(
+                object_bb_base_name + str(remove_idx)))
         self.last_object_bb_idx = idx
 
-        goal = CreateCollisionEnvironmentGoal()
-        # send goal
-        goal.collision_objects = collision_objects
-        self.collision_env_client.send_goal(goal)
-        self.collision_env_client.wait_for_result()
-        collision_env_result = self.collision_env_client.get_result()
-
-        if not collision_env_result.isDone:
-            print("Error while creating the collision environment")
-        rospy.sleep(2)
+        userdata.collision_objects = collision_objects
         return 'succeeded'
 
     def get_table_plane_bbs(self):
         cloud = rospy.wait_for_message(self.topic, PointCloud2, timeout=15)
-        rospy.wait_for_service('/test/table_plane_extractor')
+        rospy.wait_for_service(self.table_extractor_service)
 
         table_extractor = rospy.ServiceProxy(
-            '/test/table_plane_extractor', TablePlaneExtractor)
+            self.table_extractor_service, TablePlaneExtractor)
         response = table_extractor(cloud)
         for ros_bb in response.plane_bounding_boxes.boxes:
             center = ros_bb.center.position
