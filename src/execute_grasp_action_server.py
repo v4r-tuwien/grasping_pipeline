@@ -71,6 +71,7 @@ class ExecuteGraspServer:
                 rospy.loginfo('Not a valid goal. Aborted execution!')
                 self.server.set_aborted()
                 return
+            initial_grasp_pose = grasp_pose
 
             # add safety_distance to grasp_pose
             q = [grasp_pose.pose.orientation.x, grasp_pose.pose.orientation.y,
@@ -131,6 +132,7 @@ class ExecuteGraspServer:
         self.gripper.apply_force(0.50)
         if self.gripper.get_distance() > -0.004:
             res.result.success = True
+            res.result.grasped_pose = initial_grasp_pose
             self.server.set_succeeded(res.result)
 
         else:

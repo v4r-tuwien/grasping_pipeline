@@ -4,6 +4,7 @@ bool use_map
 ---
 # Define the result
 bool success
+geometry_msgs/PoseStamped grasped_pose
 ---
 # Define a feedback message
 float32 percent_complete

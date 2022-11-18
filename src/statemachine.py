@@ -1,15 +1,17 @@
 #! /usr/bin/env python3
-import threading
 import rospy
 import smach
 import smach_ros
 from states.userinput import UserInput
 from states.robot_control import GoToNeutral, GoBack, OpenGripper
-from collision_environment import CreateCollisionObjects
+from collision_environment import CreateCollisionObjects, AttachObject
 from grasping_pipeline.msg import FindGrasppointAction, ExecuteGraspAction, CreateCollisionEnvironmentAction
-from handover.msg import HandoverAction
-from placement.msg import PlacementCalculateAndSortPosesAction, PlacementCalculateAndSortPosesActionGoal
 from sensor_msgs.msg import PointCloud2
+from geometry_msgs.msg import Pose
+from handover.msg import HandoverAction
+from states.placement import PlacementAreaDetector
+from placement.msg import PlacementPlaceAndMoveAwayAction
+from grasping_pipeline.msg import PlaceAction
 
 
 def decision(userdata):
@@ -19,7 +21,6 @@ def decision(userdata):
 
 
 def create_statemachine(enable_userinput=True, do_handover=True):
-    #sm = smach.StateMachine(outcomes=['end'])
     seq = smach.Sequence(outcomes=['end'], connector_outcome='succeeded')
 
     with seq:
@@ -60,7 +61,7 @@ def create_statemachine(enable_userinput=True, do_handover=True):
                            create_collision_env_actionstate, transitions={'aborted': abort_state, 'preempted': abort_state})
 
         execute_grasp_actionstate = smach_ros.SimpleActionState(
-            'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses'])
+            'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses'], result_slots=['grasped_pose'])
 
         smach.Sequence.add('EXECUTE_GRASP', execute_grasp_actionstate, transitions={
                            'aborted': 'GO_TO_NEUTRAL', 'preempted': 'GO_TO_NEUTRAL'})
@@ -74,33 +75,25 @@ def create_statemachine(enable_userinput=True, do_handover=True):
                                             'aborted': 'GO_TO_NEUTRAL'})
         else:
             # x = -1.04, y = 0.0, z = 0.42 in map frame
-            calc_and_sort_pose_actionstate = smach_ros.SimpleActionState(
-                'placement_calc_poses', PlacementCalculateAndSortPosesAction, goal_cb=calc_poses_cb)
-            smach.Sequence.add('CALC_AND_SORT_POSES',
-                               calc_and_sort_pose_actionstate)
-
+            smach.Sequence.add('ATTACH_OBJECT', AttachObject(), transitions={
+                               'aborted': 'GO_TO_NEUTRAL'})
+            smach.Sequence.add('UPDATE_COLLISION_ENVIRONMENT',
+                               create_collision_env_actionstate, transitions={'aborted': 'GO_TO_NEUTRAL', 'preempted': 'GO_TO_NEUTRAL'})
+            smach.Sequence.add('DETECT_PLACEMENT_AREA', PlacementAreaDetector(
+            ), transitions={'aborted': 'GO_TO_NEUTRAL'})
+            smach.Sequence.add('PLACEMENT_PLACE',
+                               smach_ros.SimpleActionState('Placer', PlaceAction,
+                                                           goal_slots=[
+                                                               'placement_area', 'grasped_pose']),
+                               transitions={'succeeded': 'FIND_GRASP_USERINPUT',
+                                            'aborted': 'GO_TO_NEUTRAL',
+                                            'preempted': 'GO_TO_NEUTRAL'})
     return seq
-
-
-def calc_poses_cb(userdata, goal):
-    pc = rospy.wait_for_message(
-        '/hsrb/head_rgbd_sensor/depth_registered/rectified_points', PointCloud2)
-    goal = PlacementCalculateAndSortPosesActionGoal()
-    goal.sort_method = 3
-    goal.grasp_mode = 0
-    goal.target_frame = 'map'
-    goal.source_frame = pc.header
-    goal.planeParams
-    goal.objectDimension
-    goal.center_pose
-    goal.pcl = pc
-    goal.placement_resolution = 0.1
-    goal.placement_steps = 0.05
 
 
 if __name__ == '__main__':
     rospy.init_node('sasha_statemachine')
-    sm = create_statemachine(enable_userinput=True, do_handover=True)
+    sm = create_statemachine(enable_userinput=True, do_handover=False)
 
     try:
         # Create and start the introspection server

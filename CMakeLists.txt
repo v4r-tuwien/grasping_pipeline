@@ -15,6 +15,8 @@ vision_msgs
 table_plane_extractor
 placement
 v4r_util
+tmc_geometric_shapes_msgs
+tmc_placement_area_detector
 )
 
 ## Generate actions in the 'action' folder
@@ -24,6 +26,7 @@ v4r_util
    FindGrasppoint.action
    ExecuteGrasp.action
    CreateCollisionEnvironment.action
+   Place.action
  )
 
   add_message_files(
@@ -40,6 +43,7 @@ v4r_util
    object_detector_msgs
    grasping_pipeline
    vision_msgs
+   tmc_placement_area_detector
  )
 
 catkin_package()

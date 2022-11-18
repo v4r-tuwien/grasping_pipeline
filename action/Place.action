@@ -1,0 +1,4 @@
+tmc_placement_area_detector/PlacementArea[] placement_area
+geometry_msgs/PoseStamped grasped_pose
+---
+---

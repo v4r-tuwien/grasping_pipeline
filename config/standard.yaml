@@ -38,3 +38,18 @@ objects_display_names:
   "11": 'Foam Brick'
   "12": 'CheezeIt'
   "13": 'i dont know yet'
+
+
+placement_grasp: 0
+placement_object_dimensions: [0.1, 0.1, 0.1] # -x, +x, +z
+placement_use_config_distance: True
+placement_object_name: name of object
+placement_resolution: 0.1 #0.1
+placement_steps: 0.05
+placement_sort: 0
+allow_drive: True
+allow_placement: True
+point_cloud_topic: '/hsrb/head_rgbd_sensor/depth_registered/rectified_points'
+global_frame: 'map'
+camera_frame: 'head_rgbd_sensor_rgb_frame'
+use_mesh: False
