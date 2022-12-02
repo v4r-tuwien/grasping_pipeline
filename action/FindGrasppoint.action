@@ -5,6 +5,7 @@ string[] object_names # which objects do you want to grasp
 # Define the result
 geometry_msgs/PoseStamped[] grasp_poses
 vision_msgs/BoundingBox3DArray object_bbs
+vision_msgs/BoundingBox3DArray grasped_obj_bb #BB of grasped obj, should only have len(1), array needed to get frame information
 ---
 # Define a feedback message
 float32 percent_complete

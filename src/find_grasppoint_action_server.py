@@ -407,6 +407,8 @@ class FindGrasppointServer:
                 dist = obj_dist_squared
                 obj = obj_bb
 
+        result.grasped_obj_bb.boxes = [obj]
+        result.grasped_obj_bb.header = detected_objects.header
         center = geometry_msgs.msg.PointStamped()
         center.header.frame_id = detected_objects.header.frame_id
         center.point = obj.center.position

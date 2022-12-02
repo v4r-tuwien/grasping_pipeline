@@ -9,7 +9,7 @@ import moveit_commander
 import smach
 import copy
 from hsrb_interface import Robot
-from v4r_util.util import ros_bb_to_o3d_bb
+from v4r_util.util import transform_bounding_box
 from geometry_msgs.msg import PoseStamped, Pose, Vector3
 from sensor_msgs.msg import PointCloud2
 from grasping_pipeline.msg import CreateCollisionEnvironmentAction, CollisionObject
@@ -289,23 +289,27 @@ if __name__ == '__main__':
 
 
 class AttachObject(smach.State):
-    """ robot moves to a fixed position near the table
-    using a move_base action goal
-    also moves joints to neutral position
-    Outcomes:
-        succeeded: transitions to FIND_GRASPPOINT State
-        aborted: transitions to USER_INPUT State
+    """
     """
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded', 'aborted'], io_keys=[
-                             'collision_objects'])
+                             'collision_objects', 'grasped_obj_bb'])
         self.placement_object_dimensions = rospy.get_param(
             "/placement_object_dimensions")
         self.robot = Robot()
         self.omni = self.robot.try_get('omni_base')
 
     def execute(self, userdata):
+        grasped_obj_bb = userdata.grasped_obj_bb
+        bb_frame = grasped_obj_bb.header.frame_id
+        bb_len = len(grasped_obj_bb.boxes)
+        if bb_len != 1:
+            rospy.logerr(
+                f'grasped obj bb length should be 1! Is len={bb_len} instead.')
+            return 'aborted'
+        grasped_obj_bb = grasped_obj_bb.boxes[0]
+
         collisionObject_list = userdata.collision_objects
         for idx in range(len(collisionObject_list)):
             collision_object = collisionObject_list[idx]
@@ -313,8 +317,9 @@ class AttachObject(smach.State):
                 collisionObject_list.append(
                     remove_collision_object(collision_object.name))
 
-        # collisionObject_list include pose and not pose stamped -change
-        # attach object in gripper
+        # TODO calc offset from grasped pose to bounding box difference
+        # and calc correct sizes from grasped pose (correct cordinate frame)
+
         gripper_z_offset = 0.05
         gripper_y_offset = 0.06
         collisionObject = CollisionObject()
@@ -322,9 +327,9 @@ class AttachObject(smach.State):
         placement_box_pose.orientation.w = 1.0
         placement_box_pose.position.z = gripper_z_offset
         collisionObject.pose = placement_box_pose
-        collisionObject.size.x = 0.1
-        collisionObject.size.y = 0.1
-        collisionObject.size.z = 0.1
+        collisionObject.size.x = grasped_obj_bb.size.x
+        collisionObject.size.y = grasped_obj_bb.size.y
+        collisionObject.size.z = grasped_obj_bb.size.z
         collisionObject.name = "placement_object"
         collisionObject.frame = "eef_link"
         collisionObject.method = CollisionObject.METHOD_ATTACH_BOX

@@ -14,7 +14,7 @@ from grasping_pipeline.msg import PlaceAction, PlaceResult
 from visualization_msgs.msg import Marker
 from std_srvs.srv import Empty
 from moveit_msgs.msg import PlanningScene, DisplayTrajectory, MotionPlanResponse
-from v4r_util.util import transform_pose, transformPoseFormat
+from v4r_util.util import transform_pose, transformPoseFormat, transform_bounding_box
 
 
 class PlaceAndMoveAway():
@@ -65,6 +65,15 @@ class PlaceAndMoveAway():
         self.frame = goal.grasped_pose.header.frame_id
         orientation = goal.grasped_pose.pose.orientation
 
+        bb_frame = goal.grasped_obj_bb.header.frame_id
+        if len(goal.grasped_obj_bb.boxes) != 1:
+            rospy.logerr(
+                f"Grasped obj BB should have len==1! Has len={len(goal.grasped_obj_bb.boxes)}")
+            self.server.set_aborted(self.result)
+        grasped_obj_bb = goal.grasped_obj_bb.boxes[0]
+        grasped_obj_bb = transform_bounding_box(
+            grasped_obj_bb, bb_frame, self.global_frame)
+
         placementAreas = goal.placement_area
 
         is_finished = False
@@ -79,7 +88,7 @@ class PlaceAndMoveAway():
             '/placement/placement_marker', Marker, queue_size=10, latch=True)
         for area in placementAreas:
             counter += 1
-            area.center.position.z += 0.02
+            area.center.position.z += grasped_obj_bb.size.z + 0.03
             goal_pose = transform_pose(
                 self.planning_frame, self.global_frame, area.center)
             goal_pose.pose.orientation = orientation

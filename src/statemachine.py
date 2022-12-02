@@ -42,7 +42,7 @@ def create_statemachine(enable_userinput=True, do_handover=True):
         smach.Sequence.add('METHOD_DECISION', decider)
 
         find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction, goal_slots=[
-                                                             'method', 'object_names'], result_slots=['grasp_poses', 'object_bbs'])
+                                                             'method', 'object_names'], result_slots=['grasp_poses', 'object_bbs', 'grasped_obj_bb'])
         smach.Sequence.add('FIND_GRASP', find_grasp_actionstate, transitions={
             'aborted': abort_state, 'preempted': abort_state})
 
@@ -84,7 +84,7 @@ def create_statemachine(enable_userinput=True, do_handover=True):
             smach.Sequence.add('PLACEMENT_PLACE',
                                smach_ros.SimpleActionState('Placer', PlaceAction,
                                                            goal_slots=[
-                                                               'placement_area', 'grasped_pose']),
+                                                               'placement_area', 'grasped_pose', 'grasped_obj_bb']),
                                transitions={'succeeded': 'FIND_GRASP_USERINPUT',
                                             'aborted': 'GO_TO_NEUTRAL',
                                             'preempted': 'GO_TO_NEUTRAL'})
