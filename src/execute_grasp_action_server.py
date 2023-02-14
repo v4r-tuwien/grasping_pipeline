@@ -59,6 +59,7 @@ class ExecuteGraspServer:
         self.scene.remove_attached_object(eef_link)
         self.scene.remove_world_object()
         move_group.clear_pose_targets()
+        move_group.set_planner_id('RRTstarkConfigDefault')
 
         return move_group
 

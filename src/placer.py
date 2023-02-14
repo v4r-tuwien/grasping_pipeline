@@ -41,6 +41,8 @@ class PlaceAndMoveAway():
         self.move_group.set_start_state_to_current_state()
         self.move_group.set_num_planning_attempts(3)
         self.move_group.set_goal_position_tolerance(0.02)
+        self.move_group.set_planner_id('RRTstarkConfigDefault')
+        self.move_group.set_planning_time(7)
 
         # server init
         self.server = actionlib.SimpleActionServer(
@@ -60,7 +62,7 @@ class PlaceAndMoveAway():
 
     def execute(self, goal):
         rospy.loginfo('Execute ActionServer Placer')
-
+        # TODO handle frame shit better
         self.result = PlaceResult()
         self.frame = goal.grasped_pose.header.frame_id
         orientation = goal.grasped_pose.pose.orientation
@@ -85,13 +87,20 @@ class PlaceAndMoveAway():
         # try poses and execute if possible
         pose_list = []
         pub = rospy.Publisher(
-            '/placement/placement_marker', Marker, queue_size=10, latch=True)
+            '/placement/placement_marker_orient', Marker, queue_size=10, latch=True)
         for area in placementAreas:
             counter += 1
             area.center.position.z += grasped_obj_bb.size.z + 0.03
+            # transform into same frame as grasped pose so that we can use orientation directly
             goal_pose = transform_pose(
-                self.planning_frame, self.global_frame, area.center)
+                self.frame, self.global_frame, area.center)
+            # goal_pose = transform_pose(
+            #    self.global_frame, self.global_frame, area.center)
             goal_pose.pose.orientation = orientation
+            #goal_pose.pose.orientation.x = 0
+            #goal_pose.pose.orientation.y = 0.707
+            #goal_pose.pose.orientation.z = 0
+            #goal_pose.pose.orientation.w = 0.707
             pose_list.append(goal_pose)
             marker = Marker()
             marker.header.frame_id = self.frame
