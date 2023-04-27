@@ -221,7 +221,7 @@ def get_transmat_from_tf_trans(trans):
     return transmat
 
 
-def check_grasp_hsr(pose_odm, scene_cloud_ros, table_plane=None, visualize=False):
+def check_grasp_hsr(pose_odm, scene_cloud_ros, name=None, table_plane=None, visualize=False):
     """
     Takes a object pose (in '/map' frame) and detects which of the saved grasps are reachable with the GraspChecker.
 
@@ -262,8 +262,10 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, table_plane=None, visualize=False
     object_pose[:3, :3] = rot
     object_pose[:3, 3] = [pose_odm.pose.position.x,
                           pose_odm.pose.position.y, pose_odm.pose.position.z]
+    if name is None:
+        name = pose_odm.name
     grasps_path = os.path.join(
-        grasp_checker.dir_path, os.pardir, 'grasps', pose_odm.name+'.npy')
+        grasp_checker.dir_path, os.pardir, 'grasps', name +'.npy')
 
     rospy.loginfo(grasps_path)
     grasp_poses = np.load(grasps_path)

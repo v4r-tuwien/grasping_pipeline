@@ -1,11 +1,6 @@
 # Define the goal
-uint32 method # Specify which method we want to use
-string[] object_names # which objects do you want to grasp
 ---
 # Define the result
-geometry_msgs/PoseStamped[] grasp_poses
-vision_msgs/BoundingBox3DArray object_bbs
-vision_msgs/BoundingBox3DArray grasped_obj_bb #BB of grasped obj, should only have len(1), array needed to get frame information
+geometry_msgs/PoseStamped[] grasp_poses 
+vision_msgs/BoundingBox3DArray object_bbs # BB for each detected object
 ---
-# Define a feedback message
-float32 percent_complete

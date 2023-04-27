@@ -17,6 +17,7 @@ placement
 v4r_util
 tmc_geometric_shapes_msgs
 tmc_placement_area_detector
+message_filters
 )
 
 ## Generate actions in the 'action' folder

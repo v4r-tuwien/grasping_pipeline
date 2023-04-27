@@ -29,7 +29,7 @@ tmux send-keys "hsrb_mode" C-m
 tmux send-keys "roslaunch haf_grasping haf_grasping_all.launch" C-m
 tmux select-pane -t 1
 tmux send-keys "hsrb_mode" C-m
-tmux send-keys "roslaunch table_plane_extractor get_objects_on_table.launch" C-m
+tmux send-keys "roslaunch table_plane_extractor get_objects_on_table_as.launch" C-m
 tmux select-window -t $SESSION:0
 tmux select-pane -t 2
 

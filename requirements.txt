@@ -1,6 +1,8 @@
 numpy==1.23
 open3d==0.15.2
 open3d_ros_helper
+PyYAML
+transforms3d
 # we need the package anyways for ros so should be fine?, 
 # but might lead to problems if the table_plane_extractor is in another ros-workspace
 -r ../table_plane_extractor/requirements.txt

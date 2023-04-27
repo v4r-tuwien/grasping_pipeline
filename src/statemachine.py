@@ -41,8 +41,7 @@ def create_statemachine(enable_userinput=True, do_handover=True):
                                 'method', 'object_names'], outcomes=['succeeded'])
         smach.Sequence.add('METHOD_DECISION', decider)
 
-        find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction, goal_slots=[
-                                                             'method', 'object_names'], result_slots=['grasp_poses', 'object_bbs', 'grasped_obj_bb'])
+        find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction, result_slots=['grasp_poses', 'object_bbs'])
         smach.Sequence.add('FIND_GRASP', find_grasp_actionstate, transitions={
             'aborted': abort_state, 'preempted': abort_state})
 
@@ -93,7 +92,7 @@ def create_statemachine(enable_userinput=True, do_handover=True):
 
 if __name__ == '__main__':
     rospy.init_node('sasha_statemachine')
-    sm = create_statemachine(enable_userinput=True, do_handover=False)
+    sm = create_statemachine(enable_userinput=True, do_handover=True)
 
     try:
         # Create and start the introspection server
