@@ -5,7 +5,8 @@ import smach_ros
 from states.userinput import UserInput
 from states.robot_control import GoToNeutral, GoBack, OpenGripper
 from collision_environment import CreateCollisionObjects, AttachObject
-from grasping_pipeline.msg import FindGrasppointAction, ExecuteGraspAction, CreateCollisionEnvironmentAction
+from grasping_pipeline.msg import ExecuteGraspAction, CreateCollisionEnvironmentAction
+from grasping_pipeline_msgs.msg import FindGrasppointAction
 from sensor_msgs.msg import PointCloud2
 from geometry_msgs.msg import Pose
 from handover.msg import HandoverAction
@@ -41,7 +42,7 @@ def create_statemachine(enable_userinput=True, do_handover=True):
                                 'method', 'object_names'], outcomes=['succeeded'])
         smach.Sequence.add('METHOD_DECISION', decider)
 
-        find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction, result_slots=['grasp_poses', 'object_bbs'])
+        find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction, result_slots=['grasp_poses', 'grasp_object_bb'])
         smach.Sequence.add('FIND_GRASP', find_grasp_actionstate, transitions={
             'aborted': abort_state, 'preempted': abort_state})
 

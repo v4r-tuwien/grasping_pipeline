@@ -6,5 +6,5 @@
     <rosparam command="load" ns="" file="$(find placement)/config/startup.yaml"/>
     <rosparam command="load" ns="" file="$(find table_plane_extractor)/config/config.yaml"/>
     <node name="find_grasppoint_server" pkg="grasping_pipeline" type="find_grasppoint_detector_pose_estimator.py"
-        args = "$(find grasping_pipeline)/config/find_grasppoint.yaml" output="screen"/>
+        args = "$(find grasping_pipeline)/config/find_grasppoint.yaml $(find grasping_pipeline)/models/models_metadata.yml" output="screen"/>
 </launch>

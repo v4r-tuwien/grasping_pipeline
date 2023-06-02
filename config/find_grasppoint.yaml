@@ -1,11 +1,12 @@
 rgb_topic: /hsrb/head_rgbd_sensor/rgb/image_rect_color
 depth_topic: /hsrb/head_rgbd_sensor/depth_registered/image_rect_raw # 16UC1 with depth in mm
 cam_info_topic: /hsrb/head_rgbd_sensor/depth_registered/camera_info
-class_confidence_threshold: 0.1
+class_confidence_threshold: 0.3
 unknown_object_grasp_detector_topic: /pose_estimator/find_grasppose_haf
 unknown_object_grasp_detector_timeout: 100.0
+model_metadata_filepath: models/models_metadata.yml
 
 detector_pose_estimator:
   #TODO move to launch file so that you only have to change one config file
-  topic: '/get_objects_on_table/get_label_image'
+  topic: '/pose_estimator/find_grasppose'
   timeout_duration: 200.0

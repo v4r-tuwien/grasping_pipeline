@@ -1,39 +1,43 @@
 #! /usr/bin/env python3
 import sys
+from copy import deepcopy
 import numpy as np
 import yaml
 from yaml.loader import SafeLoader
-from math import asin, atan2, isnan, pi
+from math import pi
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo
-from v4r_util.depth_pcd import convert_np_label_img_to_ros_color_img, convert_ros_depth_img_to_pcd
+from v4r_util.depth_pcd import convert_ros_depth_img_to_pcd
 from geometry_msgs.msg import PoseStamped
 import ros_numpy
-
+import PyKDL
 import actionlib
 import rospy
-from grasping_pipeline.msg import (FindGrasppointAction,
+from grasping_pipeline_msgs.msg import (FindGrasppointAction,
                                    FindGrasppointResult)
 from hsrb_interface import Robot
 from tf.transformations import (quaternion_about_axis, quaternion_from_matrix,
-                                quaternion_multiply, unit_vector)
+                                quaternion_multiply)
+from tf_conversions import posemath
 from visualization_msgs.msg import Marker
 from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorGoal
 from sensor_msgs.msg import RegionOfInterest
 from geometry_msgs.msg import Pose, Point, Quaternion
 
 from grasp_checker import check_grasp_hsr
-from v4r_util.util import get_minimum_oriented_bounding_box, o3d_bb_list_to_ros_bb_arr
+from v4r_util.util import get_minimum_oriented_bounding_box, o3d_bb_to_ros_bb_stamped, create_ros_bb_stamped
 
 
 class FindGrasppointServer:
     #TODO add central visualization
-    #TODO add 3D bb handling for known objects (model.json)
-    def __init__(self, cfg):
+    
+    def __init__(self, cfg, models_metadata):
         self.cfg = cfg
+        self.models_metadata = models_metadata
+
         self.server = actionlib.SimpleActionServer(
             'find_grasppoint', FindGrasppointAction, self.execute, False)
-        self.marker_pub = rospy.Publisher('/grasping_pipeline/grasp_marker', Marker)
+        self.marker_pub = rospy.Publisher('/grasping_pipeline/grasp_marker', Marker, queue_size=10)
         self.server.start()
 
         self.depth, self.rgb = None, None
@@ -104,7 +108,8 @@ class FindGrasppointServer:
                 bbs, ROI_2d, poses = self.prepare_unknown_object_detection(estimator_result, scene_cloud_o3d)
                 rospy.loginfo("Overwriting unknown object poses with information from label image")
                 estimator_result.pose_results = self.overwrite_unknown_object_poses(estimator_result, poses)
-                unknown_obj_bbs_ros = o3d_bb_list_to_ros_bb_arr(bbs, frame_id=depth.header.frame_id, stamp=depth.header.stamp)
+                # fill bbs with pseudo entries so that we can use the object_idx that gets calculated afterwards
+                filled_bbs = self.fill_bbs(estimator_result, bbs)
 
             object_idx = self.get_closest_object(estimator_result)
 
@@ -116,22 +121,57 @@ class FindGrasppointServer:
             rospy.logdebug('Generating grasp poses')
             if object_name == 'Unknown':
                 grasp_poses = self.call_unknown_obj_grasp_detector(rgb, depth, ROI_2d[object_idx])
+                object_bb = filled_bbs[object_idx]
+                object_bb_stamped = o3d_bb_to_ros_bb_stamped(object_bb, depth.header.frame_id, depth.header.stamp)
             else:
                 grasp_poses = check_grasp_hsr(
                     object_to_grasp_stamped, scene_cloud, object_name, table_plane=None, visualize=True)
+                object_bb_stamped = self.get_bb_for_known_objects(object_to_grasp_stamped, object_name, depth.header.frame_id, depth.header.stamp)
+
             if len(grasp_poses) < 1:
                 raise ValueError('No grasp pose found')
             
             result.grasp_poses = grasp_poses
-            #TODO: add 3D BB of known objects to result
-            result.object_bbs = unknown_obj_bbs_ros
+            result.grasp_object_bb = object_bb_stamped
 
             self.add_marker(grasp_poses[0])
+            self.add_bb_marker(object_bb_stamped)
             self.server.set_succeeded(result)
 
         except (ValueError, TimeoutError) as e:
             rospy.logerr(str(e))
             self.server.set_aborted(text=str(e))
+
+    def transform_to_kdl(self, pose):
+        return PyKDL.Frame(PyKDL.Rotation.Quaternion(pose.orientation.x, pose.orientation.y,
+                                                 pose.orientation.z, pose.orientation.w),
+                       PyKDL.Vector(pose.position.x,
+                                    pose.position.y,
+                                    pose.position.z))
+
+    def get_bb_for_known_objects(self, object_pose, object_name, frame_id, stamp):
+        metadata = self.models_metadata[object_name]
+        center = metadata['center']
+        extent = metadata['extent']
+        rot_mat = metadata['rot']
+        bb_stamped = create_ros_bb_stamped(center, extent, rot_mat, frame_id, stamp)
+        t1 = self.transform_to_kdl(bb_stamped.center)
+        t2 = self.transform_to_kdl(object_pose.pose)
+        t_res = t2 * t1
+        t_res_ros = posemath.toMsg(t_res)
+        bb_stamped.center = t_res_ros
+        return bb_stamped
+
+    def fill_bbs(self, estimator_result, bbs):
+        j = 0
+        new_bb_list = []
+        for i, class_name in enumerate(estimator_result.class_names):
+            if class_name == 'Unknown':
+                new_bb_list.append(bbs[j])
+                j += 1
+            else:
+                new_bb_list.append(0)
+        return new_bb_list
 
     def overwrite_unknown_object_poses(self, estimator_result, poses):
         j = 0
@@ -182,7 +222,7 @@ class FindGrasppointServer:
 
         for i, pose in enumerate(estimator_result.pose_results):
             # skip objects that have low confidence
-            if len(cl_conf) > 1 and cl_conf < conf_threshold:
+            if len(cl_conf) > 1 and cl_conf[i] < conf_threshold:
                 continue
 
             pose_pos = pose.position
@@ -307,8 +347,8 @@ class FindGrasppointServer:
         marker.header.stamp = rospy.Time()
         marker.ns = 'grasp_marker'
         marker.id = 0
-        marker.type = 0
-        marker.action = 0
+        marker.type = Marker.ARROW
+        marker.action = Marker.ADD
 
         q2 = [pose_goal.pose.orientation.w, pose_goal.pose.orientation.x,
               pose_goal.pose.orientation.y, pose_goal.pose.orientation.z]
@@ -334,13 +374,34 @@ class FindGrasppointServer:
         self.marker_pub.publish(marker)
         rospy.loginfo('grasp_marker')
 
+    
+    def add_bb_marker(self, object_bb_stamped):
+        marker = Marker()
+        marker.header.frame_id = object_bb_stamped.header.frame_id
+        marker.header.stamp = rospy.Time()
+        marker.ns = 'bb_marker'
+        marker.id = 0
+        marker.type = Marker.CUBE
+        marker.action = Marker.ADD
+
+        marker.pose = deepcopy(object_bb_stamped.center)
+        marker.scale = deepcopy(object_bb_stamped.size)
+
+        marker.color.a = 0.5
+        marker.color.r = 0
+        marker.color.g = 0
+        marker.color.b = 1.0
+        self.marker_pub.publish(marker)
+
 
 if __name__ == '__main__':
     rospy.init_node('find_grasppoint_server')
-    if len(sys.argv) < 2:
-        rospy.logerr('No yaml config file was specified!')
+    if len(sys.argv) < 3:
+        rospy.logerr('No yaml config file or models metadata file was specified!')
         sys.exit(-1)
     with open(sys.argv[1]) as f:
         cfg = yaml.load(f, Loader=SafeLoader)
-    server = FindGrasppointServer(cfg)
+    with open(sys.argv[2]) as f:
+        models_metadata = yaml.load(f, Loader=SafeLoader)
+    server = FindGrasppointServer(cfg, models_metadata)
     rospy.spin()

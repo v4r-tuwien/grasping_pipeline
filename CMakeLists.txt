@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.1)
 project(grasping_pipeline)
 
 find_package(catkin REQUIRED 
@@ -18,13 +18,13 @@ v4r_util
 tmc_geometric_shapes_msgs
 tmc_placement_area_detector
 message_filters
+grasping_pipeline_msgs
 )
 
 ## Generate actions in the 'action' folder
  add_action_files(
    DIRECTORY action
    FILES
-   FindGrasppoint.action
    ExecuteGrasp.action
    CreateCollisionEnvironment.action
    Place.action

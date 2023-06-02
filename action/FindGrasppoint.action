@@ -1,6 +1,0 @@
-# Define the goal
----
-# Define the result
-geometry_msgs/PoseStamped[] grasp_poses 
-vision_msgs/BoundingBox3DArray object_bbs # BB for each detected object
----
