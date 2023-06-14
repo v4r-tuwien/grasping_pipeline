@@ -214,7 +214,7 @@ class CreateCollisionObjects(smach.State):
 
     def __init__(self):
         smach.State.__init__(
-            self, outcomes=['succeeded'], input_keys=['object_bbs'], output_keys=['collision_objects'])
+            self, outcomes=['succeeded'], input_keys=['grasp_object_bb'], output_keys=['collision_objects'])
         self.topic = rospy.get_param('/point_cloud_topic')
         self.table_extractor_service = '/test/table_plane_extractor'
         self.last_object_bb_idx = 0
@@ -222,8 +222,7 @@ class CreateCollisionObjects(smach.State):
 
     def execute(self, userdata):
         table_bbs = self.get_table_plane_bbs()
-        object_bbs = userdata.object_bbs
-        object_bb_base_name = 'BoundingBox'
+        grasp_object_bb = userdata.grasp_object_bb
         table_plane_base_name = 'TablePlane'
 
         collision_objects = list()
@@ -245,20 +244,12 @@ class CreateCollisionObjects(smach.State):
                 table_plane_base_name + str(remove_idx)))
         self.last_table_bb_idx = idx
 
-        idx = 0
-        if object_bbs is not None:
+        if grasp_object_bb is not None:
             # add objects of interest as collision objects
-            for object_bb in object_bbs.boxes:
-                name = object_bb_base_name + str(idx)
-                idx = idx + 1
-                coll_obj = create_collision_object(
-                    name, object_bbs.header.frame_id, CollisionObject.METHOD_ADD_BOX, object_bb.center, object_bb.size)
-                collision_objects.append(coll_obj)
-        # remove remaining objects from last call
-        for remove_idx in range(idx, self.last_object_bb_idx):
-            collision_objects.append(remove_collision_object(
-                object_bb_base_name + str(remove_idx)))
-        self.last_object_bb_idx = idx
+            name = 'grasp_object'
+            coll_obj = create_collision_object(
+                name, grasp_object_bb.header.frame_id, CollisionObject.METHOD_ADD_BOX, grasp_object_bb.center, grasp_object_bb.size)
+            collision_objects.append(coll_obj)
 
         userdata.collision_objects = collision_objects
         return 'succeeded'
