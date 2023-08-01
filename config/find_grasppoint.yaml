@@ -8,5 +8,5 @@ model_metadata_filepath: models/models_metadata.yml
 
 detector_pose_estimator:
   #TODO move to launch file so that you only have to change one config file
-  topic: '/pose_estimator/find_grasppose'
+  topic: /get_objects_on_table/get_label_image #'/pose_estimator/find_grasppose'
   timeout_duration: 200.0

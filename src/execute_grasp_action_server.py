@@ -10,7 +10,7 @@ import tf.transformations
 import tf
 
 
-from grasping_pipeline.msg import ExecuteGraspAction, ExecuteGraspActionResult
+from grasping_pipeline_msgs.msg import ExecuteGraspAction, ExecuteGraspActionResult
 from hsrb_interface import Robot, geometry
 from visualization_msgs.msg import Marker
 from math import pi
@@ -115,6 +115,8 @@ class ExecuteGraspServer:
         self.whole_body.move_end_effector_by_line((0, 0, 1), safety_distance)
 
         self.gripper.apply_force(0.30)
+        self.move_group.attach_object(goal.grasp_object_name)
+        rospy.sleep(0.2)
 
         # move 5cm in z direction
         pose_vec, pose_quat = self.whole_body.get_end_effector_pose(

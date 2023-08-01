@@ -9,12 +9,13 @@ from geometry_msgs.msg import Pose, Vector3, Point, PointStamped
 from tmc_geometric_shapes_msgs.msg import Shape
 from tmc_placement_area_detector.srv import DetectPlacementArea
 from visualization_msgs.msg import Marker, MarkerArray
+from vision_msgs.msg import BoundingBox3D
 
 
 class PlacementAreaDetector(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded', 'aborted'], output_keys=[
-                             'placement_area'], input_keys=['grasped_obj_bb'])
+                             'placement_area'], input_keys=['grasp_object_bb'])
         # init robot
         self.robot = Robot()
         self.gripper = self.robot.try_get('gripper')
@@ -42,14 +43,10 @@ class PlacementAreaDetector(smach.State):
         # tmc_geometric_shapes_msgs/Shape object_shape
         # geometry_msgs/Pose object_to_surface
         # float64 surface_range
-        bb_frame = userdata.grasped_obj_bb.header.frame_id
-        if len(userdata.grasped_obj_bb.boxes) != 1:
-            rospy.logerr(
-                f"Grasped obj BB should have len==1! Has len={len(userdata.grasped_obj_bb.boxes)}")
-            return 'aborted'
-        grasped_obj_bb = userdata.grasped_obj_bb.boxes[0]
-        grasped_obj_bb = transform_bounding_box(
-            grasped_obj_bb, bb_frame, self.global_frame)
+        bb_frame = userdata.grasp_object_bb.header.frame_id
+        grasp_obj_bb = BoundingBox3D(center = userdata.grasp_object_bb.center, size = userdata.grasp_object_bb.size)
+        grasp_obj_bb = transform_bounding_box(
+            grasp_obj_bb, bb_frame, self.global_frame)
 
         rospy.Subscriber('clicked_point', PointStamped, self.clicked_point_cb)
         while not rospy.is_shutdown():
@@ -77,9 +74,9 @@ class PlacementAreaDetector(smach.State):
         tilt_threshold = np.pi * 60/180
         distance_threshold = 0.03
 
-        obj_dim_x = grasped_obj_bb.size.x
-        obj_dim_y = grasped_obj_bb.size.y
-        obj_dim_z = grasped_obj_bb.size.z
+        obj_dim_x = grasp_obj_bb.size.x
+        obj_dim_y = grasp_obj_bb.size.y
+        obj_dim_z = grasp_obj_bb.size.z
         object_shape = Shape()
         object_shape.type = Shape.MESH
         mesh = o3d.geometry.TriangleMesh.create_box(
