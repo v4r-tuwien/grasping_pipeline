@@ -1,5 +1,0 @@
-tmc_placement_area_detector/PlacementArea[] placement_area
-geometry_msgs/PoseStamped grasped_pose
-vision_msgs/BoundingBox3DArray grasped_obj_bb
----
----

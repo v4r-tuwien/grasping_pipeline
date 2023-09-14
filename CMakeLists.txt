@@ -16,7 +16,6 @@ table_plane_extractor
 placement
 v4r_util
 tmc_geometric_shapes_msgs
-tmc_placement_area_detector
 message_filters
 grasping_pipeline_msgs
 )
@@ -25,9 +24,7 @@ grasping_pipeline_msgs
  add_action_files(
    DIRECTORY action
    FILES
-   ExecuteGrasp.action
    CreateCollisionEnvironment.action
-   Place.action
  )
 
   add_message_files(
@@ -44,7 +41,6 @@ grasping_pipeline_msgs
    object_detector_msgs
    grasping_pipeline
    vision_msgs
-   tmc_placement_area_detector
  )
 
 catkin_package()
