@@ -15,13 +15,7 @@ from vision_msgs.msg import BoundingBox3D
 class PlacementAreaDetector(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded', 'aborted'], output_keys=[
-                             'placement_area'], input_keys=['grasp_object_bb'])
-        # init robot
-        self.robot = Robot()
-        self.gripper = self.robot.try_get('gripper')
-        self.whole_body = self.robot.try_get('whole_body')
-        self.omni = self.robot.try_get('omni_base')
-
+                             'placement_areas'], input_keys=['grasp_object_bb'])
         # read parameter from startup.yaml
         self.global_frame = rospy.get_param("/global_frame")
         self.placement_sort = rospy.get_param("/placement_sort")
@@ -100,7 +94,7 @@ class PlacementAreaDetector(smach.State):
         except rospy.ServiceException as e:
             print("DetectPlacmentAreaService call failed: %s" % e)
 
-        userdata.placement_area = response.placement_area
+        userdata.placement_areas = response.placement_area
 
         self.counter = pub(response.placement_area, self.counter)
         if response.error_code.val == 1:
@@ -113,7 +107,7 @@ class PlacementAreaDetector(smach.State):
         elif response.error_code.val == -3:
             print("ErrorCode: NO_POINTCLOUD")
         elif response.error_code.val == -4:
-            print("ErrorCode: NI_ACCEPTABLE_PLANE")
+            print("ErrorCode: NO_ACCEPTABLE_PLANE")
         elif response.error_code.val == -5:
             print("ErrorCode: INVALID_OBJECT_SURFACE")
         elif response.error_code.val == -1:
