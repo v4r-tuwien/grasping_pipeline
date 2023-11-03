@@ -31,8 +31,7 @@ from v4r_util.util import get_minimum_oriented_bounding_box, o3d_bb_to_ros_bb_st
 class FindGrasppointServer:
     #TODO add central visualization
     
-    def __init__(self, cfg, models_metadata):
-        self.cfg = cfg
+    def __init__(self models_metadata):
         self.models_metadata = models_metadata
 
         self.server = actionlib.SimpleActionServer(
@@ -41,46 +40,44 @@ class FindGrasppointServer:
         self.server.start()
 
         self.depth, self.rgb = None, None
-        self.image_sub = self.__setup_image_subs(cfg)
+        self.image_sub = self.__setup_image_subs(rospy.get_param('/depth_topic'), rospy.get_param('/rgb_topic'))
         
         rospy.logdebug('Waiting for camera info')
-        self.cam_info = rospy.wait_for_message(cfg['cam_info_topic'], CameraInfo)
+        self.cam_info = rospy.wait_for_message(rospy.get_param('cam_info_topic'), CameraInfo)
         
-        self.detector_pose_estimator = self.__setup_detector(cfg)
+        self.timeout = rospy.get_param('detector_pose_estimator/timeout_duration')
+        self.detector_pose_estimator = self.__setup_detector(rospy.get_param('detector_pose_estimator/detector_topic'), timeout)
 
         self.unknown_object_grasp_detector = None
-        if cfg['unknown_object_grasp_detector_topic'] not in ['None', None]:
-            self.unknown_object_grasp_detector = self.__setup_unknown_object_grasp_detector(cfg)
+        unknown_object_grasp_detector_topic = rospy.get_param('detector_pose_estimator/unknown_object_grasp_detector_topic', None)
+        if unknown_object_grasp_detector_topic is not None:
+            self.unknown_object_grasp_detector = self.__setup_unknown_object_grasp_detector(unknown_object_grasp_detector_topic, timeout)
         
         rospy.loginfo('Initializing FindGrasppointServer done')
 
-    def __setup_image_subs(self, cfg):
-        depth_topic = cfg['depth_topic']
-        rgb_topic = cfg['rgb_topic']
+    def __setup_image_subs(self, depth_topic, rgb_topic):
         depth_sub = message_filters.Subscriber(depth_topic, Image)
         rgb_sub = message_filters.Subscriber(rgb_topic, Image)
         image_sub = message_filters.ApproximateTimeSynchronizer([depth_sub, rgb_sub], 5, 0.1)
         image_sub.registerCallback(self.image_callback)
         return image_sub
     
-    def __setup_detector(self, cfg):
+    def __setup_detector(self, detector_topic, timeout):
         rospy.loginfo('Waiting for detector_pose_estimator actionserver')
         detector_pose_estimator = actionlib.SimpleActionClient(
-            cfg['detector_pose_estimator']['topic'], 
+            detector_topic, 
             GenericImgProcAnnotatorAction)
-        if not detector_pose_estimator.wait_for_server(timeout=rospy.Duration(10.0)):
-            topic = cfg['detector_pose_estimator']['topic']
-            rospy.logerr(f'Connection to detector_pose_estimator \'{topic}\' timed out!')
+        if not detector_pose_estimator.wait_for_server(timeout=rospy.Duration(timeout)):
+            rospy.logerr(f'Connection to detector_pose_estimator \'{detector_topic}\' timed out!')
             raise TimeoutError
         return detector_pose_estimator
     
-    def __setup_unknown_object_grasp_detector(self, cfg):
+    def __setup_unknown_object_grasp_detector(self, topic, timeout):
         rospy.loginfo('Waiting for unknown object grasp_detector')
         unknown_object_grasp_detector = actionlib.SimpleActionClient(
-                cfg['unknown_object_grasp_detector_topic'], 
+                topic, 
                 GenericImgProcAnnotatorAction)
-        if not unknown_object_grasp_detector.wait_for_server(timeout=rospy.Duration(10.0)):
-            topic = cfg['unknown_object_grasp_detector_topic']
+        if not unknown_object_grasp_detector.wait_for_server(timeout=rospy.Duration(timeout)):
             rospy.logerr(f'Connection to unknown_object_grasp_detector \'{topic}\' timed out!')
             raise TimeoutError
         return unknown_object_grasp_detector
@@ -196,9 +193,8 @@ class FindGrasppointServer:
         res = self.unknown_object_grasp_detector.send_goal(grasp_detector_goal)
         rospy.logdebug('Waiting for unknown object grasp detector results')
 
-        timeout_duration = float(self.cfg['unknown_object_grasp_detector_timeout'])
         succesful = self.unknown_object_grasp_detector.wait_for_result(
-            rospy.Duration(timeout_duration))
+            rospy.Duration(self.timeout))
         if not succesful:
             raise TimeoutError("Unknown object grasp detector didn't return results before timing out!")
         
@@ -214,7 +210,7 @@ class FindGrasppointServer:
         return grasp_poses_stamped
 
     def get_closest_object(self, estimator_result):
-        conf_threshold = float(self.cfg['class_confidence_threshold'])
+        conf_threshold = float(rospy.get_param('detector_pose_estimator/class_confidence_threshold'))
 
         min_dist_squared = float("inf")
         cl_conf = estimator_result.class_confidences
@@ -263,8 +259,7 @@ class FindGrasppointServer:
         self.detector_pose_estimator.send_goal(estimator_goal)
 
         rospy.logdebug('Waiting for estimator results')
-        timeout_duration = float(self.cfg['detector_pose_estimator']['timeout_duration'])
-        self.detector_pose_estimator.wait_for_result(rospy.Duration(timeout_duration))
+        self.detector_pose_estimator.wait_for_result(rospy.Duration(self.timeout))
         estimator_result = self.detector_pose_estimator.get_result()
         rospy.loginfo(f'Detector detected {len(estimator_result.pose_results)} potential object poses.')
 
@@ -396,12 +391,10 @@ class FindGrasppointServer:
 
 if __name__ == '__main__':
     rospy.init_node('find_grasppoint_server')
-    if len(sys.argv) < 3:
-        rospy.logerr('No yaml config file or models metadata file was specified!')
+    if len(sys.argv) < 2:
+        rospy.logerr('No models metadata file was specified!')
         sys.exit(-1)
     with open(sys.argv[1]) as f:
-        cfg = yaml.load(f, Loader=SafeLoader)
-    with open(sys.argv[2]) as f:
         models_metadata = yaml.load(f, Loader=SafeLoader)
-    server = FindGrasppointServer(cfg, models_metadata)
+    server = FindGrasppointServer(models_metadata)
     rospy.spin()
