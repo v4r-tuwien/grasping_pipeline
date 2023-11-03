@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Load parameters -->
+    <rosparam command="load" ns="" file="$(find grasping_pipeline)/config/config.yaml"/>
+    <rosparam command="load" ns="" file="$(find table_plane_extractor)/config/config.yaml"/>
+    <node name="find_grasppoint_server" pkg="grasping_pipeline" type="find_grasppoint_action_server.py"
+        args= "$(find grasping_pipeline)/models/models_metadata.yml" output="screen"/>
+</launch>
