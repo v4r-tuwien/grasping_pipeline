@@ -31,7 +31,7 @@ from v4r_util.util import get_minimum_oriented_bounding_box, o3d_bb_to_ros_bb_st
 class FindGrasppointServer:
     #TODO add central visualization
     
-    def __init__(self models_metadata):
+    def __init__(self, models_metadata):
         self.models_metadata = models_metadata
 
         self.server = actionlib.SimpleActionServer(
@@ -43,15 +43,15 @@ class FindGrasppointServer:
         self.image_sub = self.__setup_image_subs(rospy.get_param('/depth_topic'), rospy.get_param('/rgb_topic'))
         
         rospy.logdebug('Waiting for camera info')
-        self.cam_info = rospy.wait_for_message(rospy.get_param('cam_info_topic'), CameraInfo)
+        self.cam_info = rospy.wait_for_message(rospy.get_param('/cam_info_topic'), CameraInfo)
         
-        self.timeout = rospy.get_param('detector_pose_estimator/timeout_duration')
-        self.detector_pose_estimator = self.__setup_detector(rospy.get_param('detector_pose_estimator/detector_topic'), timeout)
+        self.timeout = rospy.get_param('/detector_pose_estimator/timeout_duration')
+        self.detector_pose_estimator = self.__setup_detector(rospy.get_param('/detector_pose_estimator/detector_topic'), self.timeout)
 
         self.unknown_object_grasp_detector = None
-        unknown_object_grasp_detector_topic = rospy.get_param('detector_pose_estimator/unknown_object_grasp_detector_topic', None)
+        unknown_object_grasp_detector_topic = rospy.get_param('/detector_pose_estimator/unknown_object_grasp_detector_topic', None)
         if unknown_object_grasp_detector_topic is not None:
-            self.unknown_object_grasp_detector = self.__setup_unknown_object_grasp_detector(unknown_object_grasp_detector_topic, timeout)
+            self.unknown_object_grasp_detector = self.__setup_unknown_object_grasp_detector(unknown_object_grasp_detector_topic, self.timeout)
         
         rospy.loginfo('Initializing FindGrasppointServer done')
 
@@ -210,7 +210,7 @@ class FindGrasppointServer:
         return grasp_poses_stamped
 
     def get_closest_object(self, estimator_result):
-        conf_threshold = float(rospy.get_param('detector_pose_estimator/class_confidence_threshold'))
+        conf_threshold = float(rospy.get_param('/detector_pose_estimator/class_confidence_threshold'))
 
         min_dist_squared = float("inf")
         cl_conf = estimator_result.class_confidences
@@ -259,7 +259,10 @@ class FindGrasppointServer:
         self.detector_pose_estimator.send_goal(estimator_goal)
 
         rospy.logdebug('Waiting for estimator results')
-        self.detector_pose_estimator.wait_for_result(rospy.Duration(self.timeout))
+        goal_finished = self.detector_pose_estimator.wait_for_result(rospy.Duration(self.timeout))
+        if not goal_finished:
+            rospy.logerr('Estimator didn\'t return results before timing out!')
+            raise TimeoutError
         estimator_result = self.detector_pose_estimator.get_result()
         rospy.loginfo(f'Detector detected {len(estimator_result.pose_results)} potential object poses.')
 

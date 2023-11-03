@@ -62,7 +62,8 @@ class MoveitWrapper:
         # Moveit commander
         timeout_sec = 30.0
         whole_body = moveit_commander.MoveGroupCommander("whole_body", wait_for_servers=timeout_sec)
-        gripper = moveit_commander.MoveGroupCommander("gripper", wait_for_servers=timeout_sec)
+        #gripper = moveit_commander.MoveGroupCommander("gripper", wait_for_servers=timeout_sec)
+        gripper = None
         scene = moveit_commander.PlanningSceneInterface()
         robot = moveit_commander.RobotCommander()
 
@@ -73,8 +74,8 @@ class MoveitWrapper:
         whole_body.set_planning_time(5.0)
         whole_body.set_max_acceleration_scaling_factor(1.0)
         whole_body.set_max_velocity_scaling_factor(1.0)
-        gripper.set_max_acceleration_scaling_factor(1.0)
-        gripper.set_max_velocity_scaling_factor(1.0)
+        # gripper.set_max_acceleration_scaling_factor(1.0)
+        # gripper.set_max_velocity_scaling_factor(1.0)
         
         return whole_body, gripper, scene, robot
 
@@ -90,7 +91,7 @@ class MoveitWrapper:
         Args:
             vel (float, optional): Maximum speed value.
                 The value must be between 0.0 and 1.0. Defaults to 1.0.
-        """
+        """ 
         self.whole_body.set_max_velocity_scaling_factor(float(vel))
         return
 
@@ -422,7 +423,7 @@ class MoveitWrapper:
         return self.scene.get_object_poses(object_names)
     
     def get_planning_frame(self, group="whole_body"):
-        if group is "whole_body":
+        if group == "whole_body":
             return self.whole_body.get_planning_frame()
         else:
             raise NotImplementedError

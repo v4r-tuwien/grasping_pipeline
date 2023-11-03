@@ -63,25 +63,27 @@ class ExecuteGraspServer:
                 rospy.logdebug("Execute grasp: Execution failed, Trying next grasp pose")
                 continue
             
-            self.moveit_wrapper.move_eef_by_line((0, 0, 1), safety_distance)
+            self.hsr_wrapper.move_eef_by_line((0, 0, 1), safety_distance)
             rospy.sleep(0.1)
                 
             self.hsr_wrapper.gripper_grasp_hsr(0.3)
-            transform = self.get_transform_from_wrist_to_object_bottom_plane(goal, res, planning_frame)
+            transform = self.get_transform_from_wrist_to_object_bottom_plane(goal, planning_frame)
             res.placement_surface_to_wrist = transform
             
             touch_links = self.moveit_wrapper.get_link_names(group='gripper')
             self.moveit_wrapper.attach_object(goal.grasp_object_name, touch_links)
 
-            self.moveit_wrapper.move_eef_by_line((0, 0, 1), -safety_distance)
+            self.hsr_wrapper.move_eef_by_line((0, 0, 1), -safety_distance)
 
             self.hsr_wrapper.gripper_grasp_hsr(0.5)
-            if not self.moveit_wrapper.grasp_succesful():
-                rospy.logdebug("Execute grasp: Grasp failed, Trying next grasp pose")
+            if not self.hsr_wrapper.grasp_succesful():
+                rospy.logdebug("Execute grasp: Grasp failed")
                 self.moveit_wrapper.detach_all_objects()
                 self.hsr_wrapper.gripper_open_hsr()
-                continue
-
+                # Abort as in this cases the robot often touched the object and changed its position
+                # which invalidates the grasp pose
+                self.server.set_aborted(res)
+                return
             self.server.set_succeeded(res)
             return
         
@@ -116,6 +118,8 @@ class ExecuteGraspServer:
         
         transform = self.tf_wrapper.transform_pose('hand_palm_link', object_bottom_surface_base_frame)
         transform = Transform(rotation = transform.pose.orientation, translation = transform.pose.position)
+
+        return transform
         
 
     def add_marker(self, pose_goal, id=0, r=0, g=1, b=0):

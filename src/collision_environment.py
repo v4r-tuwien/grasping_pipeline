@@ -16,6 +16,7 @@ class CollisionEnvironment(smach.State):
             self, outcomes=['succeeded'], input_keys=['grasp_object_bb', 'table_bbs'], output_keys=['grasp_object_name'])
         self.tf_wrapper = TF2Wrapper()
         self.moveit_wrapper = MoveitWrapper(self.tf_wrapper)
+        self.moveit_wrapper.detach_all_objects()
         self.add_floor_plane()
         rospy.loginfo('CollEnv init')
     
@@ -24,7 +25,7 @@ class CollisionEnvironment(smach.State):
         p = PoseStamped()
         p.header.frame_id = 'base_link'
         p.header.stamp = rospy.Time.now()
-        base_pose = self.tf2_wrapper.transform_pose('map', p)
+        base_pose = self.tf_wrapper.transform_pose('map', p)
 
         pos = base_pose.pose.position
         ori = base_pose.pose.orientation
@@ -42,9 +43,9 @@ class CollisionEnvironment(smach.State):
     def execute(self, userdata):
         grasp_obj_bb = userdata.grasp_object_bb
         table_bb = userdata.table_bbs.boxes[0]
-        self.libmoveit.add_box('object', grasp_obj_bb.header.frame_id, grasp_obj_bb.center, vector3_to_list(grasp_obj_bb.size))
+        self.moveit_wrapper.add_box('object', grasp_obj_bb.header.frame_id, grasp_obj_bb.center, vector3_to_list(grasp_obj_bb.size))
         rospy.sleep(0.1)
-        self.libmoveit.add_box('table', userdata.table_bbs.header.frame_id, table_bb.center, vector3_to_list(table_bb.size))
+        self.moveit_wrapper.add_box('table', userdata.table_bbs.header.frame_id, table_bb.center, vector3_to_list(table_bb.size))
 
         userdata.grasp_object_name = 'object'
         
