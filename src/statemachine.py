@@ -2,7 +2,7 @@
 import rospy
 import smach
 import smach_ros
-from collision_environment import AddCollisionObjects
+from collision_environment import CollisionEnvironment
 from states.userinput import UserInput
 from states.robot_control import GoToNeutral, GoBack, OpenGripper, GoToWaypoint, MoveToJointPositions
 from states.find_table_planes import FindTablePlanes
@@ -10,56 +10,10 @@ from grasping_pipeline_msgs.msg import FindGrasppointAction, ExecuteGraspAction
 from sensor_msgs.msg import PointCloud2
 from geometry_msgs.msg import Pose
 from handover.msg import HandoverAction
-from states.placement import PlacementAreaDetector
+from states.placement_area_detector import PlacementAreaDetector
 from placement.msg import PlacementPlaceAndMoveAwayAction
 from grasping_pipeline_msgs.msg import PlaceAction
 
-# def get_libraries():
-#     libtf = LibTF2()
-#     libmoveit = LibHSRMoveit(libtf)
-#     libs = {'tf': libtf, 'moveit': libmoveit}
-#     return libs
-
-def dummy_object(userdata):
-    from grasping_pipeline_msgs.msg import BoundingBox3DStamped
-    grasp_object_bb = BoundingBox3DStamped() 
-    grasp_object_bb.header.frame_id = 'map'
-    grasp_object_bb.header.stamp = rospy.Time.now()
-    grasp_object_bb.center.position.x = 0.1
-    grasp_object_bb.center.position.y = 0.1
-    grasp_object_bb.center.position.z = 0.1
-    grasp_object_bb.center.orientation.w = 1.0
-    grasp_object_bb.size.x = 0.1
-    grasp_object_bb.size.y = 0.1
-    grasp_object_bb.size.z = 0.1
-    userdata.grasp_object_bb = grasp_object_bb
-    return 'succeeded'
-    
-
-def test_placement():
-    seq = smach.Sequence(outcomes=['end'], connector_outcome='succeeded')
-    table_waypoint = GoToWaypoint(0.25, 0.41, 0)
-    shelf_waypoint = GoToWaypoint(x=0.7, y=1.1, phi_degree=90.0)
-    with seq:
-        smach.Sequence.add('GO_TO_NEUTRAL', GoToNeutral())
-
-        smach.Sequence.add('OPEN_GRIPPER', OpenGripper())
-
-        smach.Sequence.add('GO_TO_TABLE', table_waypoint, transitions={'aborted': 'GO_TO_NEUTRAL'})
-        dummy_creater = smach.CBState(dummy_object, output_keys=['grasp_object_bb'], outcomes=['succeeded'])
-        smach.Sequence.add('DUMMY_OBJECT_CREATION', dummy_creater)
-        smach.Sequence.add('DETECT_PLACEMENT_AREA', PlacementAreaDetector(
-    ), transitions={'aborted': 'DETECT_PLACEMENT_AREA'})
-        smach.Sequence.add('FIND_TABLE_PLANES', FindTablePlanes())
-        smach.Sequence.add('ADD_COLLISION_OBJECTS', AddCollisionObjects())
-        smach.Sequence.add('PLACEMENT_PLACE',
-                            smach_ros.SimpleActionState('place_object', PlaceAction,
-                                                        goal_slots=[
-                                                            'placement_areas', 'grasp_object_bb', 'table_plane_equations', 'table_bbs']),
-                            transitions={'succeeded': 'DETECT_PLACEMENT_AREA',
-                                        'aborted': 'DETECT_PLACEMENT_AREA',
-                                        'preempted': 'DETECT_PLACEMENT_AREA'})
-    return seq
 
 def create_statemachine(enable_userinput=True, do_handover=True):
     seq = smach.Sequence(outcomes=['end'], connector_outcome='succeeded')
@@ -67,11 +21,10 @@ def create_statemachine(enable_userinput=True, do_handover=True):
     table_waypoint = GoToWaypoint(0.25, 0.41, 0)
     shelf_waypoint = GoToWaypoint(x=0.7, y=1.1, phi_degree=90.0)
     with seq:
+        smach.Sequence.add('GO_TO_TABLE', table_waypoint, transitions={'aborted': 'GO_TO_TABLE'})
         smach.Sequence.add('GO_TO_NEUTRAL', GoToNeutral())
-
         smach.Sequence.add('OPEN_GRIPPER', OpenGripper())
 
-        smach.Sequence.add('GO_TO_TABLE', table_waypoint, transitions={'aborted': 'GO_TO_NEUTRAL'})
         if enable_userinput:
             abort_state = 'FIND_GRASP_USERINPUT'
             map = {'f': ['succeeded', 'find grasp point'],
@@ -92,16 +45,16 @@ def create_statemachine(enable_userinput=True, do_handover=True):
                 map), transitions={'retry': 'FIND_GRASP'})
         smach.Sequence.add('FIND_TABLE_PLANES', FindTablePlanes())
 
-        smach.Sequence.add('ADD_COLLISION_OBJECTS', AddCollisionObjects())
+        smach.Sequence.add('ADD_COLLISION_OBJECTS', CollisionEnvironment())
 
         execute_grasp_actionstate = smach_ros.SimpleActionState(
-            'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses', 'grasp_object_name']) 
+            'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses', 'grasp_object_name', 'table_plane_equations'], result_slots=['placement_surface_to_wrist']) 
 
         smach.Sequence.add('EXECUTE_GRASP', execute_grasp_actionstate, transitions={
                            'aborted': 'GO_TO_NEUTRAL', 'preempted': 'GO_TO_NEUTRAL'})
-        smach.Sequence.add('GO_TO_NEUTRAL_AFTER_GRASP', GoToNeutral())
         smach.Sequence.add('RETREAT_AFTER_GRASP', table_waypoint, 
                            transitions={'aborted': 'GO_TO_NEUTRAL'})
+        smach.Sequence.add('GO_TO_NEUTRAL_AFTER_GRASP', GoToNeutral())
 
         if do_handover:
             smach.Sequence.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
@@ -117,26 +70,33 @@ def create_statemachine(enable_userinput=True, do_handover=True):
             #     'arm_flex_joint':-2.6}
             # smach.Sequence.add('MAKE_SASHA_TALL', MoveToJointPositions(make_sasha_tall_joints))
             # smach.Sequence.add('GO_TO_SHELF', shelf_waypoint, transitions={'aborted': 'GO_TO_NEUTRAL'})
+            #TODO save: list of tables with: center point of plane, waypoint for robot and sasha joints for table
+            # then => drive to waypoint and change joints depending on which table the object should be placed on
+            # then detect table plane, use those detected bb to check whether center point is inside bb => if yes => found placement table
+            # then in placement area detector: use base_link as frame_id, transform detected table bb to base_link and align,
+            # then use prealigned object (aligned at timepoint of grasping) => use those x/y/z coordinates for size
+            if enable_userinput:
+                map = {'g': ['succeeded', 'place object']}
+                smach.Sequence.add('PLACE_OBJECT_USER_INPUT', UserInput(
+                    map))
+            smach.Sequence.add('FIND_TABLE_PLANES_PLACEMENT', FindTablePlanes())
             smach.Sequence.add('DETECT_PLACEMENT_AREA', PlacementAreaDetector(
             ), transitions={'aborted': 'GO_TO_NEUTRAL'})
             smach.Sequence.add('PLACEMENT_PLACE',
-                               smach_ros.SimpleActionState('place_object', PlaceAction,
-                                                           goal_slots=[
-                                                               'placement_areas', 'grasp_object_bb']),
-                               transitions={'succeeded': 'FIND_GRASP_USERINPUT',
-                                            'aborted': 'GO_TO_NEUTRAL',
-                                            'preempted': 'GO_TO_NEUTRAL'})
+                            smach_ros.SimpleActionState('place_object', PlaceAction,
+                                                        goal_slots=[
+                                                            'placement_areas', 'table_plane_equations', 'table_bbs', 'placement_surface_to_wrist']),
+                            transitions={'succeeded': 'GO_TO_NEUTRAL',
+                                        'aborted': 'DETECT_PLACEMENT_AREA',
+                                        'preempted': 'DETECT_PLACEMENT_AREA'})
     return seq
-    #TODO placement: first waypoint: z height of table plane + obj height + some cm, with rotation perpendicular to shelf/table plane 
-    # and in negative robot directinon (pointing away from robot) then just move in negative robod dir perpendicular to plane, then place
-    # it down and check force or some shit?
-    # check how orientation of placement area detector looks like
 
 
 if __name__ == '__main__':
     rospy.init_node('sasha_statemachine')
-    # sm = create_statemachine(enable_userinput=True, do_handover=True)
-    sm = test_placement()
+    sm = create_statemachine(enable_userinput=True, do_handover=False)
+    # sm = test_placement()
+
 
     try:
         # Create and start the introspection server

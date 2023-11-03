@@ -15,10 +15,8 @@ from vision_msgs.msg import BoundingBox3D
 class PlacementAreaDetector(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded', 'aborted'], output_keys=[
-                             'placement_areas'], input_keys=['grasp_object_bb'])
-        # read parameter from startup.yaml
+                             'placement_areas'], input_keys=['grasp_object_bb', 'table_bbs'])
         self.global_frame = rospy.get_param("/global_frame")
-        self.placement_sort = rospy.get_param("/placement_sort")
         self.target_point = None
         self.counter = 0
 
