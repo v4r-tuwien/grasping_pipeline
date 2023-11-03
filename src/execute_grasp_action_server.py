@@ -2,122 +2,120 @@
 
 
 import copy
-import rospy
-import actionlib
-
-import moveit_commander
-import sys
-import geometry_msgs.msg
-import tf.transformations
-import tf
-
-
-from grasping_pipeline_msgs.msg import ExecuteGraspAction, ExecuteGraspActionResult
-from hsrb_interface import Robot, geometry
-from v4r_util.tf2 import TF2Wrapper
-from visualization_msgs.msg import Marker
 from math import pi
 import numpy as np
-from libhsrmoveit import LibHSRMoveit
+import rospy
+import actionlib
+import tf.transformations
+import tf
+from v4r_util.tf2 import TF2Wrapper
+from v4r_util.util import align_pose_rotation
+from moveit_wrapper import MoveitWrapper
+from hsr_wrapper import HSR_wrapper
+from geometry_msgs.msg import Pose, PoseStamped, Transform
+from visualization_msgs.msg import Marker
+from grasping_pipeline_msgs.msg import ExecuteGraspAction, ExecuteGraspResult
 
-from placement.msg import *
-from geometry_msgs.msg import Pose
-
-def get_libraries():
-    libtf = TF2Wrapper()
-    rospy.logerr("got tf")
-    libmoveit = LibHSRMoveit(libtf)
-    rospy.logerr("got moveit")
-    libs = {'tf': libtf, 'moveit': libmoveit}
-    return libs
 
 class ExecuteGraspServer:
     def __init__(self):
-        self.lib = get_libraries() 
+        self.tf_wrapper = TF2Wrapper()
+        rospy.loginfo("Execute grasp: Waiting for moveit")
+        self.moveit_wrapper = MoveitWrapper(self.tf_wrapper)
+        rospy.loginfo("Execute grasp: Got Moveit")
+        self.hsr_wrapper = HSR_wrapper()
         
         self.server = actionlib.SimpleActionServer(
             'execute_grasp', ExecuteGraspAction, self.execute, False)
         self.server.start()
-        rospy.logerr("init")
+        rospy.loginfo("Execute grasp: Init")
 
     def execute(self, goal):
-        res = ExecuteGraspActionResult()
-        # self.robot = Robot()
-        # self.whole_body = self.robot.try_get('whole_body')
+        res = ExecuteGraspResult()
         #TODO get original robot pose to reset after succesful grasp or probably just move to waypoint
-        
-        rospy.logerr(goal.grasp_poses)
+        #TODO get dynamically
+        planning_frame = self.moveit_wrapper.get_planning_frame("whole_body")
+        safety_distance = rospy.get_param("/safety_distance", default=0.1)
+
         for grasp_pose in goal.grasp_poses:
             # assumes static scene, i.e robot didn't move since grasp pose was found
             grasp_pose.header.stamp = rospy.Time.now()
-            grasp_pose = self.lib['tf'].transform_pose('odom', grasp_pose)
-            self.add_marker(grasp_pose, 3, 1, 0, 0)
-            rospy.sleep(0.1)
+            grasp_pose = self.tf_wrapper.transform_pose(planning_frame, grasp_pose)
+        
             approach_pose = copy.deepcopy(grasp_pose)
             q = [grasp_pose.pose.orientation.x, grasp_pose.pose.orientation.y,
                  grasp_pose.pose.orientation.z, grasp_pose.pose.orientation.w]
-
             approach_vector = qv_mult(q, [0, 0, -1])
-
-            safety_distance = 0.15
             approach_pose.pose.position.x = approach_pose.pose.position.x + \
                 safety_distance * approach_vector[0] 
             approach_pose.pose.position.y = approach_pose.pose.position.y + \
                 safety_distance * approach_vector[1] 
             approach_pose.pose.position.z = approach_pose.pose.position.z + \
                 safety_distance * approach_vector[2]
+
+            plan_found = self.moveit_wrapper.whole_body_plan_and_go(approach_pose)
+            if not plan_found:
+                rospy.logdebug("Execute grasp: No plan found, Trying next grasp pose")
+                continue
+
+            execution_succesful = self.moveit_wrapper.current_pose_close_to_target(approach_pose)
+            if not execution_succesful:
+                rospy.logdebug("Execute grasp: Execution failed, Trying next grasp pose")
+                continue
             
-            approach_pose2 = copy.deepcopy(approach_pose)
-            approach_pose2.pose.position.x = approach_pose2.pose.position.x - \
-                safety_distance * approach_vector[0] * 0.3
-            approach_pose2.pose.position.y = approach_pose2.pose.position.y - \
-                safety_distance * approach_vector[1] * 0.3
-            approach_pose2.pose.position.z = approach_pose2.pose.position.z - \
-                safety_distance * approach_vector[2] * 0.3
-            self.add_marker(approach_pose2, 1, 0, 1, 0)
-
-            success = self.lib['moveit'].whole_body_plan_and_go([approach_pose, approach_pose2])
-            if not success:
-                self.server.set_aborted()
-                return 
-
-            self.add_marker(grasp_pose, 2, 0, 0, 1)
-            res = self.lib['moveit'].whole_body_IK_cartesian(
-                [grasp_pose.pose.position.x],
-                [grasp_pose.pose.position.y],
-                [grasp_pose.pose.position.z],
-                [grasp_pose.pose.orientation],
-                eef_step = 0.01,
-                fraction_th = 0.3,
-                is_avoid_obstacle = False
-            )
+            self.moveit_wrapper.move_eef_by_line((0, 0, 1), safety_distance)
             rospy.sleep(0.1)
-            self.lib['moveit'].gripper_grasp()
-            #self.lib['moveit'].attach_object(goal.grasp_object_name)
-            rospy.sleep(0.1)
-
-            rospy.logerr(f"{res = } is call res")
-            res = self.lib['moveit'].whole_body_IK_cartesian(
-                [grasp_pose.pose.position.x],
-                [grasp_pose.pose.position.y],
-                [grasp_pose.pose.position.z + 0.05],
-                [grasp_pose.pose.orientation],
-                eef_step = 0.01,
-                fraction_th = 0.3,
-                is_avoid_obstacle = False
-            )
-            if not res:
-                self.server.set_aborted()
                 
+            self.hsr_wrapper.gripper_grasp_hsr(0.3)
+            transform = self.get_transform_from_wrist_to_object_bottom_plane(goal, res, planning_frame)
+            res.placement_surface_to_wrist = transform
+            
+            touch_links = self.moveit_wrapper.get_link_names(group='gripper')
+            self.moveit_wrapper.attach_object(goal.grasp_object_name, touch_links)
 
-            #TODO if all res succesful than do this and report success
-            
-            #TODO attach object
-            # self.lib['moveit'].add_box()
-            #TODO detach object
-            #TODO remove those shitty lib dicts to get actual hints for coding
-            
-        self.server.set_succeeded(res)
+            self.moveit_wrapper.move_eef_by_line((0, 0, 1), -safety_distance)
+
+            self.hsr_wrapper.gripper_grasp_hsr(0.5)
+            if not self.moveit_wrapper.grasp_succesful():
+                rospy.logdebug("Execute grasp: Grasp failed, Trying next grasp pose")
+                self.moveit_wrapper.detach_all_objects()
+                self.hsr_wrapper.gripper_open_hsr()
+                continue
+
+            self.server.set_succeeded(res)
+            return
+        
+        rospy.logerr("Grasping failed")
+        self.server.set_aborted(res)
+
+    def get_transform_from_wrist_to_object_bottom_plane(self, goal, planning_frame):
+        object_poses = self.moveit_wrapper.get_object_poses([goal.grasp_object_name])
+        object_pose = object_poses[goal.grasp_object_name]
+        object_pose_st = PoseStamped(pose=object_pose)
+        object_pose_st.header.frame_id = planning_frame
+        object_pose_st.header.stamp = rospy.Time.now()
+        
+        plane_equation = goal.table_plane_equations[0]
+        object_pose_table_frame = self.tf_wrapper.transform_pose(plane_equation.header.frame_id, object_pose_st)
+        self.tf_wrapper.send_transform(object_pose_table_frame.header.frame_id, 'object_center', object_pose_table_frame.pose)
+
+        object_center_to_table_distance = abs(plane_equation.x * object_pose_table_frame.pose.position.x + 
+                                                  plane_equation.y * object_pose_table_frame.pose.position.y + 
+                                                  plane_equation.z * object_pose_table_frame.pose.position.z + 
+                                                  plane_equation.d) / np.sqrt(plane_equation.x ** 2 + plane_equation.y ** 2 + plane_equation.z ** 2)
+        
+        object_bottom_surface_center = copy.deepcopy(object_pose_table_frame)
+        object_bottom_surface_center.pose.position.z = object_bottom_surface_center.pose.position.z - object_center_to_table_distance * plane_equation.z
+        object_bottom_surface_center.pose.position.x = object_bottom_surface_center.pose.position.x - object_center_to_table_distance * plane_equation.x
+        object_bottom_surface_center.pose.position.y = object_bottom_surface_center.pose.position.y - object_center_to_table_distance * plane_equation.y
+        
+        # Align BB axes to the robot base frame axes, so that BB z consistently points in the same direction as the robot base frame z
+        object_bottom_surface_base_frame = self.tf_wrapper.transform_pose('base_link', object_bottom_surface_center)
+        object_bottom_surface_base_frame_aligned = align_pose_rotation(object_bottom_surface_base_frame.pose)
+        object_bottom_surface_base_frame.pose = object_bottom_surface_base_frame_aligned
+        
+        transform = self.tf_wrapper.transform_pose('hand_palm_link', object_bottom_surface_base_frame)
+        transform = Transform(rotation = transform.pose.orientation, translation = transform.pose.position)
         
 
     def add_marker(self, pose_goal, id=0, r=0, g=1, b=0):
