@@ -37,7 +37,7 @@ class PoseEstimationVisualizerRos(PoseEstimationVisualizer):
         self.meshes = self.load_meshes(model_dir)
         rospy.loginfo(f'PoseEstimVis: Loaded {len(self.meshes)} meshes')
 
-        self.image_pub = rospy.Publisher(topic, Image, queue_size=10)
+        self.image_pub = rospy.Publisher(topic, Image, queue_size=10, latch=True)
         if expose_service:
             rospy.loginfo(f'PoseEstimVis: Exposing service {service_name}')
             assert service_name is not None
@@ -56,11 +56,10 @@ class PoseEstimationVisualizerRos(PoseEstimationVisualizer):
         '''
         rospy.loginfo("PoseEstimVis: Received service call")
         # renderer needs to be initialized in the same thread that executes the callback
-        # else we get some threading related cpp exceptions
-        if not self.renderer_initialized:
-            rospy.loginfo("PoseEstimVis: Initializing renderer")
-            super().__init__(image_width, image_height, intrinsics_matrix)
-            self.renderer_initialized = True
+        # else we get some threading related cpp exceptions => most robust way to do it atm
+        rospy.loginfo("PoseEstimVis: Initializing renderer")
+        super().__init__(image_width, image_height, intrinsics_matrix)
+
         meshes = []
         for name in req.model_names:
             mesh = self.meshes.get(name, None)
@@ -69,13 +68,19 @@ class PoseEstimationVisualizerRos(PoseEstimationVisualizer):
                 continue
             meshes.append(copy.deepcopy(mesh))
 
-        self.publish_pose_estimation_result(
-            req.rgb_image, 
-            req.model_poses, 
-            meshes, 
-            req.model_names
-            )
+        try:
+            self.publish_pose_estimation_result(
+                req.rgb_image, 
+                req.model_poses, 
+                meshes, 
+                req.model_names
+                )
+        except Exception as e:
+            print(f"AAAH: {e}")
         rospy.loginfo("PoseEstimVis: service call finished")
+
+        # Delete renderer so that it properly cleans itself and is ready to get initialized next time
+        del self.renderer 
         return VisualizePoseEstimationResponse()
     
     def publish_pose_estimation_result(self, ros_image, ros_model_poses, model_meshes, model_names):
