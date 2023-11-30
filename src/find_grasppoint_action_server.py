@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 import sys
+import os
 from copy import deepcopy
 import numpy as np
 import yaml
@@ -15,7 +16,7 @@ import actionlib
 import rospy
 from grasping_pipeline_msgs.msg import (FindGrasppointAction,
                                    FindGrasppointResult)
-from hsrb_interface import Robot
+from object_detector_msgs.srv import VisualizePoseEstimationRequest, VisualizePoseEstimation
 from tf.transformations import (quaternion_about_axis, quaternion_from_matrix,
                                 quaternion_multiply)
 from tf_conversions import posemath
@@ -27,12 +28,12 @@ from geometry_msgs.msg import Pose, Point, Quaternion
 from grasp_checker import check_grasp_hsr
 from v4r_util.util import get_minimum_oriented_bounding_box, o3d_bb_to_ros_bb_stamped, create_ros_bb_stamped
 
-
 class FindGrasppointServer:
     #TODO add central visualization
     
-    def __init__(self, models_metadata):
-        self.models_metadata = models_metadata
+    def __init__(self, model_dir):
+        with open(os.path.join(model_dir, "models_metadata.yml")) as f:
+            self.models_metadata = yaml.load(f, Loader=SafeLoader)
 
         self.server = actionlib.SimpleActionServer(
             'find_grasppoint', FindGrasppointAction, self.execute, False)
@@ -45,11 +46,13 @@ class FindGrasppointServer:
         rospy.logdebug('Waiting for camera info')
         self.cam_info = rospy.wait_for_message(rospy.get_param('/cam_info_topic'), CameraInfo)
         
-        self.timeout = rospy.get_param('/detector_pose_estimator/timeout_duration')
-        self.detector_pose_estimator = self.__setup_detector(rospy.get_param('/detector_pose_estimator/detector_topic'), self.timeout)
+        self.timeout = rospy.get_param('/pose_estimator/timeout_duration')
+        self.pose_estimator = self.__setup_estimator(rospy.get_param('/pose_estimator/detector_topic'), self.timeout)
+        res_vis_service_name = rospy.get_param('/pose_estimator/result_visualization_service_name')
+        self.res_vis_service = rospy.ServiceProxy(res_vis_service_name, VisualizePoseEstimation)
 
         self.unknown_object_grasp_detector = None
-        unknown_object_grasp_detector_topic = rospy.get_param('/detector_pose_estimator/unknown_object_grasp_detector_topic', None)
+        unknown_object_grasp_detector_topic = rospy.get_param('/pose_estimator/unknown_object_grasp_detector_topic', None)
         if unknown_object_grasp_detector_topic is not None:
             self.unknown_object_grasp_detector = self.__setup_unknown_object_grasp_detector(unknown_object_grasp_detector_topic, self.timeout)
         
@@ -62,15 +65,15 @@ class FindGrasppointServer:
         image_sub.registerCallback(self.image_callback)
         return image_sub
     
-    def __setup_detector(self, detector_topic, timeout):
-        rospy.loginfo('Waiting for detector_pose_estimator actionserver')
-        detector_pose_estimator = actionlib.SimpleActionClient(
-            detector_topic, 
+    def __setup_estimator(self, topic, timeout):
+        rospy.loginfo('Waiting for pose_estimator actionserver')
+        pose_estimator = actionlib.SimpleActionClient(
+            topic, 
             GenericImgProcAnnotatorAction)
-        if not detector_pose_estimator.wait_for_server(timeout=rospy.Duration(timeout)):
-            rospy.logerr(f'Connection to detector_pose_estimator \'{detector_topic}\' timed out!')
+        if not pose_estimator.wait_for_server(timeout=rospy.Duration(timeout)):
+            rospy.logerr(f'Connection to pose_estimator \'{topic}\' timed out!')
             raise TimeoutError
-        return detector_pose_estimator
+        return pose_estimator
     
     def __setup_unknown_object_grasp_detector(self, topic, timeout):
         rospy.loginfo('Waiting for unknown object grasp_detector')
@@ -81,7 +84,7 @@ class FindGrasppointServer:
             rospy.logerr(f'Connection to unknown_object_grasp_detector \'{topic}\' timed out!')
             raise TimeoutError
         return unknown_object_grasp_detector
-
+        
     def execute(self, goal):
         while self.depth is None: 
             rospy.loginfo('Waiting for images')  
@@ -90,6 +93,11 @@ class FindGrasppointServer:
         depth = self.depth
         estimator_goal = GenericImgProcAnnotatorGoal(rgb = rgb, depth = depth)
         estimator_result = self.get_estimator_result(estimator_goal)
+        self.visualize_pose_estimation_result(
+            rgb, 
+            estimator_result.pose_results, 
+            estimator_result.class_names
+        )
 
         try:
             rospy.logdebug('Performing consistency checks')
@@ -210,7 +218,7 @@ class FindGrasppointServer:
         return grasp_poses_stamped
 
     def get_closest_object(self, estimator_result):
-        conf_threshold = float(rospy.get_param('/detector_pose_estimator/class_confidence_threshold'))
+        conf_threshold = float(rospy.get_param('/pose_estimator/class_confidence_threshold'))
 
         min_dist_squared = float("inf")
         cl_conf = estimator_result.class_confidences
@@ -256,14 +264,14 @@ class FindGrasppointServer:
     
     def get_estimator_result(self, estimator_goal):
         rospy.logdebug('Sending goal to estimator')
-        self.detector_pose_estimator.send_goal(estimator_goal)
+        self.pose_estimator.send_goal(estimator_goal)
 
         rospy.logdebug('Waiting for estimator results')
-        goal_finished = self.detector_pose_estimator.wait_for_result(rospy.Duration(self.timeout))
+        goal_finished = self.pose_estimator.wait_for_result(rospy.Duration(self.timeout))
         if not goal_finished:
             rospy.logerr('Estimator didn\'t return results before timing out!')
             raise TimeoutError
-        estimator_result = self.detector_pose_estimator.get_result()
+        estimator_result = self.pose_estimator.get_result()
         rospy.loginfo(f'Detector detected {len(estimator_result.pose_results)} potential object poses.')
 
         return estimator_result
@@ -271,10 +279,10 @@ class FindGrasppointServer:
     def perform_estimator_results_consistency_checks(self, estimator_result):
         consistent = True
         if len(estimator_result.pose_results) < 1:
-            rospy.logerr('Detector_pose_estimator did not pass any poses!')
+            rospy.logerr('pose_estimator did not pass any poses!')
             consistent = False
         if len(estimator_result.class_names) < 1:
-            rospy.logerr('Detector_pose_estimator did not pass any model names!')
+            rospy.logerr('pose_estimator did not pass any model names!')
             consistent = False
         if len(estimator_result.pose_results) != len(estimator_result.class_names):
             rospy.logerr(f'Mismatch between list sizes: {len(estimator_result.pose_results) = },' +
@@ -333,7 +341,7 @@ class FindGrasppointServer:
     def image_callback(self, depth, rgb):
         self.depth = depth
         self.rgb = rgb
-
+        
     def add_marker(self, pose_goal):
         """ publishes a grasp marker to /grasping_pipeline/grasp_marker
 
@@ -391,13 +399,18 @@ class FindGrasppointServer:
         marker.color.b = 1.0
         self.marker_pub.publish(marker)
 
+    def visualize_pose_estimation_result(self, rgb, model_poses, model_names):
+        request = VisualizePoseEstimationRequest()
+        request.rgb_image = rgb
+        request.model_poses = model_poses
+        request.model_names = model_names
+        self.res_vis_service(request)
 
 if __name__ == '__main__':
     rospy.init_node('find_grasppoint_server')
     if len(sys.argv) < 2:
-        rospy.logerr('No models metadata file was specified!')
+        rospy.logerr('No model dir was specified!')
         sys.exit(-1)
-    with open(sys.argv[1]) as f:
-        models_metadata = yaml.load(f, Loader=SafeLoader)
-    server = FindGrasppointServer(models_metadata)
+    model_dir = sys.argv[1]
+    server = FindGrasppointServer(model_dir)
     rospy.spin()
