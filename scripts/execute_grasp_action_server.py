@@ -19,7 +19,7 @@ from math import pi
 import numpy as np
 
 from table_plane_extractor.srv import TablePlaneExtractor
-from table_plane_extractor.msg import Plane
+from object_detector_msgs.msg import Plane
 from v4r_util.util import ros_bb_to_o3d_bb
 import open3d as o3d
 from open3d_ros_helper import open3d_ros_helper as orh

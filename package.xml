@@ -16,6 +16,7 @@
   <depend>sensor_msgs</depend>
   <depend>vision_msgs</depend>
   <depend>table_plane_extractor</depend>
+  <depend>object_detector_msgs</depend>
   <depend>handover</depend>
   <depend>placement</depend>
   <depend>v4r_util</depend>
