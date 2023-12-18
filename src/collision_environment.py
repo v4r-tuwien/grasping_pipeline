@@ -22,10 +22,7 @@ class CollisionEnvironment(smach.State):
     
     def add_floor_plane(self):
         # Add floor plane to filter weird octomap points in floor that prevent the robot from moving because of 'collisions' with the floor
-        p = PoseStamped()
-        p.header.frame_id = 'base_link'
-        p.header.stamp = rospy.Time.now()
-        base_pose = self.tf_wrapper.transform_pose('map', p)
+        base_pose = self.moveit_wrapper.get_current_pose('map')
 
         pos = base_pose.pose.position
         ori = base_pose.pose.orientation
@@ -39,6 +36,7 @@ class CollisionEnvironment(smach.State):
         size = [15, 15, 0.1]
 
         self.moveit_wrapper.add_box('floor', 'map', floor.center, size)
+        #TODO octomap clear afterwards to properly handle floor
 
     def execute(self, userdata):
         grasp_obj_bb = userdata.grasp_object_bb

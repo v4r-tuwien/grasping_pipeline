@@ -453,3 +453,18 @@ class MoveitWrapper:
     
     def set_endeffector(self, eef):
         self.whole_body.set_end_effector_link(eef)
+    
+    def get_current_pose(self, frame):
+        """
+        Returns the current pose of the robot base in the specified frame
+
+        frame: str, frame to transform to
+        Returns: geometry_msgs/PoseStamped 
+        """
+        p = PoseStamped()
+        p.header.frame_id = 'base_link'
+        p.header.stamp = rospy.Time.now()
+        base_pose = self.lib['tf'].transform_pose(frame, p)
+        return base_pose
+
+        
