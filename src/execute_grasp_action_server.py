@@ -9,7 +9,8 @@ import actionlib
 import tf.transformations
 import tf
 from v4r_util.tf2 import TF2Wrapper
-from v4r_util.util import align_pose_rotation
+from v4r_util.util import align_pose_rotation, get_best_aligning_axis, Axis, rotmat_around_axis
+from v4r_util.conversions import ros_pose_to_np_transform, np_transform_to_ros_pose
 from moveit_wrapper import MoveitWrapper
 from hsr_wrapper import HSR_wrapper
 from geometry_msgs.msg import Pose, PoseStamped, Transform
@@ -32,8 +33,6 @@ class ExecuteGraspServer:
 
     def execute(self, goal):
         res = ExecuteGraspResult()
-        #TODO get original robot pose to reset after succesful grasp or probably just move to waypoint
-        #TODO get dynamically
         planning_frame = self.moveit_wrapper.get_planning_frame("whole_body")
         safety_distance = rospy.get_param("/safety_distance", default=0.1)
 
@@ -115,6 +114,28 @@ class ExecuteGraspServer:
         object_bottom_surface_base_frame = self.tf_wrapper.transform_pose('base_link', object_bottom_surface_center)
         object_bottom_surface_base_frame_aligned = align_pose_rotation(object_bottom_surface_base_frame.pose)
         object_bottom_surface_base_frame.pose = object_bottom_surface_base_frame_aligned
+        
+        axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        axis_names = [Axis.X, Axis.Y, Axis.Z]
+        gripper_axes = [[], [], []]
+        obj_axes = [[], [], []]
+        obj_transform = ros_pose_to_np_transform(object_bottom_surface_base_frame.pose)
+        for axis, axis_name in zip(axes, axis_names):
+            gripper_axis = self.tf_wrapper.transform_3d_array('hand_palm_link', 'base_link', axis)
+            gripper_axis = gripper_axis / np.linalg.norm(gripper_axis)
+            gripper_axes[axis_name] = gripper_axis
+            obj_axis = obj_transform[:3, :3] @ np.array(axis)
+            obj_axis = obj_axis / np.linalg.norm(obj_axis)
+            obj_axes[axis_name] = obj_axis
+        axis_name, is_anti_parallel = get_best_aligning_axis(gripper_axes[Axis.Z], obj_axes)
+        if axis_name == Axis.Y:
+            rotation_axis = obj_axes[Axis.Z]
+            rotation_angle = np.pi/2 * (-1 if is_anti_parallel else 1)
+            print(f"Rotating around {rotation_axis} by {rotation_angle} radians")
+            rot_mat = rotmat_around_axis(rotation_axis, rotation_angle)
+            print(f"Rot mat: {rot_mat}")
+            obj_transform[:3, :3] = rot_mat @ obj_transform[:3, :3]
+            object_bottom_surface_base_frame.pose = np_transform_to_ros_pose(obj_transform)    
         
         transform = self.tf_wrapper.transform_pose('hand_palm_link', object_bottom_surface_base_frame)
         transform = Transform(rotation = transform.pose.orientation, translation = transform.pose.position)
