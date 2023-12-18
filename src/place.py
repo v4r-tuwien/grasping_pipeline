@@ -25,7 +25,7 @@ class PlaceObjectServer():
         self.server = actionlib.SimpleActionServer(
             'place_object', PlaceAction, self.execute, False)
         self.server.start()
-        rospy.logerr("init")
+        rospy.loginfo("Init Placement")
     
     def transform_plane_normal(self, table_equation, target_frame, stamp):
         header = Header()
@@ -44,6 +44,24 @@ class PlaceObjectServer():
         rospy.logerr("execute")
         res = PlaceActionResult()
         base_frame = 'base_link'
+        eef_frame = 'hand_palm_link'
+        placement_area_det_frame = 'map'
+
+        distances = []
+        for placement_area in goal.placement_areas:
+            base_pose_map = self.moveit.get_current_pose(placement_area_det_frame)
+            base_pose_np = np.array([base_pose_map.pose.position.x, base_pose_map.pose.position.y])
+            placement_area_np = np.array([
+                placement_area.center.position.x, 
+                placement_area.center.position.y])
+            dist_to_placement_area = np.linalg.norm(base_pose_np - placement_area_np)
+            distances.append(dist_to_placement_area)
+        sorted_placement_areas = [
+            placement_area 
+            for _, placement_area 
+            in sorted(zip(distances, goal.placement_areas), key=lambda pair: pair[0], reverse=True)
+            ]
+        
         # list is sorted by number of inliers, so the first BB is most likely the table plane
         table_bb = goal.table_bbs.boxes[0]
         table_bb_stamped = bounding_box_to_bounding_box_stamped(table_bb, goal.table_bbs.header.frame_id, rospy.Time.now())
@@ -58,12 +76,22 @@ class PlaceObjectServer():
         
         quat = rot_mat_to_quat(deepcopy(aligned_table_bb.R))
         
-        for i, placement_area in enumerate(goal.placement_areas):
+        object_placement_surface_pose = goal.placement_surface_to_wrist
+        transform = np.eye(4)
+        transform[:3, :3] = quat_to_rot_mat(object_placement_surface_pose.rotation)
+        transform[:3, 3] = [
+            object_placement_surface_pose.translation.x, 
+            object_placement_surface_pose.translation.y, 
+            object_placement_surface_pose.translation.z]
+        surface_to_wrist = np.linalg.inv(transform)
+        
+
+        for i, placement_area in enumerate(sorted_placement_areas):
             if i == 4:
                 break
             # TODO frame might be wrong if we change method of obtaining placement area from clicking to loading from file
             # unless it is also saved relative to map, which would make sense
-            header = Header(stamp=rospy.Time.now(), frame_id= 'map')
+            header = Header(stamp=rospy.Time.now(), frame_id= placement_area_det_frame)
             placement_point = PoseStamped(header=header, pose=placement_area.center)
             placement_point = self.tf2_wrapper.transform_pose(base_frame, placement_point)
             placement_point.pose.orientation = quat
@@ -73,33 +101,26 @@ class PlaceObjectServer():
 
             safety_distance = 0.03 + i/100
             waypoints = []
-            #TODO get transform from objet surface to hand palm (inverse from the pose we get passed);
-            # then use this transform the placement point => should be correct waypoint => then add some offset in plane normal direction
-            object_placement_surface_pose = goal.placement_surface_to_wrist
-            transform = np.eye(4)
-            transform[:3, :3] = quat_to_rot_mat(object_placement_surface_pose.rotation)
-            transform[:3, 3] = [
-                object_placement_surface_pose.translation.x, 
-                object_placement_surface_pose.translation.y, 
-                object_placement_surface_pose.translation.z]
-            surface_to_wrist = np.linalg.inv(transform)
+
             placement_point_rot_mat = quat_to_rot_mat(placement_point.pose.orientation)
             placement_point_transl = np.array([placement_point.pose.position.x, placement_point.pose.position.y, placement_point.pose.position.z])
             placement_point_transform = np.eye(4)
             placement_point_transform[:3, :3] = placement_point_rot_mat
             placement_point_transform[:3, 3] = placement_point_transl
+            #TODO check if hand_palm_point rotation is in x dir or y dir -> use the one that show in -x dir
             hand_palm_point = placement_point_transform @ surface_to_wrist
             hand_palm_point_ros = PoseStamped(header=placement_point.header, pose=np_transform_to_ros_pose(hand_palm_point))
             
             placement_point = hand_palm_point_ros
             self.add_marker(placement_point, 5000002, 0, 1, 0)
             
+            plane_normal_eef_frame = self.transform_plane_normal(table_equation, 'hand_palm_link', rospy.Time.now())
             placement_point.pose.position.x = placement_point.pose.position.x + \
-                safety_distance * plane_normal[0]
+                safety_distance * plane_normal_eef_frame[0]
             placement_point.pose.position.y = placement_point.pose.position.y + \
-                safety_distance * plane_normal[1]
+                safety_distance * plane_normal_eef_frame[1]
             placement_point.pose.position.z = placement_point.pose.position.z + \
-                safety_distance * plane_normal[2]
+                safety_distance * plane_normal_eef_frame[2]
             waypoints.append(deepcopy(placement_point))
             self.add_marker(placement_point, 5000001, 1, 0, 0)
 
@@ -126,13 +147,13 @@ class PlaceObjectServer():
             plane_normal_eef_frame = self.transform_plane_normal(table_equation, 'hand_palm_link', rospy.Time.now())
             self.hsr_wrapper.move_eef_by_line((-plane_normal_eef_frame[0], -plane_normal_eef_frame[1], -plane_normal_eef_frame[2]), safety_distance)
 
-            #TODO maybe check whether force/object touches plane instead
             if True:
                 self.hsr_wrapper.gripper_open_hsr()
-                self.moveit.detach_all_objects()
                 break
             
-        #TODO detach object when resetting or when placed
+        #TODO detach object when resetting or when placed: check whether that makes sense
+        self.moveit.detach_all_objects()
+        #TODO add arm movement in plane normal so that robot doesnt kill item when retreating
         if res:
             rospy.loginfo("Placement: Placement successful")
             self.server.set_succeeded(res)
