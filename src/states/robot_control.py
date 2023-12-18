@@ -22,9 +22,16 @@ class GoToNeutral(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state GoToNeutral')
-        self.whole_body.move_to_neutral()
-        self.whole_body.move_to_joint_positions({'arm_roll_joint': pi / 2})
-        self.whole_body.gaze_point((0.8, 0.05, 0.4))
+        joint_positions = {
+            'arm_flex_joint': 0, 
+            'arm_lift_joint': 0, 
+            'arm_roll_joint': pi/2, 
+            'head_pan_joint': 0, 
+            'head_tilt_joint': -0.675, 
+            'wrist_flex_joint': -pi/2, 
+            'wrist_roll_joint': 0
+            }
+        self.whole_body.move_to_joint_positions(joint_positions)
         return 'succeeded'
 
 class MoveToJointPositions(smach.State):
@@ -90,7 +97,7 @@ class OpenGripper(smach.State):
         return 'succeeded'
 
 class GoToWaypoint(smach.State):
-    def __init__(self, x, y, phi_degree, frame_id='map', timeout=15.0):
+    def __init__(self, x, y, phi_degree, frame_id='map', timeout=30.0):
         '''
         x, y, phi_degree: target pose
         frame_id: frame_id of the target pose
@@ -133,6 +140,7 @@ class GoToWaypoint(smach.State):
                 return 'succeeded'
             else:
                 rospy.logerr("Move server execution timed out!")
+                self.move_client.cancel_all_goals()
                 return 'aborted'
         else:
             rospy.logerr("Could not connect to move server!")
