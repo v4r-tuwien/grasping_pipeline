@@ -30,7 +30,7 @@ def create_statemachine(enable_userinput=True, do_handover=True):
             map = {'f': ['succeeded', 'find grasp point'],
                    'r': ['reset', 'reset state machine']}
             smach.Sequence.add('FIND_GRASP_USERINPUT', UserInput(
-                map), transitions={'reset': 'GO_TO_NEUTRAL'})
+                map), transitions={'reset': 'GO_TO_TABLE'})
         else:
             abort_state = 'FIND_GRASP'
 

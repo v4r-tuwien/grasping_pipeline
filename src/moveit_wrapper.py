@@ -419,9 +419,15 @@ class MoveitWrapper:
             return True
         return False
     
+    def get_objects(self, object_names = []):
+        return self.scene.get_objects(object_names)
+    
     def get_object_poses(self, object_names):
         return self.scene.get_object_poses(object_names)
-    
+
+    def get_attached_objects(self, object_names = []):
+        return self.scene.get_attached_objects(object_names)
+
     def get_planning_frame(self, group="whole_body"):
         if group == "whole_body":
             return self.whole_body.get_planning_frame()

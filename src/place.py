@@ -48,8 +48,9 @@ class PlaceObjectServer():
         placement_area_det_frame = 'map'
 
         distances = []
+        base_pose_map = self.moveit.get_current_pose(placement_area_det_frame)
+        rospy.logerr(f"base_pose_map: {base_pose_map}")
         for placement_area in goal.placement_areas:
-            base_pose_map = self.moveit.get_current_pose(placement_area_det_frame)
             base_pose_np = np.array([base_pose_map.pose.position.x, base_pose_map.pose.position.y])
             placement_area_np = np.array([
                 placement_area.center.position.x, 
@@ -67,6 +68,7 @@ class PlaceObjectServer():
         table_bb_stamped = bounding_box_to_bounding_box_stamped(table_bb, goal.table_bbs.header.frame_id, rospy.Time.now())
         table_bb_stamped = self.tf2_wrapper.transform_bounding_box(table_bb_stamped, base_frame)
         self.moveit.add_box('placement_table', goal.table_bbs.header.frame_id, table_bb.center, vector3_to_list(table_bb.size))
+        rospy.logerr(f"{table_bb = }")
 
         table_equation = goal.table_plane_equations[0]
         plane_normal = np.array([table_equation.x, table_equation.y, table_equation.z])
@@ -76,7 +78,14 @@ class PlaceObjectServer():
         
         quat = rot_mat_to_quat(deepcopy(aligned_table_bb.R))
         
+        object_poses = self.moveit.get_object_poses(['object'])
+        rospy.logerr(f"{object_poses = }")
+        objects = self.moveit.get_objects()
+        rospy.logerr(f"{objects = }")
+        att_objects = self.moveit.get_attached_objects()
+        rospy.logerr(f"{att_objects = }")
         object_placement_surface_pose = goal.placement_surface_to_wrist
+        rospy.logerr(f"prob wrist to surface: {goal.placement_surface_to_wrist}")
         transform = np.eye(4)
         transform[:3, :3] = quat_to_rot_mat(object_placement_surface_pose.rotation)
         transform[:3, 3] = [
@@ -87,8 +96,6 @@ class PlaceObjectServer():
         
 
         for i, placement_area in enumerate(sorted_placement_areas):
-            if i == 4:
-                break
             # TODO frame might be wrong if we change method of obtaining placement area from clicking to loading from file
             # unless it is also saved relative to map, which would make sense
             header = Header(stamp=rospy.Time.now(), frame_id= placement_area_det_frame)
@@ -99,7 +106,7 @@ class PlaceObjectServer():
             
             rospy.sleep(0.2)
 
-            safety_distance = 0.03 + i/100
+            safety_distance = min(0.01 + i/100, 0.06)
             waypoints = []
 
             placement_point_rot_mat = quat_to_rot_mat(placement_point.pose.orientation)
