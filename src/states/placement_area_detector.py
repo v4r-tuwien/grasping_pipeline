@@ -4,12 +4,15 @@ import open3d as o3d
 import smach
 import tf
 from hsrb_interface import Robot
-from v4r_util.util import transform_bounding_box, transform_pose
+from v4r_util.util import transform_bounding_box_w_transform, transform_pose, align_bounding_box_rotation
+from v4r_util.util import ros_bb_to_o3d_bb, o3d_bb_to_ros_bb
 from geometry_msgs.msg import Pose, Vector3, Point, PointStamped
 from tmc_geometric_shapes_msgs.msg import Shape
 from tmc_placement_area_detector.srv import DetectPlacementArea
 from visualization_msgs.msg import Marker, MarkerArray
 from vision_msgs.msg import BoundingBox3D
+from v4r_util.tf2 import TF2Wrapper
+from geometry_msgs.msg import Transform
 
 
 class PlacementAreaDetector(smach.State):
@@ -19,6 +22,7 @@ class PlacementAreaDetector(smach.State):
         self.global_frame = rospy.get_param("/global_frame")
         self.target_point = None
         self.counter = 0
+        self.tf = TF2Wrapper()
 
     def clicked_point_cb(self, data):
         self.target_point = data
@@ -38,11 +42,8 @@ class PlacementAreaDetector(smach.State):
     # surface_range: I ran valuse from 1E22 to 1E-22, always same behaviour unless range was zero, then it did nothing
 
     def execute(self, userdata):
-        bb_frame = userdata.grasp_object_bb.header.frame_id
-        grasp_obj_bb = BoundingBox3D(center = userdata.grasp_object_bb.center, size = userdata.grasp_object_bb.size)
-        grasp_obj_bb = transform_bounding_box(
-            grasp_obj_bb, bb_frame, self.global_frame)
-
+        
+        
         while True:
             rospy.Subscriber('clicked_point', PointStamped, self.clicked_point_cb)
             while not rospy.is_shutdown():
@@ -62,7 +63,7 @@ class PlacementAreaDetector(smach.State):
             box_filter_range = Vector3()
             box_filter_range.x = 0.2
             box_filter_range.y = 0.2
-            box_filter_range.z = 0.2
+            box_filter_range.z = 0.1
 
             vertical_axis = Vector3()
             vertical_axis.x = 0.0
@@ -72,11 +73,6 @@ class PlacementAreaDetector(smach.State):
             tilt_threshold = np.pi * 60/180
             distance_threshold = 0.03
 
-            obj_dim_x = grasp_obj_bb.size.x
-            obj_dim_y = grasp_obj_bb.size.y
-            obj_dim_z = grasp_obj_bb.size.z
-            
-            rospy.logerr(f"{obj_dim_x = }, {obj_dim_y = }, {obj_dim_z = }")
             obj_dim_x = 0.1
             obj_dim_y = 0.1
             obj_dim_z = 0.1

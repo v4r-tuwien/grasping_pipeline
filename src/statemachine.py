@@ -80,15 +80,13 @@ def create_statemachine(enable_userinput=True, do_handover=True):
                 smach.Sequence.add('PLACE_OBJECT_USER_INPUT', UserInput(
                     map))
             smach.Sequence.add('FIND_TABLE_PLANES_PLACEMENT', FindTablePlanes())
-            smach.Sequence.add('DETECT_PLACEMENT_AREA', PlacementAreaDetector(
-            ), transitions={'aborted': 'GO_TO_NEUTRAL'})
             smach.Sequence.add('PLACEMENT_PLACE',
                             smach_ros.SimpleActionState('place_object', PlaceAction,
                                                         goal_slots=[
-                                                            'placement_areas', 'table_plane_equations', 'table_bbs', 'placement_surface_to_wrist']),
+                                                            'table_plane_equations', 'table_bbs', 'placement_surface_to_wrist']),
                             transitions={'succeeded': 'GO_TO_NEUTRAL',
-                                        'aborted': 'DETECT_PLACEMENT_AREA',
-                                        'preempted': 'DETECT_PLACEMENT_AREA'})
+                                        'aborted': 'PLACE_OBJECT_USER_INPUT',
+                                        'preempted': 'PLACE_OBJECT_USER_INPUT'})
     return seq
 
 
