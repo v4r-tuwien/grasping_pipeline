@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-
+ 
+    <arg name="use_llm_state_machine" default="false"/>
     <!-- Load parameters -->
     <rosparam command="load" ns="" file="$(find grasping_pipeline)/config/config.yaml"/>
     <rosparam command="load" ns="" file="$(find grasping_pipeline)/config/placement_areas.yaml"/>
@@ -10,7 +11,12 @@
     <node name="table_plane_extractor_server" pkg="table_plane_extractor" type="table_plane_extractor_srv.py"/>
     <node name="execute_grasp_server" pkg="grasping_pipeline" type="execute_grasp_action_server.py" output="screen"/>
     <node name="handover_server" pkg="handover" type="handover_server.py"/>
-    <node name="grasping_statemachine" pkg="grasping_pipeline" type="statemachine.py"  output="screen"/>
+    <group if="$(arg use_llm_state_machine)">
+        <node name="grasping_statemachine_llm" pkg="grasping_pipeline" type="statemachine_llm.py"  output="screen"/>
+    </group>
+    <group unless="$(arg use_llm_state_machine)">
+        <node name="grasping_statemachine" pkg="grasping_pipeline" type="statemachine.py"  output="screen"/>
+    </group>
     <node name="placement" pkg="grasping_pipeline" type="place.py"  output="screen"/>
     <node name="pose_estimation_vis" pkg="grasping_pipeline" type="visualizer.py" args= "$(find grasping_pipeline)/models/" output="screen"/>
 </launch>
