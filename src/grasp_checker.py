@@ -204,7 +204,8 @@ def get_tf_transform(origin_frame, target_frame):
             trans = tfBuffer.lookup_transform(
                 origin_frame, target_frame, rospy.Time(0))
             tf_found = True
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            rospy.logerr(e)
             rospy.sleep(0.2)
     return trans
 

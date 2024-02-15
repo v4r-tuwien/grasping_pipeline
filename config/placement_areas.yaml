@@ -1,0 +1,29 @@
+placement_planes:
+  metadata:
+    frame_id: 'map'
+  planes:
+    shelf_compartment1:
+      waypoint: [1.03, 1.17, 90] # [x, y, yaw in degrees]
+      placement_area:
+        center: [0.965, 1.951, 0.45]
+        size: [0.7, 0.2, 0.15]
+    shelf_compartment2:
+      waypoint: [0.449, 0.93, 55] # [x, y, yaw in degrees]
+      placement_area:
+        center: [0.965, 1.951, 0.72]
+        size: [0.7, 0.2, 0.15]
+
+#TODO add fallback plane and fallback handling
+placement_objects:
+  002_master_chef_can: 'shelf_compartment1'
+  003_cracker_box: 'shelf_compartment1'
+  006_mustard_bottle: 'shelf_compartment1'
+  009_gelatin_box: 'shelf_compartment1'
+  010_potted_meat_can: 'shelf_compartment1'
+  011_banana: 'shelf_compartment1'
+  021_bleach_cleanser: 'shelf_compartment1'
+  024_bowl: 'shelf_compartment1'
+  025_mug: 'shelf_compartment1'
+  035_power_drill: 'shelf_compartment1'
+  061_foam_brick: 'shelf_compartment1'
+  Unknown: 'shelf_compartment1'

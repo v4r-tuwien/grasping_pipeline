@@ -57,10 +57,14 @@ class PlaceObjectServer():
         marker.type = Marker.CUBE
         marker.action = Marker.ADD
 
-        marker.pose.orientation.w = 1
+        marker.pose.orientation.x = ros_bb.center.orientation.x
+        marker.pose.orientation.y = ros_bb.center.orientation.y
+        marker.pose.orientation.z = ros_bb.center.orientation.z
+        marker.pose.orientation.w = ros_bb.center.orientation.w
+        
         marker.pose.position.x = ros_bb.center.position.x
         marker.pose.position.y = ros_bb.center.position.y
-        marker.pose.position.z = ros_bb.center.position.z + ros_bb.size.z/2
+        marker.pose.position.z = ros_bb.center.position.z
 
         marker.scale.x = ros_bb.size.x
         marker.scale.y = ros_bb.size.y
@@ -86,7 +90,11 @@ class PlaceObjectServer():
     def clicked_point_cb(self, data):
         self.target_point = data
 
-    def detect_placement_areas(self, attached_object_bb, wrist_to_table, base_pose, aligned_table_bb_base_frame, placement_area_det_frame):
+    def detect_placement_areas(self, attached_object_bb, wrist_to_table, base_pose, aligned_table_bb_base_frame, placement_area_det_frame, placement_area_bb):
+        if placement_area_bb.header.frame_id != placement_area_det_frame:
+            rospy.logerr("Wrong frame for placement area bb. Should probably do a transform here at some point. Expected: %s, got: %s" % (placement_area_det_frame, placement_area_bb.header.frame_id))
+            return None
+        
         obj_bb_table_frame = transform_bounding_box_w_transform(attached_object_bb, wrist_to_table)
         obj_bb_table_frame = align_bounding_box_rotation(ros_bb_to_o3d_bb(obj_bb_table_frame))
         obj_bb_table_frame = o3d_bb_to_ros_bb(obj_bb_table_frame)
@@ -105,30 +113,13 @@ class PlaceObjectServer():
 
         
         self.visualize_ros_bb_rviz(obj_bb_map_frame_aligned, 'map', 1, 0, 0, id=2)
+ 
+        target_point = placement_area_bb.center.position
+        box_filter_range = placement_area_bb.size
+        rospy.logwarn(f"{box_filter_range = }, target_point = {target_point}")
+        self.visualize_ros_bb_rviz(placement_area_bb, 'map', 1, 1, 1, id=3)
 
-        self.target_point = None
         while True:
-            rospy.Subscriber('clicked_point', PointStamped, self.clicked_point_cb)
-            while not rospy.is_shutdown():
-                rospy.loginfo("Waiting for clicked point")
-                if self.target_point is not None:
-                    target_point = self.target_point
-                    self.target_point = None
-                    break
-                rospy.sleep(1)
-            if target_point.header.frame_id != placement_area_det_frame:
-                rospy.logerr("Wrong frame for clicked point. Expected: %s, got: %s" % (placement_area_det_frame, target_point.header.frame_id))
-                continue
-
-            target_point = target_point.point
-
-            #TODO take object dim into account properly
-
-            box_filter_range = Vector3()
-            box_filter_range.x = 0.2
-            box_filter_range.y = 0.2
-            box_filter_range.z = 0.1
-
             vertical_axis = Vector3()
             vertical_axis.x = 0.0
             vertical_axis.y = 0.0
@@ -213,7 +204,8 @@ class PlaceObjectServer():
         att_object_bb = BoundingBox3D(center = att_object_pose, size = list_to_vector3(att_object_dimensions))
         object_placement_surface_pose = goal.placement_surface_to_wrist
         
-        placement_areas = self.detect_placement_areas(att_object_bb, object_placement_surface_pose, base_pose_map.pose, aligned_table_bb_ros, placement_area_det_frame)
+        placement_area_bb = goal.placement_area_bb
+        placement_areas = self.detect_placement_areas(att_object_bb, object_placement_surface_pose, base_pose_map.pose, aligned_table_bb_ros, placement_area_det_frame, placement_area_bb)
         
         distances = []
         for placement_area in placement_areas:

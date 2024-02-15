@@ -13,7 +13,7 @@ from v4r_util.tf2 import TF2Wrapper
 class CollisionEnvironment(smach.State):
     def __init__(self):
         smach.State.__init__(
-            self, outcomes=['succeeded'], input_keys=['grasp_object_bb', 'table_bbs'], output_keys=['grasp_object_name'])
+            self, outcomes=['succeeded'], input_keys=['grasp_object_bb', 'table_bbs'], output_keys=['grasp_object_name_moveit'])
         self.tf_wrapper = TF2Wrapper()
         self.moveit_wrapper = MoveitWrapper(self.tf_wrapper)
         self.moveit_wrapper.detach_all_objects()
@@ -39,13 +39,14 @@ class CollisionEnvironment(smach.State):
         #TODO octomap clear afterwards to properly handle floor
 
     def execute(self, userdata):
+        self.moveit_wrapper.detach_all_objects()
         grasp_obj_bb = userdata.grasp_object_bb
         table_bb = userdata.table_bbs.boxes[0]
         self.moveit_wrapper.add_box('object', grasp_obj_bb.header.frame_id, grasp_obj_bb.center, vector3_to_list(grasp_obj_bb.size))
         rospy.sleep(0.1)
         self.moveit_wrapper.add_box('table', userdata.table_bbs.header.frame_id, table_bb.center, vector3_to_list(table_bb.size))
 
-        userdata.grasp_object_name = 'object'
+        userdata.grasp_object_name_moveit = 'object'
         
         return 'succeeded'
 

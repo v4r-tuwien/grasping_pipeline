@@ -3,6 +3,7 @@
 
     <!-- Load parameters -->
     <rosparam command="load" ns="" file="$(find grasping_pipeline)/config/config.yaml"/>
+    <rosparam command="load" ns="" file="$(find grasping_pipeline)/config/placement_areas.yaml"/>
     <rosparam command="load" ns="" file="$(find table_plane_extractor)/config/config.yaml"/>
     <include file="$(find haf_grasping)/launch/haf_grasping_all.launch"/>
     <include file="$(find table_plane_extractor)/launch/get_objects_on_table_as.launch"/>

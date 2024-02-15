@@ -138,6 +138,7 @@ class FindGrasppointServer:
             
             result.grasp_poses = grasp_poses
             result.grasp_object_bb = object_bb_stamped
+            result.grasp_object_name = object_name
 
             self.add_marker(grasp_poses[0])
             self.add_bb_marker(object_bb_stamped)

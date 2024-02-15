@@ -34,7 +34,8 @@ class ExecuteGraspServer:
     def execute(self, goal):
         res = ExecuteGraspResult()
         planning_frame = self.moveit_wrapper.get_planning_frame("whole_body")
-        safety_distance = rospy.get_param("/safety_distance", default=0.1)
+        # hrisi experiments, change back to 0.1 again afterwards
+        safety_distance = rospy.get_param("/safety_distance", default=0.2)
 
         for grasp_pose in goal.grasp_poses:
             # assumes static scene, i.e robot didn't move since grasp pose was found
@@ -70,7 +71,7 @@ class ExecuteGraspServer:
             res.placement_surface_to_wrist = transform
             
             touch_links = self.moveit_wrapper.get_link_names(group='gripper')
-            self.moveit_wrapper.attach_object(goal.grasp_object_name, touch_links)
+            self.moveit_wrapper.attach_object(goal.grasp_object_name_moveit, touch_links)
 
             self.hsr_wrapper.move_eef_by_line((0, 0, 1), -safety_distance)
 
@@ -90,8 +91,8 @@ class ExecuteGraspServer:
         self.server.set_aborted(res)
 
     def get_transform_from_wrist_to_object_bottom_plane(self, goal, planning_frame):
-        object_poses = self.moveit_wrapper.get_object_poses([goal.grasp_object_name])
-        object_pose = object_poses[goal.grasp_object_name]
+        object_poses = self.moveit_wrapper.get_object_poses([goal.grasp_object_name_moveit])
+        object_pose = object_poses[goal.grasp_object_name_moveit]
         object_pose_st = PoseStamped(pose=object_pose)
         object_pose_st.header.frame_id = planning_frame
         object_pose_st.header.stamp = rospy.Time.now()
@@ -100,6 +101,8 @@ class ExecuteGraspServer:
         object_pose_table_frame = self.tf_wrapper.transform_pose(plane_equation.header.frame_id, object_pose_st)
         self.tf_wrapper.send_transform(object_pose_table_frame.header.frame_id, 'object_center', object_pose_table_frame.pose)
 
+        #TODO need to add table_plane_height/2 to object_center_to_table_distance, else
+        # we get the distance to the middle of the tableBB, not the distance to the table surface
         object_center_to_table_distance = abs(plane_equation.x * object_pose_table_frame.pose.position.x + 
                                                   plane_equation.y * object_pose_table_frame.pose.position.y + 
                                                   plane_equation.z * object_pose_table_frame.pose.position.z + 

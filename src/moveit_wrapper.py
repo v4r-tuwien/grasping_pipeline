@@ -44,7 +44,7 @@ import trajectory_msgs
 class MoveitWrapper:
     """Moveit Wrapper used for Sasha."""
 
-    def __init__(self, libtf):
+    def __init__(self, libtf, planning_time=5.0):
         """Constructor.
 
         Args:
@@ -52,10 +52,10 @@ class MoveitWrapper:
         """
         self.lib = {"tf": libtf}
 
-        self.whole_body, self.gripper, self.scene, self.robot = self.init_moveit() 
+        self.whole_body, self.gripper, self.scene, self.robot = self.init_moveit(planning_time) 
 
     
-    def init_moveit(self):
+    def init_moveit(self, planning_time):
         # handle non default HSR topic name :)))))))
         moveit_commander.roscpp_initialize(['joint_states:=/hsrb/joint_states'])
 
@@ -71,7 +71,7 @@ class MoveitWrapper:
         whole_body.allow_replanning(True)
         whole_body.set_workspace([-3.0, -3.0, 3.0, 3.0])
         whole_body.set_num_planning_attempts(10)
-        whole_body.set_planning_time(5.0)
+        whole_body.set_planning_time(planning_time)
         whole_body.set_max_acceleration_scaling_factor(1.0)
         whole_body.set_max_velocity_scaling_factor(1.0)
         # gripper.set_max_acceleration_scaling_factor(1.0)
@@ -470,6 +470,7 @@ class MoveitWrapper:
         p = PoseStamped()
         p.header.frame_id = 'base_link'
         p.header.stamp = rospy.Time.now()
+        p.pose.orientation.w = 1.0
         base_pose = self.lib['tf'].transform_pose(frame, p)
         return base_pose
 

@@ -18,7 +18,6 @@ tmux send-keys rv
 tmux select-pane -t 1
 tmux send-keys "hsrb_mode" C-m
 tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_PC.launch"
-tmux send-keys enter
 
 
 tmux select-window -t $SESSION:1

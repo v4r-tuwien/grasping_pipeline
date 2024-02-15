@@ -4,7 +4,7 @@ import smach
 import smach_ros
 from collision_environment import CollisionEnvironment
 from states.userinput import UserInput
-from states.robot_control import GoToNeutral, GoBack, OpenGripper, GoToWaypoint, MoveToJointPositions
+from states.robot_control import GoToNeutral, GoBack, OpenGripper, GoToWaypoint, MoveToJointPositions, GoToAndLookAtPlacementArea
 from states.find_table_planes import FindTablePlanes
 from grasping_pipeline_msgs.msg import FindGrasppointAction, ExecuteGraspAction
 from sensor_msgs.msg import PointCloud2
@@ -34,7 +34,7 @@ def create_statemachine(enable_userinput=True, do_handover=True):
         else:
             abort_state = 'FIND_GRASP'
 
-        find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction, result_slots=['grasp_poses', 'grasp_object_bb'])
+        find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction, result_slots=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
         smach.Sequence.add('FIND_GRASP', find_grasp_actionstate, transitions={
             'aborted': abort_state, 'preempted': abort_state})
 
@@ -48,10 +48,10 @@ def create_statemachine(enable_userinput=True, do_handover=True):
         smach.Sequence.add('ADD_COLLISION_OBJECTS', CollisionEnvironment())
 
         execute_grasp_actionstate = smach_ros.SimpleActionState(
-            'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses', 'grasp_object_name', 'table_plane_equations'], result_slots=['placement_surface_to_wrist']) 
+            'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses', 'grasp_object_name_moveit', 'table_plane_equations'], result_slots=['placement_surface_to_wrist']) 
 
         smach.Sequence.add('EXECUTE_GRASP', execute_grasp_actionstate, transitions={
-                           'aborted': 'GO_TO_NEUTRAL', 'preempted': 'GO_TO_NEUTRAL'})
+                           'aborted': 'GO_TO_TABLE', 'preempted': 'GO_TO_TABLE'})
         smach.Sequence.add('RETREAT_AFTER_GRASP', table_waypoint, 
                            transitions={'aborted': 'GO_TO_NEUTRAL'})
         smach.Sequence.add('GO_TO_NEUTRAL_AFTER_GRASP', GoToNeutral())
@@ -79,11 +79,12 @@ def create_statemachine(enable_userinput=True, do_handover=True):
                 map = {'g': ['succeeded', 'place object']}
                 smach.Sequence.add('PLACE_OBJECT_USER_INPUT', UserInput(
                     map))
+            smach.Sequence.add('GO_TO_AND_LOOK_AT_PLACEMENT_AREA', GoToAndLookAtPlacementArea(), transitions={'aborted': 'PLACE_OBJECT_USER_INPUT'})
             smach.Sequence.add('FIND_TABLE_PLANES_PLACEMENT', FindTablePlanes())
             smach.Sequence.add('PLACEMENT_PLACE',
                             smach_ros.SimpleActionState('place_object', PlaceAction,
                                                         goal_slots=[
-                                                            'table_plane_equations', 'table_bbs', 'placement_surface_to_wrist']),
+                                                            'placement_area_bb', 'table_plane_equations', 'table_bbs', 'placement_surface_to_wrist']),
                             transitions={'succeeded': 'GO_TO_NEUTRAL',
                                         'aborted': 'PLACE_OBJECT_USER_INPUT',
                                         'preempted': 'PLACE_OBJECT_USER_INPUT'})
