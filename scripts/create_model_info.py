@@ -8,10 +8,13 @@ model_files_directory = '../models/'
 result_file_path = '../models/models_metadata.yml'
 show_visualization = True
 model_to_m_conversion_factor = 1/1000.0 # e.g. 1/1000.0 to convert to m if model is in mm
+wanted_files = ['fluidcontainer.stl', 'largerinsefluidabottle.stl', 'smallsoybrothbottle.stl']
 
 if __name__ == '__main__':
     metadata = {}
     for filename in os.listdir(model_files_directory):
+        if wanted_files is not None and filename not in wanted_files:
+            continue
         filepath = os.path.join(model_files_directory, filename)
         if filename.endswith('stl'):
             print(f"Working on file {filepath}")
