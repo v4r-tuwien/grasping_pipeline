@@ -72,7 +72,10 @@ def create_statemachine(do_handover=True):
     with grasp_handover_sm:
         smach.StateMachine.add('SETUP_ROBOT', robot_setup_sm, transitions={'setup_succeeded': 'FIND_GRASP'})
 
-        find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction, result_slots=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
+        find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint',
+                                                             FindGrasppointAction, 
+                                                             goal_slots=['object_to_grasp'],
+                                                             result_slots=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
         smach.StateMachine.add('FIND_GRASP', find_grasp_actionstate, transitions={'succeeded': 'EXECUTE_GRASP',
             'aborted': 'object_not_found', 'preempted': 'object_not_found'})
 
@@ -87,7 +90,10 @@ def create_statemachine(do_handover=True):
     with grasp_place_sm:
             smach.StateMachine.add('SETUP_ROBOT', robot_setup_sm, transitions={'setup_succeeded': 'FIND_GRASP'})
 
-            find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', FindGrasppointAction, result_slots=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
+            find_grasp_actionstate = smach_ros.SimpleActionState('find_grasppoint', 
+                                                                 FindGrasppointAction, 
+                                                                 goal_slots=['object_to_grasp'],
+                                                                 result_slots=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
             smach.StateMachine.add('FIND_GRASP', find_grasp_actionstate, transitions={'succeeded': 'EXECUTE_GRASP',
                 'aborted': 'object_not_found', 'preempted': 'object_not_found'})
 
@@ -109,14 +115,24 @@ class LLM_Wrapper:
         rospy.loginfo('LLM Wrapper is ready')
 
     def execute(self, goal):
+        rospy.logerr('Executing goal: ' + str(goal))
+        behaviour = goal['behaviour']
+        sm = self.behaviours[behaviour]
+        sm.userdata.object_to_grasp = goal['object_name']
+        rospy.loginfo('Executing behaviour: ' + behaviour)
+        rospy.loginfo('Userdata: ' + str(sm.userdata))
+        rospy.loginfo('userdata object_to_grasp: ' + sm.userdata.object_to_grasp)
 
-        pass
+        self.behaviours[behaviour].execute()
+        rospy.loginfo('Behaviour executed. Returning Control')
 
 
 if __name__ == '__main__':
     rospy.init_node('llm_wrapper')
 
     llm_wrapper = LLM_Wrapper()
+    goal = {'behaviour': 'grasp_handover', 'object_name': '003_cracker_box'}
+    llm_wrapper.execute(goal)
 
     while not rospy.is_shutdown():
         rospy.spin()

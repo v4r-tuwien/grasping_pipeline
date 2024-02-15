@@ -19,8 +19,11 @@ class FindTablePlanes(smach.State):
         self.enlarge_table_bb_to_floor = enlarge_table_bb_to_floor
 
     def execute(self, userdata):
+        rospy.loginfo('Executing state FIND_TABLE_PLANES. Waiting for point cloud.')
         cloud = rospy.wait_for_message(self.topic, PointCloud2, timeout=15)
+        rospy.loginfo('Received point cloud. Waiting for table plane extractor service.')
         rospy.wait_for_service(self.table_extractor_srv_name)
+        rospy.loginfo('Service available. Calling table plane extractor.')
         
         response = self.table_extractor(cloud)
         boxes = response.plane_bounding_boxes
@@ -53,4 +56,5 @@ class FindTablePlanes(smach.State):
 
         userdata.table_bbs = response.plane_bounding_boxes
         userdata.table_plane_equations = response.planes
+        rospy.loginfo('Table planes extracted. Returning succeeded.')
         return 'succeeded'

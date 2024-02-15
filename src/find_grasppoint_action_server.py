@@ -116,7 +116,12 @@ class FindGrasppointServer:
                 # fill bbs with pseudo entries so that we can use the object_idx that gets calculated afterwards
                 filled_bbs = self.fill_bbs(estimator_result, bbs)
 
-            object_idx = self.get_closest_object(estimator_result)
+            if goal.object_to_grasp != None and goal.object_to_grasp != '':
+                rospy.loginfo(f'Object to grasp specified. Will grasp specified object {goal.object_to_grasp}')
+                object_idx = estimator_result.class_names.index(goal.object_to_grasp)
+            else:
+                rospy.loginfo('No object to grasp specified. Will grasp closest object')
+                object_idx = self.get_closest_object(estimator_result)
 
             result = FindGrasppointResult()
             object_to_grasp = estimator_result.pose_results[object_idx]
