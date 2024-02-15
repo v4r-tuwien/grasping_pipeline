@@ -12,7 +12,7 @@ class FindTablePlanes(smach.State):
         smach.State.__init__(
             self, outcomes=['succeeded'], output_keys=['table_bbs', 'table_plane_equations'])
         self.topic = rospy.get_param('/point_cloud_topic')
-        self.table_extractor_srv_name = '/test/table_plane_extractor'
+        self.table_extractor_srv_name = '/table_plane_extractor/get_planes'
         self.table_extractor = rospy.ServiceProxy(
             self.table_extractor_srv_name, TablePlaneExtractor)
         self.tf_wrapper = TF2Wrapper()
@@ -21,7 +21,7 @@ class FindTablePlanes(smach.State):
     def execute(self, userdata):
         cloud = rospy.wait_for_message(self.topic, PointCloud2, timeout=15)
         rospy.wait_for_service(self.table_extractor_srv_name)
-
+        
         response = self.table_extractor(cloud)
         boxes = response.plane_bounding_boxes
         
