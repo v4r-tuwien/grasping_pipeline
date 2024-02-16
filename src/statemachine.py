@@ -4,14 +4,10 @@ import smach
 import smach_ros
 from collision_environment import CollisionEnvironment
 from states.userinput import UserInput
-from states.robot_control import GoToNeutral, GoBack, OpenGripper, GoToWaypoint, MoveToJointPositions, GoToAndLookAtPlacementArea
+from states.robot_control import GoToNeutral, OpenGripper, GoToWaypoint, GoToAndLookAtPlacementArea
 from states.find_table_planes import FindTablePlanes
 from grasping_pipeline_msgs.msg import FindGrasppointAction, ExecuteGraspAction
-from sensor_msgs.msg import PointCloud2
-from geometry_msgs.msg import Pose
 from handover.msg import HandoverAction
-from states.placement_area_detector import PlacementAreaDetector
-from placement.msg import PlacementPlaceAndMoveAwayAction
 from grasping_pipeline_msgs.msg import PlaceAction
 
 
@@ -62,19 +58,6 @@ def create_statemachine(enable_userinput=True, do_handover=True):
                                             'preempted': 'GO_TO_NEUTRAL',
                                             'aborted': 'GO_TO_NEUTRAL'})
         else:
-            # smach.Sequence.add('MOVE_HAND_AWAY_FROM_CAM', MoveToJointPositions({'arm_roll_joint': 3.1415 / 2}))
-            # make_sasha_tall_joints = {
-            #     'arm_lift_joint': 0.6,  
-            #     'head_pan_joint':0, 
-            #     'head_tilt_joint':-0.7,
-            #     'arm_flex_joint':-2.6}
-            # smach.Sequence.add('MAKE_SASHA_TALL', MoveToJointPositions(make_sasha_tall_joints))
-            # smach.Sequence.add('GO_TO_SHELF', shelf_waypoint, transitions={'aborted': 'GO_TO_NEUTRAL'})
-            #TODO save: list of tables with: center point of plane, waypoint for robot and sasha joints for table
-            # then => drive to waypoint and change joints depending on which table the object should be placed on
-            # then detect table plane, use those detected bb to check whether center point is inside bb => if yes => found placement table
-            # then in placement area detector: use base_link as frame_id, transform detected table bb to base_link and align,
-            # then use prealigned object (aligned at timepoint of grasping) => use those x/y/z coordinates for size
             if enable_userinput:
                 map = {'g': ['succeeded', 'place object']}
                 smach.Sequence.add('PLACE_OBJECT_USER_INPUT', UserInput(
@@ -94,8 +77,6 @@ def create_statemachine(enable_userinput=True, do_handover=True):
 if __name__ == '__main__':
     rospy.init_node('sasha_statemachine')
     sm = create_statemachine(enable_userinput=True, do_handover=False)
-    # sm = test_placement()
-
 
     try:
         # Create and start the introspection server
