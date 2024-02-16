@@ -13,7 +13,6 @@ handover
 object_detector_msgs
 vision_msgs
 table_plane_extractor
-placement
 v4r_util
 tmc_geometric_shapes_msgs
 message_filters

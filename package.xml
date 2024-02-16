@@ -17,7 +17,6 @@
   <depend>vision_msgs</depend>
   <depend>table_plane_extractor</depend>
   <depend>handover</depend>
-  <depend>placement</depend>
   <depend>v4r_util</depend>
   <depend>message_filters</depend>
   <depend>object_detector_msgs</depend>
