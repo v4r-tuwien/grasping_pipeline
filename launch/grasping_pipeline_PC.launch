@@ -7,8 +7,8 @@
     <rosparam command="load" ns="" file="$(find grasping_pipeline)/config/placement_areas.yaml"/>
     <rosparam command="load" ns="" file="$(find table_plane_extractor)/config/config.yaml"/>
     <include file="$(find haf_grasping)/launch/haf_grasping_all.launch"/>
-    <include file="$(find table_plane_extractor)/launch/get_objects_on_table_as.launch"/>
-    <node name="table_plane_extractor_server" pkg="table_plane_extractor" type="table_plane_extractor_srv.py"/>
+    <include file="$(find table_plane_extractor)/launch/table_objects_extractor_as.launch"/>
+    <include file="$(find table_plane_extractor)/launch/table_plane_extractor.launch"/>
     <node name="execute_grasp_server" pkg="grasping_pipeline" type="execute_grasp_action_server.py" output="screen"/>
     <node name="handover_server" pkg="handover" type="handover_server.py"/>
     <group if="$(arg use_llm_state_machine)">
