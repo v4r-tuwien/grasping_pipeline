@@ -9,7 +9,7 @@ from states.find_table_planes import FindTablePlanes
 from grasping_pipeline_msgs.msg import FindGrasppointAction, ExecuteGraspAction
 from handover.msg import HandoverAction
 from grasping_pipeline_msgs.msg import PlaceAction
-LLMAction = PlaceAction
+from robot_llm.msg import RobotLLMAction, RobotLLMResult
 
 def get_robot_setup_sm():
     seq = smach.Sequence(outcomes=['setup_succeeded'], connector_outcome='succeeded', input_keys=[], output_keys=[])
@@ -82,9 +82,10 @@ def create_statemachine(do_handover=True):
         smach.StateMachine.add('EXECUTE_GRASP', execute_grasp_sm, transitions={
                         'end_execute_grasp': 'HANDOVER', 'failed_to_grasp': 'SETUP_ROBOT'})
         smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
-                            transitions={'succeeded': 'end_behaviour',
-                                        'preempted': 'end_behaviour',
-                                        'aborted': 'end_behaviour'})
+                            transitions={'succeeded': 'SETUP_ROBOT_AFTER_HANDOVER',
+                                        'preempted': 'SETUP_ROBOT_AFTER_HANDOVER',
+                                        'aborted': 'SETUP_ROBOT_AFTER_HANDOVER'})
+        smach.StateMachine.add('SETUP_ROBOT_AFTER_HANDOVER', robot_setup_sm, transitions={'setup_succeeded': 'end_behaviour'})
 
     grasp_place_sm = smach.StateMachine(outcomes=['end_behaviour', 'object_not_found'])
     with grasp_place_sm:
@@ -99,32 +100,37 @@ def create_statemachine(do_handover=True):
 
             smach.StateMachine.add('EXECUTE_GRASP', execute_grasp_sm, transitions={
                             'end_execute_grasp': 'PLACE_OBJECT', 'failed_to_grasp': 'SETUP_ROBOT'})
-            smach.StateMachine.add('PLACE_OBJECT', placement_sm, transitions={'end_placement': 'end_behaviour', 'failed_to_place': 'SETUP_ROBOT'})
+            smach.StateMachine.add('PLACE_OBJECT', placement_sm, transitions={'end_placement': 'SETUP_ROBOT_AFTER_PLACEMENT', 'failed_to_place': 'PLACE_OBJECT'})
+            smach.StateMachine.add('SETUP_ROBOT_AFTER_PLACEMENT', robot_setup_sm, transitions={'setup_succeeded': 'end_behaviour'})
     return grasp_handover_sm, grasp_place_sm
 
 class LLM_Wrapper:
     def __init__(self):
         rospy.loginfo('Setting up LLM Wrapper')
-        self.action_server = actionlib.SimpleActionServer('/llm', LLMAction, self.execute, auto_start = False)
+        self.action_server = actionlib.SimpleActionServer('/robot_llm', RobotLLMAction, self.execute, auto_start = False)
 
         rospy.loginfo('Setting up state machines')
         grasp_handover_sm, grasp_place_sm = create_statemachine()
-        self.behaviours = {'grasp_handover': grasp_handover_sm, 'grasp_place': grasp_place_sm}
+        self.behaviours = {'handover': grasp_handover_sm, 'placement': grasp_place_sm}
 
         self.action_server.start()
         rospy.loginfo('LLM Wrapper is ready')
 
     def execute(self, goal):
         rospy.logerr('Executing goal: ' + str(goal))
-        behaviour = goal['behaviour']
+        behaviour = goal.task
         sm = self.behaviours[behaviour]
-        sm.userdata.object_to_grasp = goal['object_name']
+        sm.userdata.object_to_grasp = goal.object_name
         rospy.loginfo('Executing behaviour: ' + behaviour)
         rospy.loginfo('Userdata: ' + str(sm.userdata))
         rospy.loginfo('userdata object_to_grasp: ' + sm.userdata.object_to_grasp)
 
-        self.behaviours[behaviour].execute()
+        result = self.behaviours[behaviour].execute()
         rospy.loginfo('Behaviour executed. Returning Control')
+        res = RobotLLMResult(result=result)
+        #TODO pass aborted when object not found
+        self.action_server.set_succeeded(res)
+
 
 
 if __name__ == '__main__':
@@ -132,7 +138,7 @@ if __name__ == '__main__':
 
     llm_wrapper = LLM_Wrapper()
     goal = {'behaviour': 'grasp_handover', 'object_name': '003_cracker_box'}
-    llm_wrapper.execute(goal)
+    # llm_wrapper.execute(goal)
 
     while not rospy.is_shutdown():
         rospy.spin()
