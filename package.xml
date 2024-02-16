@@ -20,7 +20,6 @@
   <depend>handover</depend>
   <depend>v4r_util</depend>
   <depend>message_filters</depend>
-  <depend>object_detector_msgs</depend>
   <depend>tmc_geometric_shapes_msgs</depend>
   <depend>tmc_placement_area_detector</depend>
   <build_depend>message_generation</build_depend>
