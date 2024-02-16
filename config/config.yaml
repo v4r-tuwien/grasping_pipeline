@@ -8,7 +8,7 @@ global_frame: '/map'
 
 pose_estimator:
   unknown_object_grasp_detector_topic: /pose_estimator/find_grasppose_haf
-  detector_topic: /pose_estimator/gdrnet #/get_objects_on_table/get_label_image #'/pose_estimator/find_grasppose'
+  detector_topic: /pose_estimator #/get_objects_on_table/get_label_image #'/pose_estimator/find_grasppose'
   result_visualization_topic: /pose_estimator/result_visualization
   class_confidence_threshold: 0.3
 

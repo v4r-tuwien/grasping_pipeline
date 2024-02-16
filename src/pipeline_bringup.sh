@@ -24,13 +24,13 @@ tmux select-window -t $SESSION:1
 tmux split-window -h
 
 tmux select-pane -t 0
-tmux send-keys "ssh hsrb.local" C-m
+tmux send-keys "ssh v4r@hsrb.local" C-m
 tmux send-keys "source ~/lexi/catkin_ws/devel/setup.bash"
 tmux send-keys enter
 tmux send-keys "roslaunch hsrb_moveit_config move_group.launch" C-m
 
 tmux select-pane -t 1
-tmux send-keys "ssh hsrb.local" C-m
+tmux send-keys "ssh v4r@hsrb.local" C-m
 tmux send-keys "source ~/lexi/catkin_ws/devel/setup.bash"
 tmux send-keys enter
 tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_robot.launch" C-m
