@@ -3,6 +3,7 @@
 import rospy
 import smach
 from hsrb_interface import Robot
+from std_srvs.srv import Empty
 from geometry_msgs.msg import PoseStamped
 from vision_msgs.msg import BoundingBox3D
 from v4r_util.conversions import vector3_to_list
@@ -17,7 +18,10 @@ class CollisionEnvironment(smach.State):
         self.tf_wrapper = TF2Wrapper()
         self.moveit_wrapper = MoveitWrapper(self.tf_wrapper)
         self.moveit_wrapper.detach_all_objects()
+        self.clear_octomap = rospy.ServiceProxy('/clear_octomap', Empty)
         self.add_floor_plane()
+        # Remove floor fragments from previous octomap
+        self.clear_octomap()
         rospy.loginfo('CollEnv init')
     
     def add_floor_plane(self):
@@ -36,7 +40,6 @@ class CollisionEnvironment(smach.State):
         size = [15, 15, 0.1]
 
         self.moveit_wrapper.add_box('floor', 'map', floor.center, size)
-        #TODO octomap clear afterwards to properly handle floor
 
     def execute(self, userdata):
         self.moveit_wrapper.detach_all_objects()
