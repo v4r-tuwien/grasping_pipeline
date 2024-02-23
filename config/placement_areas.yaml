@@ -5,13 +5,13 @@ placement_planes:
     shelf_compartment1:
       waypoint: [1.03, 1.17, 90] # [x, y, yaw in degrees]
       placement_area:
-        center: [0.965, 1.951, 0.45]
-        size: [0.7, 0.2, 0.15]
+        center: [0.965, 2.051, 0.45]
+        size: [0.7, 0.25, 0.15]
     shelf_compartment2:
       waypoint: [0.449, 0.93, 55] # [x, y, yaw in degrees]
       placement_area:
-        center: [0.965, 1.951, 0.72]
-        size: [0.7, 0.2, 0.15]
+        center: [0.965, 2.051, 0.72]
+        size: [0.7, 0.25, 0.15]
 
 #TODO add fallback plane and fallback handling
 placement_objects:
