@@ -29,7 +29,6 @@ from grasp_checker import check_grasp_hsr
 from v4r_util.util import get_minimum_oriented_bounding_box, o3d_bb_to_ros_bb_stamped, create_ros_bb_stamped
 
 class FindGrasppointServer:
-    #TODO add central visualization
     
     def __init__(self, model_dir):
         with open(os.path.join(model_dir, "models_metadata.yml")) as f:

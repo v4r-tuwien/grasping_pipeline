@@ -204,9 +204,7 @@ class GoToAndLookAtPlacementArea(smach.State):
         finished = self.move_client.wait_for_server(rospy.Duration(self.timeout))
         
         if finished:
-            rospy.logerr(f"{move_goal = }")
             self.move_client.send_goal(move_goal)
-            rospy.loginfo("Waiting for result")
             finished = self.move_client.wait_for_result(rospy.Duration(self.timeout))
 
             if finished:
