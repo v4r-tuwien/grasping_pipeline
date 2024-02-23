@@ -73,6 +73,9 @@ class ExecuteGraspServer:
             touch_links = self.moveit_wrapper.get_link_names(group='gripper')
             self.moveit_wrapper.attach_object(goal.grasp_object_name_moveit, touch_links)
 
+            # Move the object up to avoid collision with the table
+            self.hsr_wrapper.move_eef_by_delta((0, 0, 0.05))
+
             self.hsr_wrapper.move_eef_by_line((0, 0, 1), -safety_distance)
 
             self.hsr_wrapper.gripper_grasp_hsr(0.5)
