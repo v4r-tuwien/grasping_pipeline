@@ -4,7 +4,7 @@ import smach
 import smach_ros
 from collision_environment import CollisionEnvironment
 from states.userinput import UserInput
-from states.robot_control import GoToNeutral, OpenGripper, GoToWaypoint, GoToAndLookAtPlacementArea
+from states.robot_control import GoToNeutral, OpenGripper, GoToWaypoint, GoToAndLookAtPlacementArea, GoBack
 from states.find_table_planes import FindTablePlanes
 from grasping_pipeline_msgs.msg import FindGrasppointAction, ExecuteGraspAction
 from handover.msg import HandoverAction
@@ -48,9 +48,10 @@ def create_statemachine(enable_userinput=True, do_handover=True):
 
         smach.Sequence.add('EXECUTE_GRASP', execute_grasp_actionstate, transitions={
                            'aborted': 'GO_TO_TABLE', 'preempted': 'GO_TO_TABLE'})
-        smach.Sequence.add('RETREAT_AFTER_GRASP', table_waypoint, 
-                           transitions={'aborted': 'GO_TO_NEUTRAL'})
+        smach.Sequence.add('RETREAT_AFTER_GRASP', GoBack(0.2))
         smach.Sequence.add('GO_TO_NEUTRAL_AFTER_GRASP', GoToNeutral())
+        smach.Sequence.add('GO_TO_TABLE_AFTER_GRASP', table_waypoint, 
+                           transitions={'aborted': 'GO_TO_TABLE_AFTER_GRASP'})
 
         if do_handover:
             smach.Sequence.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
@@ -68,9 +69,10 @@ def create_statemachine(enable_userinput=True, do_handover=True):
                             smach_ros.SimpleActionState('place_object', PlaceAction,
                                                         goal_slots=[
                                                             'placement_area_bb', 'table_plane_equations', 'table_bbs', 'placement_surface_to_wrist']),
-                            transitions={'succeeded': 'GO_TO_NEUTRAL',
+                            transitions={'succeeded': 'RETREAT_AFTER_PLACEMENT',
                                         'aborted': 'PLACE_OBJECT_USER_INPUT',
                                         'preempted': 'PLACE_OBJECT_USER_INPUT'})
+            smach.Sequence.add('RETREAT_AFTER_PLACEMENT', GoBack(0.2), transitions={'succeeded': 'GO_TO_NEUTRAL'})
     return seq
 
 
