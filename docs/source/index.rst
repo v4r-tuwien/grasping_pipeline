@@ -13,6 +13,7 @@ Welcome to Grasping Pipeline's documentation!
 .. toctree::
    installation
    startup
+   run_new_pose_estimator
    ideas
 
 
