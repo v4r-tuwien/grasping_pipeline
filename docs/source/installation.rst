@@ -15,6 +15,19 @@ This is the easiest way to get started with the grasping pipeline, but comes wit
 
 The instructions can be found in the `HSRB_ROS_Docker_Image repository <https://github.com/v4r-tuwien/HSRB-ROS-Docker-Image>`_.
 
+After installation you might want to add the following alias to your .bashrc file to make it easier to start the docker container:
+
+.. code-block:: console
+
+    $ echo "alias hsr='cd ~/HSR/ && bash ./RUN-DOCKER-CONTAINER.bash'" >> ~/.bashrc
+
+This allows you to start the docker container by simply typing `hsr` in the terminal.
+
+After adding the alias, source the new .bashrc file:
+
+.. code-block:: console
+
+    $ source ~/.bashrc
 
 ******************************************************************
 Manually installing the grasping pipeline and all its dependencies
