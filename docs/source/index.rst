@@ -12,6 +12,7 @@ Welcome to Grasping Pipeline's documentation!
 
 .. toctree::
    installation
+   startup
    ideas
 
 
