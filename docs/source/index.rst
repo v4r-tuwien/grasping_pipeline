@@ -10,10 +10,11 @@ Welcome to Grasping Pipeline's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-.. toctree::
    installation
    startup
    run_new_pose_estimator
+   overview_state_machine
+   details_state_machine
    ideas
 
 
