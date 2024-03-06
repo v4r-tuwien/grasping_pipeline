@@ -12,25 +12,26 @@ If you set up the grasping pipeline according to the installation instructions, 
 
     $ gp
 
-If you are using the Docker container make sure to start the container first by running the following command in the terminal:
+.. note:: 
+   If you are using the Docker container make sure to start the container first:
 
-.. code-block:: console
+   .. code-block:: console
 
-    user@host         $ hsr
-    root@CONTAINER_ID $ gp 
+       user@host         $ hsr
+       root@CONTAINER_ID $ gp 
 
 
-This should open up a tmux session in both cases.
+This should open up a tmux session.
 
-******************************
+===================
 Tmux session layout
-******************************
+===================
 This section will explain the windows and panes of the tmux session that is created when starting the grasping pipeline.
 
 
-******************************
+==================
 Rviz visualization
-******************************
+==================
 This section will explain how to start the grasping-pipeline rviz visualization.
 All grasping-pipeline related visualization topics will be listed and explained.
 

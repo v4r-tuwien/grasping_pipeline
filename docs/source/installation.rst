@@ -15,19 +15,20 @@ This is the easiest way to get started with the grasping pipeline, but comes wit
 
 The instructions can be found in the `HSRB_ROS_Docker_Image repository <https://github.com/v4r-tuwien/HSRB-ROS-Docker-Image>`_.
 
-After installation you might want to add the following alias to your .bashrc file to make it easier to start the docker container:
+.. note::
+   After installation you might want to add the following alias to your .bashrc file to make it easier to start the docker container:
 
-.. code-block:: console
+   .. code-block:: console
 
-    $ echo "alias hsr='cd ~/HSR/ && bash ./RUN-DOCKER-CONTAINER.bash'" >> ~/.bashrc
+      $ echo "alias hsr='cd ~/HSR/ && bash ./RUN-DOCKER-CONTAINER.bash'" >> ~/.bashrc
 
-This allows you to start the docker container by simply typing `hsr` in the terminal.
+   This allows you to start the docker container by simply typing `hsr` in the terminal.
 
-After adding the alias, source the new .bashrc file:
+   After adding the alias, source the new .bashrc file:
 
-.. code-block:: console
+   .. code-block:: console
 
-    $ source ~/.bashrc
+       $ source ~/.bashrc
 
 ******************************************************************
 Manually installing the grasping pipeline and all its dependencies
@@ -40,10 +41,8 @@ This option assumes that you already have installed:
 
 If you have not installed these packages yet, please refer to the commands in the **Dockerfile of the HSRB_ROS_Docker_Image repository** (`Link <https://github.com/v4r-tuwien/HSRB-ROS-Docker-Image/blob/main/docker/hsr-devel/Dockerfile>`_) on how to install ROS, the toyota HSR packages and moveit. If possible, use the versions specified in the Dockerfile.
 
-========================
-SSH key setup for github
-========================
-Note that you will need access to private v4r repositories, because some of the repositories include confidential data from toyota. This means that you have to setup your github ssh-key (`Link for instructions <https://docs.github.com/en/authentication/connecting-to-github-with-ssh>`_)
+.. warning::
+   You will need access to the private v4r github repositories, because some of the repositories include confidential data from toyota. This means that you have to setup your github ssh-key (`Link for instructions <https://docs.github.com/en/authentication/connecting-to-github-with-ssh>`_)
 
 ==========================================
 Cloning all grasping pipeline repositories
@@ -61,12 +60,12 @@ Installing the python dependencies
 ==================================
 The grasping pipeline is written in python3 and uses several python packages. The dependenciesare listed in the *requirements.txt* file.
 
-If you want to install the dependencies in a virtual environment, you have to modify the launch files found in *./grasping_pipeline/launch*:
+.. note:: If you want to install the dependencies in a virtual environment, you have to modify the launch files found in *./grasping_pipeline/launch*:
 
-.. code-block:: console
+  .. code-block:: console
 
-   <arg name="venv" value="/path/to/venv/bin/python3" />
-   <node> pkg="pkg" type="node.py" name="node" launch-prefix = "$(arg venv)" />
+      <arg name="venv" value="/path/to/venv/bin/python3" />
+      <node> pkg="pkg" type="node.py" name="node" launch-prefix = "$(arg venv)" />
 
 To install the dependencies (either in the virtual environment or system-wide):
 
