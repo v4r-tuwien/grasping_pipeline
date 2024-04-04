@@ -147,58 +147,6 @@ class ExecuteGraspServer:
         transform = Transform(rotation = transform.pose.orientation, translation = transform.pose.position)
 
         return transform
-        
-
-    def add_marker(self, pose_goal, id=0, r=0, g=1, b=0):
-        """ publishes a grasp marker to /grasping_pipeline/grasp_marker
-
-        Arguments:
-            pose_goal {geometry_msgs.msg.PoseStamped} -- pose for the grasp marker
-        """
-        rospy.logerr(f"{id = }, {r = }, {g = }, {b = }")
-        br = tf.TransformBroadcaster()
-        br.sendTransform((pose_goal.pose.position.x, pose_goal.pose.position.y, pose_goal.pose.position.z),
-                         [pose_goal.pose.orientation.x, pose_goal.pose.orientation.y,
-                             pose_goal.pose.orientation.z, pose_goal.pose.orientation.w],
-                         rospy.Time.now(),
-                         'grasp_pose_execute',
-                         pose_goal.header.frame_id)
-
-        marker_pub = rospy.Publisher(
-            '/grasp_marker_2', Marker, queue_size=10, latch=True)
-        marker = Marker()
-        marker.header.frame_id = pose_goal.header.frame_id
-        marker.header.stamp = rospy.Time()
-        marker.header.stamp = pose_goal.header.stamp
-        marker.ns = 'grasp_marker'
-        marker.id = id
-        marker.type = Marker.ARROW
-        marker.action = Marker.ADD
-
-        q2 = [pose_goal.pose.orientation.w, pose_goal.pose.orientation.x,
-              pose_goal.pose.orientation.y, pose_goal.pose.orientation.z]
-        q = tf.transformations.quaternion_about_axis(pi / 2, (0, 1, 0))
-        q = tf.transformations.quaternion_multiply(q, q2)
-
-        marker.pose.orientation.w = q[0]
-        marker.pose.orientation.x = q[1]
-        marker.pose.orientation.y = q[2]
-        marker.pose.orientation.z = q[3]
-        marker.pose.position.x = pose_goal.pose.position.x
-        marker.pose.position.y = pose_goal.pose.position.y
-        marker.pose.position.z = pose_goal.pose.position.z
-
-        marker.scale.x = 0.1
-        marker.scale.y = 0.05
-        marker.scale.z = 0.01
-
-        marker.color.a = 1.0
-        marker.color.r = r
-        marker.color.g = g
-        marker.color.b = b
-        marker_pub.publish(marker)
-        rospy.loginfo('grasp_marker')
-
 
 def qv_mult(q, v):
     """ Rotating the vector v by quaternion q
