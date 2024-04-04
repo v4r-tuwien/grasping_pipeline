@@ -3,7 +3,7 @@ placement_planes:
     frame_id: 'map'
   planes:
     shelf_compartment1:
-      waypoint: [1.03, 1.17, 90] # [x, y, yaw in degrees]
+      waypoint: [0.95, 1.05, 90] # [x, y, yaw in degrees]
       placement_area:
         center: [0.965, 2.051, 0.45]
         size: [0.7, 0.25, 0.15]
