@@ -22,6 +22,7 @@ TODOs:
 - [ ] Add API reference (doc of each function and more detailed description of each state)
 - [ ] Add a getting started page
 - [ ] Fix weird link-missing behavior of the overview on the left hand side
+- [ ] Tell about table and battery hsr commands and startup
 - [ ] Check whether curl link is working once doc is pushed on main.
 - [ ] Let others read doc and give feedback (they should also look at what links are missing for interactive traversal)
 
