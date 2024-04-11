@@ -66,7 +66,7 @@ In the case of unknown object pose estimation, the result should contain the fol
 Updating the grasping pipeline config
 =====================================
 
-To actually use the new pose estimator, you will need to update the `grasping_pipeline/config/config.yaml` file:
+To actually use the new pose estimator, you will need to update the `grasping_pipeline/config/config.yaml` file and restart the grasping pipeline.
 
 .. code-block:: yaml
 
