@@ -14,8 +14,7 @@ tmux split-window -v
 
 tmux select-pane -t 0
 tmux send-keys "hsrb_mode" C-m
-tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_params.launch" C-m
-tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_PC.launch"
+tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_params.launch && roslaunch grasping_pipeline grasping_pipeline_PC.launch"
 
 tmux select-pane -t 1
 tmux send-keys "hsrb_mode" C-m
@@ -25,7 +24,7 @@ tmux select-pane -t 2
 tmux send-keys "ssh v4r@hsrb.local" C-m
 tmux send-keys "source ~/demos/devel/setup.bash"
 tmux send-keys enter
-tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_robot.launch" C-m
+tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_robot.launch"
 
 tmux select-window -t $SESSION:1
 
