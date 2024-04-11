@@ -1,5 +1,7 @@
 # Grasping Pipeline
-Grasping pipeline for grasping YCBV objects with VeRefine and unkown objects with HAF grasping. 
+Grasping pipeline for grasping, placing and handing over objects with the HSR robot. The pipeline is implemented in ROS.
+
+Link to the [Documentation](https://v4r-tuwien.github.io/grasping_pipeline/)
 
 ## Dependencies
 - [HAF](https://github.com/v4r-tuwien/haf_grasping.git)
