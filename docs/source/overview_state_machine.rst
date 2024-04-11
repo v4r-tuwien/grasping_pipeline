@@ -6,6 +6,12 @@ For a more detailed description of the statemachine, see :doc:`details_state_mac
 
 The statemachine is a finite state machine that is used to control the behavior of the robot. It is implemented in python with the `smach <http://wiki.ros.org/smach>`_ library.
 
+The following diagram shows the structure of the statemachine:
+
+.. image:: images/statemachine_easy.svg
+   :width: 100%
+   :align: center
+
 It currently consists of 5 main components:
 
 * FindGrasp: This component is responsible for calling the pose estimator and finding grasp points for the robot.
@@ -13,6 +19,7 @@ It currently consists of 5 main components:
 * RobotSetup: This component is responsible for moving the robot and all of its joints into a predefined position.
 * Placement: This component is responsible for placing the grasped, known object to its appointed location.
 * Handover: This component is responsible for handing over the grasped object to a human.
+* UserInput states: These states are used to get user input from the operator. The prompts are displayed on the terminal that started the local grasping pipeline nodes.
 
 Each of these components is implemented as a state machine (and therefore consists of multiple states), and the components are all combined into a single, big state machine that controls the behavior of the robot.
 
