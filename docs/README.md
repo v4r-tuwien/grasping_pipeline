@@ -17,3 +17,10 @@ To build the documentation, run the following command:
 sphinx-build -M html source build
 ```
 This will generate the documentation in the `build` directory. It can be viewed by opening the `build/html/index.html` file in a web browser.
+
+Alternatively, you can use the shell script for convenience:
+
+```bash
+bash build_doc.sh
+```
+The shell script will activate the virtual environment and build the documentation.
