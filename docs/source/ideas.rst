@@ -17,6 +17,7 @@ TODOs:
 --------------------
 
 - [ ] Add API reference (doc of each function and more detailed description of each state)
+- [ ] (Re)write comments in google style
 - [ ] Add a getting started page
 - [ ] Tell about table and battery hsr commands and startup
 - [ ] Check whether curl link is working once doc is pushed on main.

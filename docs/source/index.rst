@@ -6,6 +6,11 @@
 Welcome to Grasping Pipeline's documentation!
 =============================================
 
+The Grasping Pipeline implements a somewhat modular pipeline for grasping, placing and handing over objects with the Toyota HSR robot. 
+The pipeline is implemented in Python and uses the Robot Operating System (ROS) for communication with the robot.
+
+.. note:: This documentation is a work in progress.
+
 .. toctree::
    :numbered:
    :maxdepth: 2
@@ -16,6 +21,7 @@ Welcome to Grasping Pipeline's documentation!
    run_new_pose_estimator
    overview_state_machine
    details_state_machine
+   api
    ideas
 
 
