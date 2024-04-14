@@ -321,8 +321,7 @@ class MoveitWrapper:
                                 fraction_th=0.5,
                                 pos_tolerance=0.04, 
                                 ori_tolerance=0.17):
-        """Inverse kinematics control of the whole body for multiple coordinates.
-        Expects odom frame and uses Time.now() as a stamp
+        """Inverse kinematics control of the whole body for multiple coordinates. Expects odom frame and uses Time.now() as a stamp
 
         Args:
             x (float): Target x of end-effector.
@@ -331,12 +330,11 @@ class MoveitWrapper:
             roll (float): Target roll of end-effector.
             pitch (float): Target pitch of end-effector.
             yaw (float): Target yae of end-effector.
-            is_avoid_obstacle (str, optional): Whether or not to avoid obstacles using planning scene.
-                Defaults to True.
+            is_avoid_obstacle (str, optional): Whether or not to avoid obstacles using planning scene. Defaults to True.
             eef_step (float, optional): Operating calculation steps. Defaults to 0.01[m].
-            fraction_th (float, optional): This function is not executed if the calculated fraction is below the threshold.
-                If the calculation was incomplete, fraction indicates the percentage of paths calculated (number of waypoints passed).
-                Defaults to 0.5[m].
+            fraction_th (float, optional): This function is not executed if the calculated fraction is below the threshold. 
+            If the calculation was incomplete, fraction indicates the percentage of paths calculated (number of waypoints passed).
+            Defaults to 0.5[m].
             pos_tolerance (float): The tolerance of positions. Defaults to 0.02[m].
             ori_tolerance (float): The tolerance of orientations. Defaults to 0.17[rad].
 
@@ -386,12 +384,11 @@ class MoveitWrapper:
             roll (float): Target roll of end-effector.
             pitch (float): Target pitch of end-effector.
             yaw (float): Target yae of end-effector.
-            is_avoid_obstacle (str, optional): Whether or not to avoid obstacles using planning scene.
-                Defaults to True.
+            is_avoid_obstacle (str, optional): Whether or not to avoid obstacles using planning scene. Defaults to True.
             eef_step (float, optional): Operating calculation steps. Defaults to 0.01[m].
             fraction_th (float, optional): This function is not executed if the calculated fraction is below the threshold.
-                If the calculation was incomplete, fraction indicates the percentage of paths calculated (number of waypoints passed).
-                Defaults to 0.5[m].
+            If the calculation was incomplete, fraction indicates the percentage of paths calculated (number of waypoints passed).
+            Defaults to 0.5[m].
             pos_tolerance (float, optional): The tolerance of positions. Defaults to 0.02[m].
             ori_tolerance (float, optional): The tolerance of orientations. Defaults to 0.17[rad].
             timeout (float, optional): Timeout time. Defaults to 5.0[sec].

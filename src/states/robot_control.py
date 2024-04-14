@@ -59,7 +59,9 @@ class MoveToJointPositions(smach.State):
 
 class GoBack(smach.State):
     """ Smach state that will move the robot backwards.
+
     Init: distance in meters
+
     Outcomes:
         succeeded
     """

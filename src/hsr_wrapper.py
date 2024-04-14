@@ -1,6 +1,8 @@
 from hsrb_interface import Robot, geometry
 
 class HSR_wrapper:
+    '''
+    Convenience wrapper for commonly used HSR robot commands.'''
 
     def __init__(self):
         self.robot = Robot()

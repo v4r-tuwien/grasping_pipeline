@@ -149,7 +149,8 @@ class ExecuteGraspServer:
         return transform
 
 def qv_mult(q, v):
-    """ Rotating the vector v by quaternion q
+    """Rotating the vector v by quaternion q
+
     Arguments:
         q {list of float} -- Quaternion w,x,y,z
         v {list} -- Vector x,y,z

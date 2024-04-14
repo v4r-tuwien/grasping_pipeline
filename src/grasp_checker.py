@@ -236,6 +236,7 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, name=None, table_plane=None, visu
         Table plane parameters (4 values)
     visualize: bool, optional
         if True, then scene cloud and gripper cloud are published for RViz. Default is False
+    
     Returns
     -------
     valid_poses: geometry_msgs.msg.PoseStamped[]
