@@ -99,6 +99,37 @@ None
 Placement
 =========
 
+This component is responsible for placing the grasped object to its appointed location. This also works for unknown objects with the caveat that you can only specify one placement area for all unknown objects.
+
+It first looks up the name of the object to know where to place it. Then, it moves the robot to the placement area and adjusts the joint angles, so that the target plane is visible to the robot's camera. 
+Then the target plane is detected and the collision environment is updated to prevent the robot from colliding with this plane. 
+Afterwards, suitable placement areas are detected on the target plane (i.e. areas where the object can be placed without colliding with other objects).
+Finally, the object is placed on the target plane by trying to place it on each of the detected placement areas (sorted by distance, so that the farthest area is tried first) until the object is either placed successfully or no further placement area remains.
+
+When placing the object you also have to decide on the orientation of the object (i.e. not only which side of the object should be placed on the table, but also the orientation of the object in the plane).
+We don't know which sides of the object are good for placing (this would require some intelligence or annotations). Therefore, the object is simply placed on the same side as it was standing on when it was grasped. 
+This is done by using the transformation between the robot's end-effector and the object's bottom plane that was recorded during grasping.
+Additionally, the object is rotated so that the robots arm is coming from the front of the shelf. This basically means that, if the robot grasped the object from the (left/right) side, the object is rotated by 90 degrees so that the robot can place the object from the front.
+This is done to make it easier for the robot to place the object, by significantly reducing the risk of colliding with the shelf. 
+
+
+
+Outcomes
+--------
+* **end_placement**: The object was placed successfully.
+* **failed_to_place**: The object could not be placed successfully.
+
+Inputs
+------
+
+* **grasp_object_name (string)**: The name of the grasped object. This name is needed to know where to place the object, as each object has a predefined placement area.
+* **placement_surface_to_wrist (geometry_msgs/Transform)**: The transformation between the robot's end-effector and the object's bottom plane. This transformation is needed to ensure that the object is placed on the same side as it was grasped.
+
+Outputs
+-------
+None
+
+
 ========
 Handover
 ========
@@ -119,11 +150,4 @@ Outputs
 -------
 None
 
-============
-Other states
-============
 
-Some states are currently not used in the statemachine, but are still implemented. These states are:
-
-*
-*
