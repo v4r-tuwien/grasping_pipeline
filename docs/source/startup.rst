@@ -6,7 +6,7 @@ This page will tell you how to start the grasping pipeline. It will also explain
 ******************************
 Starting the grasping pipeline
 ******************************
-If you set up the grasping pipeline according to the installation instructions, you shoult be able to start the grasping pipeline by running the following command in the terminal:
+If you set up the grasping pipeline according to the installation instructions, you should be able to start the grasping pipeline tmux session by running the following command in the terminal:
 
 .. code-block:: console
 
@@ -19,9 +19,20 @@ If you set up the grasping pipeline according to the installation instructions, 
 
        user@host         $ hsr
        root@CONTAINER_ID $ gp 
-
-
+    
 This should open up a tmux session.
+
+.. note:: 
+    The tmux session also runs code on sasha by starting it via ssh. Make sure that sasha is turned on and that the network connection is established. 
+    
+    Additionally, you should setup keys for the ssh connection to sasha (if you haven't done so yet). This way you don't have to enter the password every time you connect to sasha (= every time you start the tmux session). You can do this with the following commands:
+    
+    .. code-block:: console
+
+        $ ssh-keygen
+        $ ssh-copy-id v4r@hsrb.local
+    
+    This creates a key pair and copies the public key to sasha. You should now be able to connect to sasha without entering a password.
 
 ===================
 Tmux session layout
@@ -41,6 +52,7 @@ The first pane is for the grasping pipeline nodes that are running locally, the 
 
 None of the panes are running when the tmux session is started. You can start them by navigating to the corresponding window and pressing enter.
 You should start the nodes in the following order:
+
 1. Start the pose estimator and wait until it is running.
 2. Start both the local and sasha grasping pipeline nodes.
 3. Open rviz if needed.

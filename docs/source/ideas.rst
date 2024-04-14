@@ -24,5 +24,6 @@ TODOs:
 - [ ] Fix weird link-missing behavior of the overview on the left hand side
 - [ ] Tell about table and battery hsr commands and startup
 - [ ] Check whether curl link is working once doc is pushed on main.
+- [ ] Test ssh key stuff, maybe add params so that you can copy commands braindead style
 - [ ] Let others read doc and give feedback (they should also look at what links are missing for interactive traversal)
 
