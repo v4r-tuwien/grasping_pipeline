@@ -24,6 +24,7 @@ extensions = [
     "sphinx_copybutton",      # adds a copy button to code blocks
     "sphinx.ext.autodoc",     # include docstrings from modules
     "sphinx.ext.autosummary", # create summaries of modules, aka API docs
+    "sphinx.ext.napoleon",    # support for Google and numpy-style docstrings
 ]
 
 copybutton_exclude = ".linenos, .gp"
