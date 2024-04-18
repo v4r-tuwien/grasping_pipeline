@@ -24,7 +24,65 @@ from tmc_geometric_shapes_msgs.msg import Shape
 from tmc_placement_area_detector.srv import DetectPlacementArea
 
 class PlaceObjectServer():
+    '''
+    Server for placing an object on a table
+    
+    The server assumes that the object is able to be placed on the same surface that it was standing
+    on when it was grasped (i.e. bottom surface). 
+    The server uses the Toyota placement area detector service to detect valid placement areas for the
+    object. The service takes the object dimensions and object rotation after placement into account
+    to find a suitable placement area.
+    The server also executes the placement action by planning a path which leads to the object being
+    placed 'downwards' onto the table.
+
+    Attributes
+    ----------
+    tf2_wrapper: TF2Wrapper
+        Convenience wrapper for tf2_ros
+    moveit: MoveitWrapper
+        Convenience wrapper for MoveIt
+    hsr_wrapper: HSR_wrapper
+        Convenience wrapper for the Toyota HSR
+    server: actionlib.SimpleActionServer
+        Action server for the place_object action
+    bb_vis: RvizVisualizer
+        Visualizer for bounding boxes. Used to visualize an (enlarged) bounding box around the 
+        target placement area and an estimation of the object rotation after placement
+
+    Parameters
+    ----------
+    placement_area_bb: grasping_pipeline_msgs/BoundingBox3DStamped
+        The bounding box of the target placement area/plane
+    table_plane_equations: list of object_detector_msgs/Plane
+        The plane equations of the detected tables. The equations are used to calculate the plane
+        normals, which are then used to define 'upwards/downwards' for the object placement.
+    table_bbs: vision_msgs/BoundingBox3DArray
+        The bounding boxes of the detected tables. Used to find the actual bounding box of the 
+        target placement area/plane
+    placement_surface_to_wrist: geometry_msgs/Transform
+        Transformation from the object placement surface to the wrist of the robot. This is generally
+        the center of the object plane which touched the table plane, but can also be the 
+        transformation to another surface plane of the object (which would lead to the object being 
+        placed on that plane). This is needed to calculate the correct object dimensions and 
+        orientation for the placement area detection and to calculate the correct placement point
+        for the robot. 
+
+    Returns
+    -------
+    grasping_pipeline_msgs/PlaceActionResult
+        Empty. The server can be set to succeeded or aborted. It is set to succeeded if the object
+        was successfully placed and to aborted if the object could not be placed on any of the
+        detected placement areas. 
+    '''
+    
+    
     def __init__(self):
+        '''
+        Initialize the PlaceObjectServer class.
+
+        Creates a TF2Wrapper, MoveitWrapper, HSR_wrapper, and an action server for the place_object
+        action.
+        '''
         self.tf2_wrapper = TF2Wrapper()
         self.moveit = MoveitWrapper(self.tf2_wrapper, planning_time=10.0)
         self.hsr_wrapper = HSR_wrapper()
@@ -37,6 +95,23 @@ class PlaceObjectServer():
         rospy.loginfo("Init Placement")
     
     def transform_plane_normal(self, table_equation, target_frame, stamp):
+        '''
+        Transform the plane normal to the target frame and normalize it
+        
+        Parameters
+        ----------
+        table_equation: object_detector_msgs/Plane
+            The plane equation
+        target_frame: str
+            The target frame to transform the plane normal to
+        stamp: rospy.Time
+            The timestamp of the transformation
+            
+        Returns
+        -------
+        np.array of shape (3,)
+            The normalized plane normal in the target frame
+        '''
         header = Header()
         header.frame_id = table_equation.header.frame_id
         header.stamp = stamp
@@ -50,6 +125,33 @@ class PlaceObjectServer():
         return plane_normal
 
     def detect_placement_areas(self, wrist_to_table, base_pose, aligned_table_bb_base_frame, placement_area_det_frame, placement_area_bb):
+        '''
+        Detect valid placement areas for the object.
+        
+        Uses the Toyota placement area detector service to detect the placement areas. It takes 
+        the object dimension and object rotation after placement into account to find a suitable
+        placement area.
+        
+        Parameters
+        ----------
+        wrist_to_table: geometry_msgs/Transform
+            Transformation from the wrist to the table 
+        base_pose: geometry_msgs/Pose
+            The current pose of the robot base
+        aligned_table_bb_base_frame: vision_msgs/BoundingBox3D
+            The bounding box of the table aligned to the base frame (This means that the BB x-axis 
+            will be the one that aligns the best with the x-axis of the base frame, and so on for
+            the other axes)
+        placemend_area_det_frame: str
+            The frame in which the placement area detection should be done
+        placement_area_bb: vision_msgs/BoundingBox3D
+            The bounding box of the target placement area/plane
+            
+        Returns
+        -------
+        list of vision_msgs/BoundingBox3D
+            The detected placement areas
+        '''
         if placement_area_bb.header.frame_id != placement_area_det_frame:
             rospy.logerr("Wrong frame for placement area bb. Should probably do a transform here at some point. Expected: %s, got: %s" % (placement_area_det_frame, placement_area_bb.header.frame_id))
             raise NotImplementedError
@@ -65,7 +167,6 @@ class PlaceObjectServer():
         target_bb.center.position.z = target_bb.center.position.z + target_bb.size.z / 2
         target_point = target_bb.center.position
         box_filter_range = target_bb.size
-        rospy.logwarn(f"{box_filter_range = }, target_point = {target_point}")
         target_bb = self.tf2_wrapper.transform_bounding_box(
             bounding_box_to_bounding_box_stamped(target_bb, 'base_link', rospy.Time.now()), 
             placement_area_det_frame)
@@ -77,15 +178,36 @@ class PlaceObjectServer():
 
         target_point = target_bb.center.position
         box_filter_range = target_bb.size
-        rospy.logwarn(f"{box_filter_range = }, target_point = {target_point}")
 
         placement_areas = self.call_placement_area_detector(obj_bb_aligned, placement_area_det_frame, target_point, box_filter_range)
         return placement_areas
         
     
     def get_object_bb_orientation_after_placement(self, base_pose, attached_object_bb, wrist_to_table, aligned_table_bb_base_frame):
-        '''Get the orientation of the object bounding box after placement
-        This is needed to get the correct object dimensions and orientation for the placement area detection
+        '''
+        Calculates the orientation of the object bounding box that it will have after placement.
+        This is needed so that we can pass the correct object dimensions and orientation for the 
+        placement area detector service, so that it can find collision-free placement areas. 
+        
+        Parameters
+        ----------
+        base_pose: geometry_msgs/Pose
+            The current pose of the robot base
+        attached_object_bb: vision_msgs/BoundingBox3D
+            The bounding box of the object that is attached to the robot (aka the object to be placed)
+        wrist_to_table: geometry_msgs/Transform
+            Transformation from the wrist to the table
+        aligned_table_bb_base_frame: vision_msgs/BoundingBox3D
+            The bounding box of the table aligned to the base frame
+        
+        Returns
+        -------
+        vision_msgs/BoundingBox3D
+            The bounding box of the object aligned to the map frame (which is the frame that the
+            placement area detector service uses for the detection). Only the orientation of the
+            bounding box should be used, the translation can not be estimated because it is not
+            known on which part of the table the object will be placed. It's only known how the
+            object will be rotated after placement.
         '''
         # Translate the table bb center to the top of the table. 
         # This is only needed for improving the visualization 
@@ -118,6 +240,32 @@ class PlaceObjectServer():
         return obj_bb_map_frame_aligned
     
     def call_placement_area_detector(self, obj_bb_aligned, placement_area_det_frame, target_point, box_filter_range):
+        '''
+        Call the Toyota placement area detector service to detect valid placement areas for the object.
+
+        The placement area detector looks for suitable placement areas on the table
+        where the object can be placed. The service takes the object dimensions and object rotation
+        after placement into account for finding collision-free placement areas. The service looks
+        for areas inside the box_filter_range around the target_point on the table.
+        
+        Parameters
+        ----------
+        obj_bb_aligned: vision_msgs/BoundingBox3D
+            The bounding box of the object aligned to the base frame
+        placement_area_det_frame: str
+            The frame in which the placement area detection should be done
+        target_point: geometry_msgs/Point
+            A rough estimation of a point on the table (best if its middle point)
+        box_filter_range: geometry_msgs/Vector3
+            Filters pointcloud in x,y,z direction around target point (if x_range = 0.2: filters out
+            everything that is not inside target_point +- 0.1)
+        
+        Returns
+        -------
+        list of vision_msgs/BoundingBox3D
+            The detected placement areas. As long as no placement areas are found, the service will
+            be called again and again (aka endless loop might happen)
+        '''
         vertical_axis = Vector3()
         vertical_axis.x = 0.0
         vertical_axis.y = 0.0
@@ -185,9 +333,20 @@ class PlaceObjectServer():
                 print("ErrorCode: ZERO_VECTOR")
     
     def test_bb_plane_intersection(self, bb_pts, plane):
-        '''Check if the bounding box intersects with the plane
-        bb_pts: 8 xyz points of the bounding box corners in the form of an array of shape (8, 3)
+        '''
+        Check if the bounding box intersects with the plane
+        
+        Parameters
+        ----------
+        bb_pts: np.array of shape (8, 3)
+            xyz-points of the bounding box corners
         plane: object_detector_msgs/Plane
+            The plane equation
+        
+        Returns
+        -------
+        bool
+            True if the bounding box intersects with the plane, False otherwise
         '''
         num_pts_above_plane = 0
         for pt in bb_pts:
@@ -201,9 +360,21 @@ class PlaceObjectServer():
         return num_pts_above_plane == 0 or num_pts_above_plane == 8
                 
     def find_intersecting_table_plane(self, table_planes, bb):
-        '''Returns the index of one of the table planes that the object is intersecting with
+        '''
+        Returns the index of one of the table planes that the bounding box is intersecting with
+        
+        Parameters
+        ----------
         table_planes: list of object_detector_msgs/Plane
+            The plane equations of the table planes which are checked for intersection with the bb
         bb: o3d.geometry.OrientedBoundingBox
+            The bounding box which is checked for intersection with the table planes
+        
+        Returns
+        -------
+        int or None
+            The index of the table plane that the bounding box is intersecting with. None if no 
+            intersection is found
         '''
         bb_pts = np.asarray(bb.get_box_points())
         for i, plane in enumerate(table_planes):
@@ -212,6 +383,21 @@ class PlaceObjectServer():
         return None
     
     def sort_placement_areas_by_distance(self, placement_areas, base_pose_map):
+        '''
+        Sort the placement areas by distance to the robot base.
+        
+        Parameters
+        ----------
+        placement_areas: list of vision_msgs/BoundingBox3D
+            The placement areas which should be sorted
+        base_pose_map: geometry_msgs/PoseStamped
+            The current pose of the robot base
+        
+        Returns
+        -------
+        list of vision_msgs/BoundingBox3D
+            The sorted placement areas
+        '''
         distances = []
         base_pose_np = np.array([base_pose_map.pose.position.x, base_pose_map.pose.position.y])
         for placement_area in placement_areas:
@@ -230,6 +416,20 @@ class PlaceObjectServer():
         return sorted_placement_areas
     
     def get_surface_to_wrist_transform(self, object_placement_surface_pose):
+        '''
+        Get the transformation from the object placement surface to the wrist
+
+        Parameters
+        ----------
+        object_placement_surface_pose: geometry_msgs/Pose
+            The pose of the object placement surface relative to the wrist coordinate frame 
+            (i.e. the 'bottom' surface of the object)
+        
+        Returns
+        -------
+        np.array of shape (4, 4)
+            The transformation from the object placement surface to the wrist
+        '''
         transform = np.eye(4)
         transform[:3, :3] = quat_to_rot_mat(object_placement_surface_pose.rotation)
         transform[:3, 3] = [
@@ -240,6 +440,41 @@ class PlaceObjectServer():
         return surface_to_wrist
 
     def execute(self, goal):
+        '''
+        Execute the place_object action.
+        
+        In the first step the table plane that intersects with the target placement area is found 
+        (the target placement area is the bounding box of the table which is read from the config 
+        file. This is sometimes a couple of centimeters off from the currently detected tables, 
+        because the map is never identical for each run. Therefore we look for the table that matches
+        the closest with the one we expect from the config file)
+
+        Then the placement areas are detected. The placement areas are the areas on the table where
+        the object can be placed. The placement areas are detected by the Toyota placement area 
+        service. The service takes the object dimensions and object rotation after placement into
+        account to find a suitable placement area.
+        
+        The placement areas are sorted by distance to the robot base (farthest are tried first so
+        that the object is placed as far away into the shelf as possible).
+
+        The bounding boxes are all aligned to the base frame (i.e. the coordinate frames are rotated
+        in such a way that all axes are aligned with all axes from the base frame). This makes it 
+        easier to calculate what part of the objects and table are in front/left/right of the robot.
+
+        Afterwards the robot tries all placement areas one by one until it succeeds or all placement
+        areas have been tried. The robot plans a path based on two waypoints: the first waypoint is
+        the actual placement point and the second waypoint is directly above the placement point. 
+        This leads to a motion where the object is placed "downwards" onto the table.
+        
+        
+        Parameters
+        ----------
+        goal: grasping_pipeline_msgs/PlaceActionGoal
+            The goal of the place_object action. Contains the bounding box of the target placement 
+            area, bounding boxes and plane equations of detected tables, and the transformation from
+            the object placement surface to the wrist (transformation from the center of the object 
+            plane which touched the table plane, i.e. the 'bottom' surface of the object).
+        '''
         rospy.loginfo("Placement: Executing")
         base_frame = 'base_link'
         eef_frame = 'hand_palm_link'
@@ -275,6 +510,9 @@ class PlaceObjectServer():
             header = Header(stamp=rospy.Time.now(), frame_id= placement_area_det_frame)
             placement_point = PoseStamped(header=header, pose=placement_area.center)
             placement_point = self.tf2_wrapper.transform_pose(base_frame, placement_point)
+            # set the orientation of the placement point to the orientation of the table (which is aligned with the base frame)
+            # This is needed because the surface to wrist transformation assumes this to be the case.
+            # Otherwise the object would be placed rotated by 90 degrees
             placement_point.pose.orientation = quat
             self.add_marker(placement_point, 5000000, 0, 0, 1)
             
@@ -289,7 +527,6 @@ class PlaceObjectServer():
             placement_point_transform = np.eye(4)
             placement_point_transform[:3, :3] = placement_point_rot_mat
             placement_point_transform[:3, 3] = placement_point_transl
-            #TODO check if hand_palm_point rotation is in x dir or y dir -> use the one that show in -x dir
             hand_palm_point = placement_point_transform @ surface_to_wrist
             hand_palm_point_ros = PoseStamped(header=placement_point.header, pose=np_transform_to_ros_pose(hand_palm_point))
             
@@ -340,6 +577,24 @@ class PlaceObjectServer():
             self.server.set_aborted()
     
     def add_marker(self, pose_goal, id=0, r=0, g=1, b=0):
+        '''
+        Add a marker to the RViz visualization. The topic is grasping_pipeline/placement_marker.
+        
+        The marker is an arrow that points in the direction of the z-axis of the pose_goal.
+        
+        Parameters
+        ----------
+        pose_goal: geometry_msgs/PoseStamped
+            The pose to visualize
+        id: int
+            The id of the marker. Creating a new marker with the same id will overwrite the old marker.
+        r: float
+            The red color value of the marker
+        g: float
+            The green color value of the marker
+        b: float
+            The blue color value of the marker
+            '''
         br = tf.TransformBroadcaster()
         br.sendTransform((pose_goal.pose.position.x, pose_goal.pose.position.y, pose_goal.pose.position.z),
                          [pose_goal.pose.orientation.x, pose_goal.pose.orientation.y,

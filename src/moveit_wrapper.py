@@ -42,13 +42,18 @@ import trajectory_msgs
 
 
 class MoveitWrapper:
-    """Moveit Wrapper used for Sasha."""
+    """Convenience Moveit Wrapper for Sasha."""
 
     def __init__(self, libtf, planning_time=5.0):
-        """Constructor.
+        """
+        Initializes the MoveitWrapper.
 
-        Args:
-            libtf (instance): TF2 library instance
+        Parameters
+        ----------
+        libtf : tf_wrapper
+            Instance of the tf_wrapper class
+        planning_time : float, optional
+            The time to plan a trajectory, by default 5.0
         """
         self.lib = {"tf": libtf}
 
@@ -56,6 +61,25 @@ class MoveitWrapper:
 
     
     def init_moveit(self, planning_time):
+        '''
+        Initializes the moveit commander and returns the whole_body, gripper, scene and robot objects
+        
+        Parameters
+        ----------
+        planning_time : float
+            The time to plan a trajectory
+        
+        Returns
+        -------
+        whole_body : moveit_commander.MoveGroupCommander
+            The whole body move group commander
+        gripper : moveit_commander.MoveGroupCommander
+            The gripper move group commander
+        scene : moveit_commander.PlanningSceneInterface
+            The planning scene interface
+        robot : moveit_commander.RobotCommander
+            The robot commander
+        '''
         # handle non default HSR topic name :)))))))
         moveit_commander.roscpp_initialize(['joint_states:=/hsrb/joint_states'])
 
@@ -79,43 +103,49 @@ class MoveitWrapper:
         
         return whole_body, gripper, scene, robot
 
-    def delete(self):
-        self.scene.remove_world_object()
-        for key in self.lib.keys():
-            self.lib[key].delete()
-        return
-
     def set_whole_body_vel(self, vel=1.0):
-        """Set the maximum speed of the whole_body.
+        """
+        Set the maximum speed of the whole_body.
 
-        Args:
-            vel (float, optional): Maximum speed value.
-                The value must be between 0.0 and 1.0. Defaults to 1.0.
-        """ 
+        Parameters
+        ----------
+        vel : float, optional
+            Maximum speed value. The value must be between 0.0 and 1.0, by default 1.0
+        """
         self.whole_body.set_max_velocity_scaling_factor(float(vel))
         return
 
     def set_whole_body_acc(self, acc=1.0):
-        """Set the maximum acceleration of the whole_body.
+        """
+        Set the maximum acceleration of the whole_body.
 
-        Args:
-            vel (float, optional): Maximum acceleration value.
-                The value must be between 0.0 and 1.0. Defaults to 1.0.
+        Parameters
+        ----------
+        acc : float, optional
+            Maximum acceleration value. The value must be between 0.0 and 1.0, by default 1.0
         """
         self.whole_body.set_max_acceleration_scaling_factor(float(acc))
         return
 
     def all_close(self, goal, actual, pos_tolerance, ori_tolerance):
-        """Judges whether the actual value is within the tolerance for the goal value.
+        """
+        Judges whether the actual value is within the tolerance for the goal value.
 
-        Args:
-            goal (list[float], geometry_msgs/Pose, geometry_msgs/PoseStamped): The goal value.
-            actual (list[float], geometry_msgs/Pose, geometry_msgs/PoseStamped): The actual value.
-            pos_tolerance (float): The tolerance of positions.
-            ori_tolerance (float): The tolerance of orientations.
+        Parameters
+        ----------
+        goal : list[float], geometry_msgs/Pose, geometry_msgs/PoseStamped
+            The goal value
+        actual : list[float], geometry_msgs/Pose, geometry_msgs/PoseStamped
+            The actual value
+        pos_tolerance : float
+            The tolerance for the positions
+        ori_tolerance : float
+            The tolerance for the orientations
 
-        Returns:
-            bool: Return True if the value is within the tolerance.
+        Returns
+        -------
+        bool
+            True if the value is within the tolerance
         """
         if type(goal) is list:
             for index in range(len(goal)):
@@ -137,26 +167,65 @@ class MoveitWrapper:
         return True
     
     def current_pose_close_to_target(self, target_pose, pos_tolerance=0.04, ori_tolerance=0.17):
+        '''
+        Checks if the current pose is close to the target pose
+        
+        Parameters
+        ----------
+        target_pose : geometry_msgs/Pose
+            The target pose
+        pos_tolerance : float, optional
+            The tolerance for the positions, by default 0.04
+        ori_tolerance : float, optional
+            The tolerance for the orientations, by default 0.17
+        
+        Returns
+        -------
+        bool
+            True if the current pose is close to the target pose
+        '''
         current_pose = self.whole_body.get_current_pose().pose
         return self.all_close(target_pose, current_pose, pos_tolerance, ori_tolerance)
     
     def attach_object(self, object_name, touch_links=[]):
+        '''
+        Attaches an object to the robot eef
+        
+        Parameters
+        ----------
+        object_name : str
+            The name of the object to attach. Must be a known object in the planning scene.
+        touch_links : list[str], optional
+            The links that are allowed to touch the object (e.g. parts of the gripper), by default []
+        '''
         self.whole_body.attach_object(object_name, touch_links=touch_links)
 
     def detach_all_objects(self):
+        '''
+        Detaches all objects from the robot eef
+        
+        Parameters
+        ----------
+        object_name : str
+            The name of the object to detach. Must be a known object in the planning scene.
+        '''
         self.whole_body.detach_object()
 
     def add_box(self, name, frame, pose, size):
-        """Add a box to the planning scene.
+        """
+        Add a box to the planning scene.
 
-        Args:
-            name (str): The name of box.
-            frame (str): The name of frame.
-            pose (geometry_msgs/Point, geometry_msgs/Pose): Coordinates to add a box.
-            size (list[float]): The size of box. The size is given as a (x, y, z).
-        
-        Examples:
-            add_box("box_0", "world", Point(0.0, 0.1, 0.2), (0.1, 0.1, 0.1))
+        Parameters
+        ----------
+        name : str
+            The name of the box
+        frame : str
+            The frame of the passed pose
+        pose : geometry_msgs/Point, geometry_msgs/Pose
+            Pose of the box relative to the frame. If geometry_msgs/Point is passed, the orientation
+            is set to (0, 0, 0, 1), otherwise the orientation is set to the passed value.
+        size : list[float]
+            The size of the box as (x, y, z)
         """
         box_pose = PoseStamped()
         box_pose.header.frame_id = frame
@@ -169,17 +238,22 @@ class MoveitWrapper:
         return
 
     def add_cylinder(self, name, frame, pose, height, radius):
-        """Add a cylinder to the planning scene.
+        """
+        Add a cylinder to the planning scene.
 
-        Args:
-            name (str): The name of box.
-            frame (str): The name of frame.
-            pose (geometry_msgs/Point, geometry_msgs/Pose): Coordinates to add a cylinder.
-            height (float): The height of cylinder.
-            radius (float): The radius of cylinder.
-        
-        Examples:
-            add_cylinder("cylinder_0", "world", Point(0.0, 0.1, 0.2), (0.1, 0.1, 0.1))
+        Parameters
+        ----------
+        name : str
+            The name of the cylinder
+        frame : str
+            The frame of the passed pose
+        pose : geometry_msgs/Point, geometry_msgs/Pose
+            Pose of the cylinder relative to the frame. If geometry_msgs/Point is passed, the 
+            orientation is set to (0, 0, 0, 1), otherwise the orientation is set to the passed value
+        height : float
+            The height of the cylinder in meters
+        radius : float
+            The radius of the cylinder in meters
         """
         cylinder_pose = PoseStamped()
         cylinder_pose.header.frame_id = frame
@@ -189,20 +263,22 @@ class MoveitWrapper:
             cylinder_pose.pose = pose
         self.scene.add_cylinder(name, cylinder_pose, height, radius)
 
-
         return 
 
     def add_model_from_sdf(self, frame, point, euler, sdf):
-        """Add a model from sdf to the planning scene.
+        """
+        Add a model from a sdf-file to the planning scene.
 
-        Args:
-            frame (str): The name of frame.
-            point (geometry_msgs/Point): Coordinates to add a model.
-            euler (geometry_msgs/Point): Euler angles of the model to be added.
-            sdf (str): SDF file path.
-        
-        Examples:
-            add_model_from_sdf("world", Point(0.0, 0.1, 0.2), Point(0.0, 0.0, 1.57))
+        Parameters
+        ----------
+        frame : str
+            The name of the frame
+        point : geometry_msgs/Point
+            The coordinates to add the model
+        euler : geometry_msgs/Point
+            The euler angles of the model to be added
+        sdf : str
+            The path to the sdf file
         """
         tree = ET.parse(sdf)
         root = tree.getroot()
@@ -273,21 +349,30 @@ class MoveitWrapper:
         return
 
     def whole_body_IK(self, x, y, z, q, frame="odom", pos_tolerance=0.02, ori_tolerance=0.17):
-        """Inverse kinematics control of the whole body.
+        """
+        Plans and executes a motion to the target pose.
 
-        Args:
-            x (float): Target x of end-effector.
-            y (float): Target y of end-effector.
-            z (float): Target z of end-effector.
-            roll (float): Target roll of end-effector.
-            pitch (float): Target pitch of end-effector.
-            yaw (float): Target yae of end-effector.
-            frame (str, optional): The name of reference frame. Defaults to "odom".
-            pos_tolerance (float): The tolerance of positions. Defaults to 0.02[m].
-            ori_tolerance (float): The tolerance of orientations. Defaults to 0.17[rad].
+        Parameters
+        ----------
+        x : float
+            Target x-coordinate of the end-effector
+        y : float
+            Target y-coordinate of the end-effector
+        z : float
+            Target z-coordinate of the end-effector
+        q : geometry_msgs/Quaternion
+            Target orientation of the end-effector
+        frame : str, optional
+            The name of the reference frame, by default "odom"
+        pos_tolerance : float, optional
+            The tolerance for the positions, by default 0.02. Used to check if the IK was successful
+        ori_tolerance : float, optional
+            The tolerance for the orientations, by default 0.17. Used to check if the IK was successful
 
-        Returns:
-            bool: Execution result.
+        Returns
+        -------
+        bool
+            True if the IK was successful, False otherwise
         """
         p = PoseStamped()
         p.header.frame_id = frame
@@ -306,6 +391,31 @@ class MoveitWrapper:
         return self.all_close(p, current_pose, pos_tolerance, ori_tolerance)
 
     def whole_body_IK_cartesian_plan(self, waypoints, is_avoid_obstacle, eef_step, fraction_th):
+        '''
+        Compute a sequence of waypoints that make the end-effector move in straight line segments 
+        that follow the poses specified as waypoints.
+
+        Configurations are computed for every eef_step meters.
+        
+        Parameters
+        ----------
+        waypoints : list[geometry_msgs/Pose]
+            The waypoints to plan a path for. The frame of the poses should be the same as the 
+            planning frame
+        is_avoid_obstacle : bool
+            Whether obstacles should be avoided
+        eef_step : float
+            The step size for the calculation
+        fraction_th : float
+           Threshold for the fraction of the path. The fraction itself indicates the percentage of
+           how much of the path was followed. If the fraction of the plan is smaller than the value
+           of the fraction threshold, the function does not return a plan.
+        
+        Returns
+        -------
+        moveit_commander.RobotTrajectory
+            The computed plan 
+        '''
         plan, fraction = self.whole_body.compute_cartesian_path(
             waypoints, eef_step, 0.0, is_avoid_obstacle)
         if fraction < fraction_th:
@@ -321,25 +431,38 @@ class MoveitWrapper:
                                 fraction_th=0.5,
                                 pos_tolerance=0.04, 
                                 ori_tolerance=0.17):
-        """Inverse kinematics control of the whole body for multiple coordinates. Expects odom frame and uses Time.now() as a stamp
-
-        Args:
-            x (float): Target x of end-effector.
-            y (float): Target y of end-effector.
-            z (float): Target z of end-effector.
-            roll (float): Target roll of end-effector.
-            pitch (float): Target pitch of end-effector.
-            yaw (float): Target yae of end-effector.
-            is_avoid_obstacle (str, optional): Whether or not to avoid obstacles using planning scene. Defaults to True.
-            eef_step (float, optional): Operating calculation steps. Defaults to 0.01[m].
-            fraction_th (float, optional): This function is not executed if the calculated fraction is below the threshold. 
-            If the calculation was incomplete, fraction indicates the percentage of paths calculated (number of waypoints passed).
-            Defaults to 0.5[m].
-            pos_tolerance (float): The tolerance of positions. Defaults to 0.02[m].
-            ori_tolerance (float): The tolerance of orientations. Defaults to 0.17[rad].
-
-        Returns:
-            bool: Execution result.
+        """
+        Plan and execute a motion to the target pose using inverse kinematics control of the whole body.
+        
+        Assumes the coordinates to be in the planning scene frame and uses Time.now() as a stamp.
+    
+        Parameters
+        ----------
+        x : float
+            Target x-coordinate of the end-effector
+        y : float
+            Target y-coordinate of the end-effector
+        z : float
+            Target z-coordinate of the end-effector
+        q : geometry_msgs/Quaternion
+            Target orientation of the end-effector
+        is_avoid_obstacle : bool, optional
+            Whether obstacles should be avoided, by default True
+        eef_step : float, optional
+            The step size for the calculation, by default 0.01
+        fraction_th : float, optional
+            Threshold for the fraction of the path. The fraction itself indicates the percentage of
+            how much of the path was followed. If the fraction of the plan is smaller than the value
+            of the fraction threshold, the function does not return a plan, by default 0.5
+        pos_tolerance : float, optional
+            The tolerance for the positions, by default 0.04
+        ori_tolerance : float, optional
+            The tolerance for the orientations, by default 0.17
+        
+        Returns
+        -------
+        bool
+            True if the IK was successfully planned and executed, False otherwise
         """
         p = Pose()
         waypoints = []
@@ -368,33 +491,45 @@ class MoveitWrapper:
             return False
         
         
-    def whole_body_IK_cartesian_with_timeout(self, x, y, z, roll, pitch, yaw, 
+    def whole_body_IK_cartesian_with_timeout(self, x, y, z, q, 
                                              is_avoid_obstacle=True, 
                                              eef_step=0.01,
                                              fraction_th=0.5,
                                              pos_tolerance=0.02, 
                                              ori_tolerance=0.17,
                                              timeout=5.0):
-        """Inverse kinematics control of the whole body for multiple coordinates with timeout.
+        """
+        Plans and executes a motion to the target pose for multiple coordinates with a timeout.
+        
+        Parameters
+        ----------
+        x : float
+            Target x-coordinate of the end-effector
+        y : float
+            Target y-coordinate of the end-effector
+        z : float
+            Target z-coordinate of the end-effector
+        q : geometry_msgs/Quaternion
+            Target orientation of the end-effector
+        is_avoid_obstacle : bool, optional
+            Whether obstacles should be avoided, by default True
+        eef_step : float, optional
+            The step size for the calculation, by default 0.01
+        fraction_th : float, optional
+            Threshold for the fraction of the path. The fraction itself indicates the percentage of
+            how much of the path was followed. If the fraction of the plan is smaller than the value
+            of the fraction threshold, the function does not return a plan, by default 0.5
+        pos_tolerance : float, optional
+            The tolerance for the positions, by default 0.02
+        ori_tolerance : float, optional
+            The tolerance for the orientations, by default 0.17
+        timeout : float, optional
+            The timeout in seconds, by default 5.0. If the timeout is reached, the function aborts.
 
-        Args:
-            x (float): Target x of end-effector.
-            y (float): Target y of end-effector.
-            z (float): Target z of end-effector.
-            roll (float): Target roll of end-effector.
-            pitch (float): Target pitch of end-effector.
-            yaw (float): Target yae of end-effector.
-            is_avoid_obstacle (str, optional): Whether or not to avoid obstacles using planning scene. Defaults to True.
-            eef_step (float, optional): Operating calculation steps. Defaults to 0.01[m].
-            fraction_th (float, optional): This function is not executed if the calculated fraction is below the threshold.
-            If the calculation was incomplete, fraction indicates the percentage of paths calculated (number of waypoints passed).
-            Defaults to 0.5[m].
-            pos_tolerance (float, optional): The tolerance of positions. Defaults to 0.02[m].
-            ori_tolerance (float, optional): The tolerance of orientations. Defaults to 0.17[rad].
-            timeout (float, optional): Timeout time. Defaults to 5.0[sec].
-
-        Returns:
-            bool: Execution result.
+        Returns
+        -------
+        bool
+            True if the IK was successfully planned and executed, False otherwise
         """
         stats = False
         start = rospy.Time.now()
@@ -403,12 +538,24 @@ class MoveitWrapper:
                 rospy.logwarn("[" + rospy.get_name() + "]: whole_body_IK_cartesian is terminated by timeout.")
                 return False
 
-            stats = self.whole_body_IK_cartesian(x, y, z, roll, pitch, yaw,
+            stats = self.whole_body_IK_cartesian(x, y, z, q,
                                                  is_avoid_obstacle, eef_step, fraction_th,
                                                  pos_tolerance, ori_tolerance)
         return True
 
     def whole_body_plan_and_go(self, pose_target):
+        '''
+        Plans and executes a motion to the target pose
+        
+        Parameters
+        ----------
+        pose_target : geometry_msgs/PoseStamped
+            The target pose
+        
+        Returns
+        -------
+        bool
+            True if the plan was found and executed, False otherwise'''
         self.whole_body.set_pose_target(pose_target)
         plan_found, plan, planning_time, error_code = self.whole_body.plan()
         if plan_found:
@@ -417,21 +564,78 @@ class MoveitWrapper:
         return False
     
     def get_objects(self, object_names = []):
+        '''
+        Returns the objects in the planning scene
+        
+        Parameters
+        ----------
+        object_names : list[str], optional
+            The names of the objects to return. If empty, all objects are returned, by default []
+        
+        Returns
+        -------
+        dict
+            The objects in the planning scene. The keys are the object names and the values are the 
+            objects (moveit_msgs/CollisionObject)'''
         return self.scene.get_objects(object_names)
     
     def get_object_poses(self, object_names):
+        '''
+        Returns the poses of the objects in the planning scene
+        
+        Parameters
+        ----------
+        object_names : list[str]
+            The names of the objects to return
+        
+        Returns
+        -------
+        dict
+            The poses of the objects in the planning scene. The keys are the object names and the 
+            values are the poses (geometry_msgs/Pose). The frame of the poses is the planning frame.
+        '''
         return self.scene.get_object_poses(object_names)
 
     def get_attached_objects(self, object_names = []):
+        '''
+        Returns the attached objects
+        
+        Parameters
+        ----------
+        object_names : list[str], optional
+            The names of the objects to return. If empty, all attached objects are returned, by 
+            default []
+        
+        Returns
+        -------
+        dict
+            The attached objects. The keys are the object names and the values are the objects
+            (moveit_msgs/AttachedCollisionObject)    
+        '''
         return self.scene.get_attached_objects(object_names)
 
     def get_planning_frame(self, group="whole_body"):
+        '''
+        Returns the planning frame of the specified group
+        
+        Parameters
+        ----------
+        group : str, optional
+            The name of the group, by default "whole_body"
+        
+        Returns
+        -------
+        str
+            The planning frame of the specified group
+        '''
         if group == "whole_body":
             return self.whole_body.get_planning_frame()
         else:
             raise NotImplementedError
     
     def gripper_open(self):
+        '''
+        Opens the gripper. The gripper is opened by moving the hand_motor_joint to 1.0'''
         t = moveit_msgs.msg.RobotTrajectory()
         t.joint_trajectory.joint_names = ["hand_motor_joint"]
         p = trajectory_msgs.msg.JointTrajectoryPoint()
@@ -442,6 +646,9 @@ class MoveitWrapper:
         self.gripper.execute(t)
 
     def gripper_grasp(self):
+        '''
+        Closes the gripper to grasp an object.
+        '''
         t = moveit_msgs.msg.RobotTrajectory()
         t.joint_trajectory.joint_names = ["hand_motor_joint"]
         p = trajectory_msgs.msg.JointTrajectoryPoint()
@@ -452,18 +659,47 @@ class MoveitWrapper:
         self.gripper.execute(t)
     
     def get_link_names(self, group = None):
+        '''
+        Returns the link names of the specified group
+        
+        Parameters
+        ----------
+        group : str, optional
+            The name of the group, by default None
+        
+        Returns
+        -------
+        list[str]
+            All link names of the specified group.
+        '''
         return self.robot.get_link_names(group)
     
     def set_endeffector(self, eef):
+        '''
+        Sets which link should be used as the end effector
+        
+        Parameters
+        ----------
+        eef : str
+            The name of the end effector link
+        '''
         self.whole_body.set_end_effector_link(eef)
     
     def get_current_pose(self, frame):
         """
         Returns the current pose of the robot base in the specified frame
-
-        frame: str, frame to transform to
-        Returns: geometry_msgs/PoseStamped 
+        
+        Parameters
+        ----------
+        frame : str
+            The frame to transform the base pose to
+        
+        Returns
+        -------
+        geometry_msgs/PoseStamped
+            The current pose of the robot base in the specified frame
         """
+        
         p = PoseStamped()
         p.header.frame_id = 'base_link'
         p.header.stamp = rospy.Time.now()

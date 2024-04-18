@@ -19,6 +19,19 @@ from grasping_pipeline_msgs.msg import ExecuteGraspAction, ExecuteGraspResult
 
 
 class ExecuteGraspServer:
+    '''
+    The ExecuteGraspServer class is a ROS action server that plans and executes a grasp pose.
+    
+    It receives a goal with a list of grasp poses and tries to execute them one by one. If a grasp
+    pose is successfully executed, the object is grasped and the server returns the transform from
+    the object's bottom surface to the wrist frame. If no grasp pose is successfully executed, the
+    server returns terminates with an aborted status.
+
+    The server first moves the robot gripper to a point that is a certain safety distance away from 
+    the object, before moving the gripper to the grasp pose. This is to avoid collisions with the
+    object. After grasping the object, the server moves the object up by a certain distance to avoid
+    collisions with the table. Finally, 
+    '''
     def __init__(self):
         self.tf_wrapper = TF2Wrapper()
         rospy.loginfo("Execute grasp: Waiting for moveit")
@@ -149,14 +162,20 @@ class ExecuteGraspServer:
         return transform
 
 def qv_mult(q, v):
-    """Rotating the vector v by quaternion q
+    """
+    Rotates the vector v by the quaternion q
 
-    Arguments:
-        q {list of float} -- Quaternion w,x,y,z
-        v {list} -- Vector x,y,z
-
-    Returns:
-        numpy array -- rotated vector
+    Parameters
+    ----------
+    q : list of float
+        Quaternion w,x,y,z
+    v : list
+        Vector x,y,z
+        
+    Returns
+    -------
+    numpy array
+        Rotated vector (x,y,z)
     """
     rot_mat = tf.transformations.quaternion_matrix(q)[:3, :3]
     v = np.array(v)
