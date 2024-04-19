@@ -25,6 +25,7 @@ extensions = [
     "sphinx.ext.autodoc",     # include docstrings from modules
     "sphinx.ext.autosummary", # create summaries of modules, aka API docs
     "sphinx.ext.napoleon",    # support for Google and numpy-style docstrings
+    "sphinx_rtd_theme"
 ]
 
 copybutton_exclude = ".linenos, .gp"
@@ -46,5 +47,6 @@ templates_path = ['_templates']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "furo"
+#html_theme = "furo"
+html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
