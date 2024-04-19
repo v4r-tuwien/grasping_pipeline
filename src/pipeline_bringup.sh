@@ -1,6 +1,10 @@
 #!/bin/bash
 
 SESSION=GRASPING_PIPELINE
+FILE_PATH=${BASH_SOURCE[0]}
+
+SCRIPT_DIR=$(dirname "$0")
+echo "Script directory is: $SCRIPT_DIR"
 
 tmux -2 new-session -d -s $SESSION
 tmux set -g mouse on
@@ -14,6 +18,7 @@ tmux split-window -v
 
 tmux select-pane -t 0
 tmux send-keys "hsrb_mode" C-m
+tmux send-keys "source $SCRIPT_DIR/../../../devel/setup.bash" C-m
 tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_params.launch && roslaunch grasping_pipeline grasping_pipeline_PC.launch"
 
 tmux select-pane -t 1
@@ -33,7 +38,6 @@ tmux send-keys "ssh v4r@hsrb.local" C-m
 tmux send-keys "source ~/demos/devel/setup.bash"
 tmux send-keys enter
 tmux send-keys "roslaunch hsrb_moveit_config move_group.launch" C-m
-
 
 tmux select-window -t $SESSION:0
 tmux select-pane -t 0

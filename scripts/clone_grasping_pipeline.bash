@@ -17,5 +17,7 @@ git clone https://github.com/v4r-tuwien/object_detector_msgs.git
 git clone https://github.com/v4r-tuwien/grasping_pipeline_msgs.git
 git clone https://gitlab.informatik.uni-bremen.de/robokudo/robokudo_msgs.git
 
-cd haf_grasping/libsvm-3.12
+cd haf_grasping
+git checkout bremen_wrapper
+cd libsvm-3.12
 make
