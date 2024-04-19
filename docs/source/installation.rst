@@ -38,11 +38,25 @@ This option assumes that you already have installed:
 * ROS noetic and the most common ROS packages (ros-noetic-desktop-full)
 * The toyota HSR packages (ros-noetic-tmc-desktop-full)
 * moveit (ros-noetic-moveit)
+* vision-msgs (ros-noetic-vision-msgs)
+* tf2-sensor-msgs (ros-noetic-tf2-sensor-msgs)
+* ros-numpy (ros-noetic-ros-numpy)
 
 If you have not installed these packages yet, please refer to the commands in the **Dockerfile of the HSRB_ROS_Docker_Image repository** (`Link <https://github.com/v4r-tuwien/HSRB-ROS-Docker-Image/blob/main/docker/hsr-devel/Dockerfile>`_) on how to install ROS, the toyota HSR packages and moveit. If possible, use the versions specified in the Dockerfile.
 
 .. warning::
    You will need access to the private v4r github repositories, because some of the repositories include confidential data from toyota. This means that you have to setup your github ssh-key (`Link for instructions <https://docs.github.com/en/authentication/connecting-to-github-with-ssh>`_)
+
+===========================
+Creating a catkin workspace
+===========================
+We recommend to create a new catkin workspace for the grasping pipeline. You can do so with the following commands:
+
+.. code-block:: console
+
+    $ mkdir -p ~/catkin_ws/src
+    $ cd ~/catkin_ws
+    $ catkin build
 
 ==========================================
 Cloning all grasping pipeline repositories
@@ -74,10 +88,31 @@ To install the dependencies (either in the virtual environment or system-wide):
     $ cd ~/catkin_ws/src/grasping_pipeline
     $ pip install -r requirements.txt
 
+.. note::
+    If you encounter an error while installing the dependencies, you might need to update your pip 
+    version:
+    
+    .. code-block:: console
+    
+        $ pip install --upgrade pip==22.3.1 --user
+    
+    This installs the new pip version in the ```~/.local/bin``` directory. Make sure to add this directory to your PATH variable in your .bashrc file:
+
+    .. code-block:: console
+
+        $ echo "export PATH=$PATH:/home/INSERT_USERNAME/.local/bin" >> ~/.bashrc
+    
+    Afterwards, source the .bashrc file:
+
+    .. code-block:: console
+
+        $ source ~/.bashrc
+
 ===============
 Helpful aliases
 ===============
-It is recommended to add the following aliases to your .bashrc file to make it easier to use the grasping pipeline:
+It is recommended to add the following aliases to your .bashrc file to make it easier to use the grasping pipeline.
+The aliases make it possible to start the grasping pipeline and rviz by simply typing `gp` and `rv` in the terminal.
 
 ------------------------------------------------
 Add an alias for starting the grasping pipeline:
@@ -119,3 +154,9 @@ Finally, build the workspace:
 
 If you encounter an error while building because some packages are missing, please look at the error messages and try to install the missing packages using apt-get or pip and notify one of the roadies of this issue.
 
+After building the workspace, you can source the setup.bash file:
+
+.. code-block:: console
+
+    $ cd ~/catkin_ws
+    $ source devel/setup.bash

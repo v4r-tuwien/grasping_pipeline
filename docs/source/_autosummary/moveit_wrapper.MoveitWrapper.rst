@@ -23,7 +23,6 @@ moveit\_wrapper.MoveitWrapper
       ~MoveitWrapper.all_close
       ~MoveitWrapper.attach_object
       ~MoveitWrapper.current_pose_close_to_target
-      ~MoveitWrapper.delete
       ~MoveitWrapper.detach_all_objects
       ~MoveitWrapper.get_attached_objects
       ~MoveitWrapper.get_current_pose

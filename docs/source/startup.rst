@@ -3,6 +3,29 @@ Starting the grasping pipeline
 
 This page will tell you how to start the grasping pipeline. It will also explain how to use the tmux session that is created when starting the grasping pipeline. It will also explain how to start the grasping-pipeline rviz visualization and which visualization topics exist.
 
+********************
+Turning on the robot
+********************
+Before starting the grasping pipeline, you should turn on the robot.
+
+After the robot is turned on, you have to manually start the startup procedure of the robot which aligns the robot with the pre-recorded map of the environment. 
+This is necessary so that the waypoints work as expected. 
+
+To start the startup procedure, you first have to ssh into the robot. Ask other team members for the password.:
+
+.. code-block:: console
+
+    $ ssh v4r@hsrb.local
+
+After you are connected to the robot, you can start the startup procedure by running the following command:
+
+.. code-block:: console
+
+    v4r@hsrb $ startup
+
+The robot should start to move its head until it detects the marker which is placed on the wall. 
+After it detects the marker, it should update its pose relative to the map.
+
 ******************************
 Starting the grasping pipeline
 ******************************
@@ -53,7 +76,8 @@ The first pane is for the grasping pipeline nodes that are running locally, the 
 None of the panes are running when the tmux session is started. You can start them by navigating to the corresponding window and pressing enter.
 You should start the nodes in the following order:
 
-1. Start the pose estimator and wait until it is running.
+1. Start the pose estimator and wait until it is running (optional). By default the table plane extractor is used to estimate the pose of the object. If this is sufficient for your use case, you don't have to do anything.
+    However, if you want to use another pose estimator, you should start it before starting the grasping pipeline. Additionally you need to update the ```config/config.yaml``` file to use the new pose estimator.
 2. Start both the local and sasha grasping pipeline nodes.
 3. Open rviz if needed.
 
@@ -121,6 +145,11 @@ The following topics are turned off by default:
 * **Raw Image:** The raw RGB image of the RGBD-camera that is mounted on the head of the robot.
 
 This is only a short overview of the most commonly used visualization topics. There are more visualization topics available. You can see a list of all available topics by clicking on the "Add" button in the "Displays" panel.
+
+.. warning::
+    If you encounter any timeout errors (e.g. when starting new ros-nodes) make sure to disable the point cloud and the raw camera image visualizations as they use up a lot of bandwidth (~160-250 Mbps each!).
+    This can be done by unchecking the corresponding checkboxes in the "Displays" panel.
+    After succesfully starting the new ros-nodes you can enable the point cloud and raw camera image visualizations again.
 
 Some images of the visualization topics are shown below:
 
