@@ -76,8 +76,7 @@ The first pane is for the grasping pipeline nodes that are running locally, the 
 None of the panes are running when the tmux session is started. You can start them by navigating to the corresponding window and pressing enter.
 You should start the nodes in the following order:
 
-1. Start the pose estimator and wait until it is running (optional). By default the table plane extractor is used to estimate the pose of the object. If this is sufficient for your use case, you don't have to do anything.
-    However, if you want to use another pose estimator, you should start it before starting the grasping pipeline. Additionally you need to update the ```config/config.yaml``` file to use the new pose estimator.
+1. Start the pose estimator and wait until it is running (optional). By default the table plane extractor is used to estimate the pose of the object. If this is sufficient for your use case, you don't have to do anything. However, if you want to use another pose estimator, you should start it before starting the grasping pipeline. Additionally you need to update the ```config/config.yaml``` file to use the new pose estimator.
 2. Start both the local and sasha grasping pipeline nodes.
 3. Open rviz if needed.
 
