@@ -22,7 +22,6 @@ The pipeline is implemented in Python and uses the Robot Operating System (ROS) 
    overview_state_machine
    details_state_machine
    api
-   ideas
 
 
 

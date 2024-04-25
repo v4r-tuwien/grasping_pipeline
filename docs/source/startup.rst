@@ -26,6 +26,12 @@ After you are connected to the robot, you can start the startup procedure by run
 The robot should start to move its head until it detects the marker which is placed on the wall. 
 After it detects the marker, it should update its pose relative to the map.
 
+Afterwards you can let the robot drive to the table by running the following command (while still being connected to the robot via ssh):
+
+.. code-block:: console
+
+    v4r@hsrb $ table
+
 ******************************
 Starting the grasping pipeline
 ******************************
