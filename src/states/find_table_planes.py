@@ -7,8 +7,28 @@ from v4r_util.conversions import bounding_box_to_bounding_box_stamped
 from v4r_util.util import align_bounding_box_rotation, ros_bb_to_o3d_bb, o3d_bb_to_ros_bb
 
 class FindTablePlanes(smach.State):
+    '''
+    Finds the table planes in the point cloud using the TablePlaneExtractor service.
+    
+    Returns
+    -------
+    table_bbs: vision_msgs/BoundingBox3DArray
+        The bounding boxes of the detected planes. The first one is considered the actual table.
+    table_plane_equations: list of object_detector_msgs/Plane
+        The plane equations of the detected planes.
+    '''
 
     def __init__(self, enlarge_table_bb_to_floor=True):
+        '''
+        Initializes the FindTablePlanes state. Creates a TablePlaneExtractor service proxy.
+        
+        Parameters
+        ----------
+        enlarge_table_bb_to_floor: bool
+            If True, the bounding boxes of the tables are enlarged to the floor. This is useful
+            to prevent the robot from colliding with the table legs by creating a box that reaches
+            the floor.
+        '''
         smach.State.__init__(
             self, outcomes=['succeeded'], output_keys=['table_bbs', 'table_plane_equations'])
         self.topic = rospy.get_param('/point_cloud_topic')
@@ -19,6 +39,13 @@ class FindTablePlanes(smach.State):
         self.enlarge_table_bb_to_floor = enlarge_table_bb_to_floor
 
     def execute(self, userdata):
+        '''
+        Waits for a point cloud and calls the TablePlaneExtractor service.
+        
+        Returns
+        -------
+        'succeeded': The state succeeded.
+        '''
         rospy.loginfo('Executing state FIND_TABLE_PLANES. Waiting for point cloud.')
         cloud = rospy.wait_for_message(self.topic, PointCloud2, timeout=15)
         rospy.loginfo('Received point cloud. Waiting for table plane extractor service.')

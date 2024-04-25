@@ -30,9 +30,58 @@ class ExecuteGraspServer:
     The server first moves the robot gripper to a point that is a certain safety distance away from 
     the object, before moving the gripper to the grasp pose. This is to avoid collisions with the
     object. After grasping the object, the server moves the object up by a certain distance to avoid
-    collisions with the table. Finally, 
+    collisions with the table. Finally, the server retreats in the same direction as the approach to
+    prevent collisions with other objects on the table.
+    The server checks if the grasp was successful by checking the distance between the gripper tips.
+    If the grasp failed the tips are very close to each other and the server aborts the action.
+    
+    The transformation between the object's bottom surface and the wrist frame is saved right before
+    the gripper closes around the object. This transformation is needed for placement because the 
+    only assumption we can make is that the object is placeable on the surface that it was standing
+    on when it was grasped.
+    
+    The server uses the MoveitWrapper to plan and execute the robot's movements inside the collision
+    environment and the HSR_wrapper to plan and execute the robot's movements without collision
+    checking (and because Moveit has no move_end_effector_by_line function which produces a smooth
+    motion).
+    
+    Attributes
+    ----------
+    tf_wrapper : TF2Wrapper
+        A wrapper around tf2_ros to transform poses between different frames.
+    moveit_wrapper : MoveitWrapper
+        A wrapper around Moveit to plan and execute the robot's movements.
+    hsr_wrapper : HSR_wrapper
+        A wrapper around the HSR robot to plan and execute the robot's movements.
+    server : actionlib.SimpleActionServer
+        The ROS action server that receives the grasp pose and executes it.
+    
+    Parameters
+    ----------
+    grasp_poses: list of PoseStamped
+        The list of grasp poses to execute.
+    grasp_object_name_moveit: string
+        The name of the object to grasp in the Moveit environment.
+    table_plane_equations: list of Plane
+        The plane equations of the table surfaces.
+    
+    Other Parameters
+    ----------------
+    /safety_distance : float
+        The distance to move the gripper away from the object before grasping it.
+    
+    Returns
+    -------
+    ExecuteGraspResult
+        The result of the action server containing the transformation from the object's bottom 
+        surface to the wrist frame ('placement_surface_to_wrist'). The server aborts if no grasp pose
+        was successfully executed or if the grasp failed. If the grasp was successful, the server
+        returns succeeded and the transformation.
     '''
     def __init__(self):
+        '''
+        Initialize and starts the action server.
+        '''
         self.tf_wrapper = TF2Wrapper()
         rospy.loginfo("Execute grasp: Waiting for moveit")
         self.moveit_wrapper = MoveitWrapper(self.tf_wrapper)
@@ -45,6 +94,28 @@ class ExecuteGraspServer:
         rospy.loginfo("Execute grasp: Init")
 
     def execute(self, goal):
+        '''
+        Tries to execute the grasp poses in the goal one by one until a successful grasp is done.
+        
+        For each grasp pose, the server first moves the robot gripper to a point that is a certain
+        safety distance away from the object, before moving the gripper to the grasp pose. This is to
+        avoid collisions with the object. After grasping the object, the server moves the object up by
+        a certain distance to avoid collisions with the table. Finally, the server retreats in the same
+        direction as the approach to prevent collisions with other objects on the table.
+        The server checks if the grasp was successful by checking the distance between the gripper tips.
+        If the grasp failed the tips are very close to each other and the server aborts the action.
+        
+        The transformation between the object's bottom surface and the wrist frame is saved right before
+        the gripper closes around the object. This transformation is needed for placement because the
+        only assumption we can make is that the object is placeable on the surface that it was standing
+        on when it was grasped.
+        
+        Parameters
+        ----------
+        goal : ExecuteGraspAction
+            The goal containing the grasp poses to execute. Includes the grasp poses, the name of the
+            object to grasp in the Moveit environment and the plane equations of the table surfaces.
+        '''
         res = ExecuteGraspResult()
         planning_frame = self.moveit_wrapper.get_planning_frame("whole_body")
         # hrisi experiments, change back to 0.1 again afterwards
@@ -97,7 +168,7 @@ class ExecuteGraspServer:
                 self.moveit_wrapper.detach_all_objects()
                 self.hsr_wrapper.gripper_open_hsr()
                 # Abort as in this cases the robot often touched the object and changed its position
-                # which invalidates the grasp pose
+                # which potentially invalidates the grasp pose
                 self.server.set_aborted(res)
                 return
             self.server.set_succeeded(res)
@@ -107,12 +178,38 @@ class ExecuteGraspServer:
         self.server.set_aborted(res)
 
     def get_transform_from_wrist_to_object_bottom_plane(self, goal, planning_frame):
+        '''
+        Compute the transformation from the wrist frame to the object's bottom surface frame.
+
+        The transformation is computed by first transforming the object's pose to the table frame
+        and then computing the object's bottom surface center in the table frame. The object's bottom
+        surface center is then aligned with the robot base frame axes. This alignment is done to ensure
+        that the object's bottom surface z-axis consistently points in the same direction as the robot
+        base frame z-axis (etc. for x and y axes). This way we can consistently compute the transformation
+        between the object's bottom surface and the wrist frame when doing placement.
+        The transformation between the object's bottom surface and the wrist frame is then computed.
+        
+        Parameters
+        ----------
+        goal : ExecuteGraspAction
+            The goal containing the grasp poses to execute. Includes the grasp poses, the name of the
+            object to grasp in the Moveit environment and the plane equations of the table surfaces.
+        planning_frame : str
+            The name of the planning frame in the Moveit environment.
+        
+        Returns
+        -------
+        geometry_msgs/Transform
+            The transformation from the object's bottom surface to the wrist frame.
+        '''
+        # Get the object's pose in the planning frame
         object_poses = self.moveit_wrapper.get_object_poses([goal.grasp_object_name_moveit])
         object_pose = object_poses[goal.grasp_object_name_moveit]
         object_pose_st = PoseStamped(pose=object_pose)
         object_pose_st.header.frame_id = planning_frame
         object_pose_st.header.stamp = rospy.Time.now()
         
+        # Transform the object's pose to the table frame
         plane_equation = goal.table_plane_equations[0]
         object_pose_table_frame = self.tf_wrapper.transform_pose(plane_equation.header.frame_id, object_pose_st)
         self.tf_wrapper.send_transform(object_pose_table_frame.header.frame_id, 'object_center', object_pose_table_frame.pose)
@@ -124,6 +221,7 @@ class ExecuteGraspServer:
                                                   plane_equation.z * object_pose_table_frame.pose.position.z + 
                                                   plane_equation.d) / np.sqrt(plane_equation.x ** 2 + plane_equation.y ** 2 + plane_equation.z ** 2)
         
+        # Compute the object's bottom surface center in the table frame
         object_bottom_surface_center = copy.deepcopy(object_pose_table_frame)
         object_bottom_surface_center.pose.position.z = object_bottom_surface_center.pose.position.z - object_center_to_table_distance * plane_equation.z
         object_bottom_surface_center.pose.position.x = object_bottom_surface_center.pose.position.x - object_center_to_table_distance * plane_equation.x
@@ -139,6 +237,7 @@ class ExecuteGraspServer:
         gripper_axes = [[], [], []]
         obj_axes = [[], [], []]
         obj_transform = ros_pose_to_np_transform(object_bottom_surface_base_frame.pose)
+        # Get vectors for the x, y, z axes direction of the gripper and object (in the base frame)
         for axis, axis_name in zip(axes, axis_names):
             gripper_axis = self.tf_wrapper.transform_3d_array('hand_palm_link', 'base_link', axis)
             gripper_axis = gripper_axis / np.linalg.norm(gripper_axis)
@@ -146,13 +245,16 @@ class ExecuteGraspServer:
             obj_axis = obj_transform[:3, :3] @ np.array(axis)
             obj_axis = obj_axis / np.linalg.norm(obj_axis)
             obj_axes[axis_name] = obj_axis
+        # Get object axis that aligns best with gripper z-axis
         axis_name, is_anti_parallel = get_best_aligning_axis(gripper_axes[Axis.Z], obj_axes)
+        # if object-y aligns best with gripper-z, rotate around x-axis because this means
+        # that the object was grasped from the front and not from the side. This rotation ensures
+        # that the object is placed from the front and not from the side, which makes it much easier
+        # to place the object inside the shelf.
         if axis_name == Axis.Y:
             rotation_axis = obj_axes[Axis.Z]
             rotation_angle = np.pi/2 * (-1 if is_anti_parallel else 1)
-            print(f"Rotating around {rotation_axis} by {rotation_angle} radians")
             rot_mat = rotmat_around_axis(rotation_axis, rotation_angle)
-            print(f"Rot mat: {rot_mat}")
             obj_transform[:3, :3] = rot_mat @ obj_transform[:3, :3]
             object_bottom_surface_base_frame.pose = np_transform_to_ros_pose(obj_transform)    
         

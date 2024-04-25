@@ -66,7 +66,7 @@ class PlaceObjectServer():
         placed on that plane). This is needed to calculate the correct object dimensions and 
         orientation for the placement area detection and to calculate the correct placement point
         for the robot. 
-
+    
     Returns
     -------
     grasping_pipeline_msgs/PlaceActionResult

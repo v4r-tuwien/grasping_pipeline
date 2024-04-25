@@ -3,8 +3,35 @@ import rospy
 
 
 class UserInput(smach.State):
+    '''
+    A state that waits for user input and returns the corresponding outcome.
+    
+    Prints a menu with the possible outcomes and waits for the user to enter a key. Depending on the
+    key, the corresponding outcome is returned.
+    
+    Returns
+    -------
+    The outcome corresponding to the key entered by the user.
+    '''
 
     def __init__(self, key_outcome_description):
+        '''
+        Initializes the UserInput state. The key_outcome_description dictionary maps pressed keys to outcomes.
+        
+        Parameters
+        ----------
+        key_outcome_description: dict
+            A dictionary that maps keys to outcomes. The keys should be single characters. The values should
+            be lists with two entries. The first entry should be the outcome that is returned when the key is
+            pressed. The second entry should be a description of the key that is printed in the menu.
+        
+        Example
+        -------
+        key_outcome_description = {'c': ['success', 'continue'], 'r': ['abort', 'reset state']}
+        
+        This dictionary maps the 'c' key to the 'success' outcome and prints 'continue' as a description
+        in the menu. The 'r' key is mapped to the 'abort' outcome and 'reset state' is printed as a description.
+        '''
         self.map = key_outcome_description
         outcomes = []
         descriptions = []
