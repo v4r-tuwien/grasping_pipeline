@@ -3,7 +3,7 @@ Running a new pose estimator with the grasping pipeline
 
 To make a new pose estimation model compatible with the grasping pipeline you will need to create a ROS Wrapper for the model (we might provide a template for this in the future).
 
-The ROS Wrapper should expose an action server that uses the `robokudo_msgs/GenericImgProcAnnotatorAction`: 
+The ROS Wrapper should expose an action server that uses the `robokudo_msgs/GenericImgProcAnnotatorAction` (`Link to repository <https://gitlab.informatik.uni-bremen.de/robokudo/robokudo_msgs>`_): 
 
 .. code-block:: yaml
 
@@ -29,6 +29,12 @@ The ROS Wrapper should expose an action server that uses the `robokudo_msgs/Gene
     ---
     #feedback
     string feedback
+   
+You can clone the `robokudo_msgs` repository with the following command:
+
+.. code-block:: console
+
+    $ git clone https://gitlab.informatik.uni-bremen.de/robokudo/robokudo_msgs.git
 
 Currently, the grasping pipeline only passes **rgb** and **depth** to the pose estimation model. 
 
