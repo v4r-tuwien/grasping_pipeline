@@ -573,7 +573,8 @@ class PlaceObjectServer():
             res = PlaceActionResult()
             self.server.set_succeeded(res)
         else:
-            rospy.loginfo("Placement: Placement failed")
+            rospy.logerr("Placement: Placement failed. Make sure that the robot is physically able to place the object")
+            rospy.logerr("(e.g. tall objects generally can't be placed into the shelf without collisions when grasped from the top)")
             self.server.set_aborted()
     
     def add_marker(self, pose_goal, id=0, r=0, g=1, b=0):
