@@ -113,6 +113,12 @@ Additionally, the object is rotated so that the robots arm is coming from the fr
 This is done to make it easier for the robot to place the object, by significantly reducing the risk of colliding with the shelf. 
 
 
+.. note::
+   MoveIt (the motion planning framework that we use to plan the motion of the robot) performs very inconsistently when it comes to placing objects. Therefore placement often fails and sometimes needs to be retried multiple times.
+
+   If you, however, have a lot of failed placements, you might want to check whether the robot is physically able to place the object without colliding with the shelf (e.g. the robot is not able to place a tall object on the shelf if it performed a top-grasp because the arm would collide with the shelf).
+
+   Otherwise you can try moving sashas table further away from the shelf because that increases the robots workspace and makes it easier to find a good, collision-free path.
 
 Outcomes
 --------
