@@ -171,8 +171,8 @@ if __name__ == '__main__':
     image_height = cam_info.height
     intrinsics_matrix = cam_info.K
     model_dir = sys.argv[1]
-    topic = rospy.get_param('/pose_estimator/result_visualization_topic')
-    service_name = rospy.get_param('/pose_estimator/result_visualization_service_name')
+    topic = rospy.get_param('/grasping_pipeline/result_visualization_topic')
+    service_name = rospy.get_param('/grasping_pipeline/result_visualization_service_name')
     
     server = PoseEstimationVisualizerRos(
         topic,
