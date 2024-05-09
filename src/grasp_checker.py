@@ -108,10 +108,7 @@ class GraspChecker:
         gripper_points = np.asarray(gripper_cloud.points)
 
         # Find if any gripper point is within a threshold to the table plane
-        if table_plane is None:
-            print(
-                'WARNING: Table plane not provided, not explicitly checking for clearance from the table')
-        else:
+        if table_plane is not None:
             for pt in gripper_points:
                 d = self.point_to_plane_distance(pt, table_plane)
                 if d < TABLE_DISTANCE_THRESHOLD:
@@ -193,19 +190,20 @@ class GraspChecker:
         return dist/e
 
 
-def get_tf_transform(origin_frame, target_frame):
+def get_tf_transform(origin_frame, target_frame, tfBuffer):
     import tf2_ros
     import rospy
-    tfBuffer = tf2_ros.Buffer()
-    listener = tf2_ros.TransformListener(tfBuffer)
     tf_found = False
+    times_failed = 0
     while not tf_found:
         try:
             trans = tfBuffer.lookup_transform(
                 origin_frame, target_frame, rospy.Time(0))
             tf_found = True
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            rospy.logerr(e)
+            times_failed += 1
+            if times_failed > 5:
+                rospy.logerr(e)
             rospy.sleep(0.2)
     return trans
 
@@ -250,11 +248,17 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, name=None, table_plane=None, visu
     from sensor_msgs.msg import PointCloud2
     from geometry_msgs.msg import PoseStamped
 
+    tfBuffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(tfBuffer)
+
+    if table_plane is None:
+        print('WARNING: Table plane not provided, not explicitly checking for clearance from the table')
+
     grasp_checker = GraspChecker()
     o3dcloud = orh.rospc_to_o3dpc(scene_cloud_ros, True)
     grasp_checker.set_scene_data(o3dcloud)
 
-    trans = get_tf_transform('map', 'head_rgbd_sensor_rgb_frame')
+    trans = get_tf_transform('map', 'head_rgbd_sensor_rgb_frame', tfBuffer)
 
     cam_to_base = get_transmat_from_tf_trans(trans)
 
@@ -280,17 +284,17 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, name=None, table_plane=None, visu
     grasp_poses_ros = []
 
     trans = get_tf_transform(
-        'wrist_flex_link', 'head_rgbd_sensor_rgb_frame')
+        'wrist_flex_link', 'head_rgbd_sensor_rgb_frame', tfBuffer)
 
     cam_to_wrist = get_transmat_from_tf_trans(trans)
 
     # make wrist's cam look up
     trans_to_world = get_tf_transform(
-        'base_link', 'wrist_flex_link')
+        'base_link', 'wrist_flex_link', tfBuffer)
     wrist_to_world = get_transmat_from_tf_trans(trans_to_world)
 
     base_to_cam = get_tf_transform(
-        'head_rgbd_sensor_rgb_frame', 'base_link')
+        'head_rgbd_sensor_rgb_frame', 'base_link', tfBuffer)
     base_to_cam = get_transmat_from_tf_trans(base_to_cam)
 
     counter = 1
@@ -339,7 +343,7 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, name=None, table_plane=None, visu
     grasps = zip(grasp_poses_ros, grasp_trials, successes, dist_to_wrist)
     grasps = list(grasps)
 
-    grasps = np.array(sorted(grasps, key=lambda x: (-x[2], x[3])))
+    grasps = np.array(sorted(grasps, key=lambda x: (-x[2], x[3])), dtype='object')
 
     dist_to_wrist = list(grasps[:, 3])
     valid_poses = list(grasps[:, 0][grasps[:, 2].astype(bool)])
