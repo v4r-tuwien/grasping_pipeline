@@ -84,8 +84,6 @@ class FindGrasppointServer:
     grasping_pipeline_msgs.msg.FindGrasppointResult
         The result of the FindGrasppoint action server. Contains the grasp poses, the bounding
         box of the object and the object name.
-    
-    
     '''
     
     def __init__(self, model_dir):
@@ -111,86 +109,12 @@ class FindGrasppointServer:
         self.marker_pub = rospy.Publisher('/grasping_pipeline/grasp_marker', Marker, queue_size=10)
         self.server.start()
 
-        self.depth, self.rgb = None, None
-        self.image_sub = self.__setup_image_subs(rospy.get_param('/depth_topic'), rospy.get_param('/rgb_topic'))
-        
         rospy.logdebug('Waiting for camera info')
         self.cam_info = rospy.wait_for_message(rospy.get_param('/cam_info_topic'), CameraInfo)
         
-        self.timeout = rospy.get_param('/pose_estimator/timeout_duration')
-        self.pose_estimator = self.__setup_estimator(rospy.get_param('/pose_estimator/detector_topic'), self.timeout)
-        res_vis_service_name = rospy.get_param('/pose_estimator/result_visualization_service_name')
-        self.res_vis_service = rospy.ServiceProxy(res_vis_service_name, VisualizePoseEstimation)
-
-        self.unknown_object_grasp_detector = None
-        unknown_object_grasp_detector_topic = rospy.get_param('/pose_estimator/unknown_object_grasp_detector_topic', None)
-        if unknown_object_grasp_detector_topic is not None:
-            self.unknown_object_grasp_detector = self.__setup_unknown_object_grasp_detector(unknown_object_grasp_detector_topic, self.timeout)
-        
+        self.timeout = rospy.get_param('/grasping_pipeline/timeout_duration')
         rospy.loginfo('Initializing FindGrasppointServer done')
 
-    def __setup_image_subs(self, depth_topic, rgb_topic):
-        '''
-        Creates a message filter for the depth and rgb image topics to synchronize them.
-        
-        Parameters
-        ----------
-        depth_topic: str
-            The topic of the depth image.
-        rgb_topic: str
-            The topic of the rgb image.
-        
-        Returns
-        -------
-        ApproximateTimeSynchronizer
-            The message filter for the depth and rgb image topics.
-        '''
-        depth_sub = message_filters.Subscriber(depth_topic, Image)
-        rgb_sub = message_filters.Subscriber(rgb_topic, Image)
-        image_sub = message_filters.ApproximateTimeSynchronizer([depth_sub, rgb_sub], 5, 0.1)
-        image_sub.registerCallback(self.image_callback)
-        return image_sub
-    
-    def __setup_estimator(self, topic, timeout):
-        '''
-        Connects to the pose estimator action server.
-
-        Parameters
-        ----------
-        topic: str
-            The topic of the pose estimator action server.
-        timeout: float
-            The timeout duration in seconds.
-        '''
-        rospy.loginfo('Waiting for pose_estimator actionserver')
-        pose_estimator = actionlib.SimpleActionClient(
-            topic, 
-            GenericImgProcAnnotatorAction)
-        if not pose_estimator.wait_for_server(timeout=rospy.Duration(timeout)):
-            rospy.logerr(f'Connection to pose_estimator \'{topic}\' timed out!')
-            raise TimeoutError
-        return pose_estimator
-    
-    def __setup_unknown_object_grasp_detector(self, topic, timeout):
-        '''
-        Connects to the unknown object grasp detector action server.
-        
-        Parameters
-        ----------
-        topic: str
-            The topic of the unknown object grasp detector action server.
-        timeout: float
-            The timeout duration in seconds.
-        '''
-        rospy.loginfo('Waiting for unknown object grasp_detector')
-        unknown_object_grasp_detector = actionlib.SimpleActionClient(
-                topic, 
-                GenericImgProcAnnotatorAction)
-        if not unknown_object_grasp_detector.wait_for_server(timeout=rospy.Duration(timeout)):
-            rospy.logerr(f'Connection to unknown_object_grasp_detector \'{topic}\' timed out!')
-            raise TimeoutError
-        return unknown_object_grasp_detector
-        
     def execute(self, goal):
         '''
         Executes the FindGrasppoint action server.
@@ -221,57 +145,33 @@ class FindGrasppointServer:
             The result of the FindGrasppoint action server. Contains the grasp poses, the bounding 
             box of the object and the object name.
         '''
-        while self.depth is None: 
-            rospy.loginfo('Waiting for images')  
-            rospy.sleep(0.1)
-        rgb = self.rgb
-        depth = self.depth
-        estimator_goal = GenericImgProcAnnotatorGoal(rgb = rgb, depth = depth)
-        estimator_result = self.get_estimator_result(estimator_goal)
-        self.visualize_pose_estimation_result(
-            rgb, 
-            estimator_result.pose_results, 
-            estimator_result.class_names
-        )
-
         try:
-            rospy.logdebug('Performing consistency checks')
-            self.perform_estimator_results_consistency_checks(estimator_result)
-
             scene_cloud, scene_cloud_o3d = convert_ros_depth_img_to_pcd(
-                depth, 
+                goal.depth, 
                 self.cam_info, 
                 project_valid_depth_only=False)
 
-            if 'Unknown' in estimator_result.class_names:
-                # We expect label image values to be in the same order as the lists for class_confidence, class_names, ...
-                bbs, ROI_2d, poses = self.prepare_unknown_object_detection(estimator_result, scene_cloud_o3d)
-                rospy.loginfo("Overwriting unknown object poses with information from label image")
-                estimator_result.pose_results = self.overwrite_unknown_object_poses(estimator_result, poses)
-                # fill bbs with pseudo entries so that we can use the object_idx that gets calculated afterwards
-                filled_bbs = self.fill_bbs(estimator_result, bbs)
-
             if goal.object_to_grasp != None and goal.object_to_grasp != '':
-                rospy.loginfo(f'Object to grasp specified. Will grasp specified object {goal.object_to_grasp}')
-                object_idx = estimator_result.class_names.index(goal.object_to_grasp)
+                if goal.object_to_grasp in goal.class_names:
+                    rospy.loginfo(f'Object to grasp specified. Will grasp specified object {goal.object_to_grasp}')
+                    object_idx = goal.class_names.index(goal.object_to_grasp)               
+                else:
+                    rospy.logwarn(f'Object to grasp {goal.object_to_grasp} not detected. Aborting')
+                    self.server.set_aborted()
+                    return
             else:
                 rospy.loginfo('No object to grasp specified. Will grasp closest object')
-                object_idx = self.get_closest_object(estimator_result)
+                object_idx = self.get_closest_object(goal.object_poses)
 
             result = FindGrasppointResult()
-            object_to_grasp = estimator_result.pose_results[object_idx]
-            object_name = estimator_result.class_names[object_idx]
-            object_to_grasp_stamped = PoseStamped(pose = object_to_grasp, header = depth.header)
+            object_to_grasp = goal.object_poses[object_idx]
+            object_name = goal.class_names[object_idx]
+            object_to_grasp_stamped = PoseStamped(pose = object_to_grasp, header = goal.depth.header)
 
             rospy.logdebug('Generating grasp poses')
-            if object_name == 'Unknown':
-                grasp_poses = self.call_unknown_obj_grasp_detector(rgb, depth, ROI_2d[object_idx])
-                object_bb = filled_bbs[object_idx]
-                object_bb_stamped = o3d_bb_to_ros_bb_stamped(object_bb, depth.header.frame_id, depth.header.stamp)
-            else:
-                grasp_poses = check_grasp_hsr(
-                    object_to_grasp_stamped, scene_cloud, object_name, table_plane=None, visualize=True)
-                object_bb_stamped = self.get_bb_for_known_objects(object_to_grasp_stamped, object_name, depth.header.frame_id, depth.header.stamp)
+            grasp_poses = check_grasp_hsr(
+                object_to_grasp_stamped, scene_cloud, object_name, table_plane=None, visualize=True)
+            object_bb_stamped = self.get_bb_for_known_objects(object_to_grasp_stamped, object_name, goal.depth.header.frame_id, goal.depth.header.stamp)
 
             if len(grasp_poses) < 1:
                 raise ValueError('No grasp pose found')
@@ -342,116 +242,7 @@ class FindGrasppointServer:
         bb_stamped.center = t_res_ros
         return bb_stamped
 
-    def fill_bbs(self, estimator_result, bbs):
-        '''
-        Creates a list of bounding boxes for unknown objects. Fill the list with 0 for known objects.
-        
-        The list is the same size as the list of detected objects. If an object is not an unknown
-        object, the list entry is set to 0. So the list contains only bounding boxes for unknown
-        objects.
-        
-        Parameters
-        ----------
-        estimator_result: GenericImgProcAnnotatorResult
-            The result of the pose estimator.
-        bbs: list of open3d.geometry.OrientedBoundingBox
-            The list of bounding boxes for the unknown objects.
-
-        Returns
-        -------
-        list of open3d.geometry.OrientedBoundingBox
-            The list of bounding boxes for the unknown objects.
-        '''
-        j = 0
-        new_bb_list = []
-        for i, class_name in enumerate(estimator_result.class_names):
-            if class_name == 'Unknown':
-                new_bb_list.append(bbs[j])
-                j += 1
-            else:
-                new_bb_list.append(0)
-        return new_bb_list
-
-    def overwrite_unknown_object_poses(self, estimator_result, poses):
-        '''
-        Overwrites the poses of unknown objects in the estimator result with the given poses.
-        
-        Parameters
-        ----------
-        estimator_result: GenericImgProcAnnotatorResult
-            The result of the pose estimator.
-        poses: list of geometry_msgs.msg.Pose
-            The poses for the unknown objects.
-        
-        Returns
-        -------
-        list of geometry_msgs.msg.Pose
-            The list of poses with the unknown object poses overwritten. The poses for known objects
-            are kept. The list is the same size as the list of detected objects and has the same order.
-        '''
-        j = 0
-        new_poses = []
-        for i, class_name in enumerate(estimator_result.class_names):
-            if class_name == 'Unknown':
-                new_poses.append(poses[j])
-                j += 1
-            else:
-                # if not unknown -> keep original pose
-                new_poses.append(estimator_result.pose_results[i])
-        return new_poses
-
-    def call_unknown_obj_grasp_detector(self, rgb, depth, obj_ROI):
-        '''
-        Calls the unknown object grasp detector to get grasp poses for the detected unknown object.
-        
-        Parameters
-        ----------
-        rgb: sensor_msgs.msg.Image
-            The rgb image.
-        depth: sensor_msgs.msg.Image
-            The depth image.
-        obj_ROI: sensor_msgs.msg.RegionOfInterest
-            The region of interest for the unknown object.
-        
-        Raises
-        ------
-        TimeoutError
-            If the unknown object grasp detector doesn't return results before timing out.
-        ValueError
-            If no unknown object grasp detector is specified but unknown objects are detected.
-        
-        Returns
-        -------
-        list of geometry_msgs.msg.PoseStamped
-            All detected grasp_poses for the unknown object.
-        '''
-        if self.unknown_object_grasp_detector is None:
-            rospy.logerr("No unknown object grasp detector specified but detected unknown object(s)")
-            raise ValueError("No unknown object grasp detector specified")
-        grasp_detector_goal = GenericImgProcAnnotatorGoal(rgb = rgb, depth = depth)
-
-        grasp_detector_goal.bb_detections = [obj_ROI]
-
-        res = self.unknown_object_grasp_detector.send_goal(grasp_detector_goal)
-        rospy.logdebug('Waiting for unknown object grasp detector results')
-
-        succesful = self.unknown_object_grasp_detector.wait_for_result(
-            rospy.Duration(self.timeout))
-        if not succesful:
-            raise TimeoutError("Unknown object grasp detector didn't return results before timing out!")
-        
-        grasp_poses = self.unknown_object_grasp_detector.get_result().pose_results
-        grasp_poses_stamped = []
-        for pose in grasp_poses:
-            pose_stamped = PoseStamped()
-            pose_stamped.header.stamp = rospy.Time.now()
-            pose_stamped.header.frame_id = depth.header.frame_id
-            pose_stamped.pose = pose
-            grasp_poses_stamped.append(pose_stamped)
-
-        return grasp_poses_stamped
-
-    def get_closest_object(self, estimator_result):
+    def get_closest_object(self, object_poses):
         '''
         Returns the index of the closest object in the estimator result.
         
@@ -476,14 +267,9 @@ class FindGrasppointServer:
         conf_threshold = float(rospy.get_param('/pose_estimator/class_confidence_threshold'))
 
         min_dist_squared = float("inf")
-        cl_conf = estimator_result.class_confidences
         object_idx = None
 
-        for i, pose in enumerate(estimator_result.pose_results):
-            # skip objects that have low confidence
-            if len(cl_conf) > 1 and cl_conf[i] < conf_threshold:
-                continue
-
+        for i, pose in enumerate(object_poses):
             pose_pos = pose.position
             dist_squared = pose_pos.x*pose_pos.x + pose_pos.y*pose_pos.y + pose_pos.z*pose_pos.z
             if dist_squared < min_dist_squared:
@@ -494,216 +280,7 @@ class FindGrasppointServer:
             raise ValueError("No close object found")
         
         return object_idx
-
-    def prepare_unknown_object_detection(self, estimator_result, scene_cloud_o3d):
-        '''
-        Prepares the unknown object detection by checking the label image and converting it to bounding boxes and poses.
-        
-        Parameters
-        ----------
-        estimator_result: GenericImgProcAnnotatorResult
-            The result of the pose estimator.
-        scene_cloud_o3d: open3d.geometry.PointCloud
-            The scene point cloud.
-        
-        Raises
-        ------
-        ValueError
-            If the label image is inconsistent.
-        
-        Returns
-        -------
-        list of open3d.geometry.OrientedBoundingBox
-            The list of bounding boxes for the unknown objects.
-        list of sensor_msgs.msg.RegionOfInterest
-            The list of regions of interest for the unknown objects.
-        list of geometry_msgs.msg.Pose
-            The list of poses for the unknown objects. The poses are the centers of the bounding boxes.
-        '''
-        self.check_label_img(estimator_result.image)
-        label_image = ros_numpy.numpify(estimator_result.image)
-        o3d_bbs, ROI_2d = self.convert_label_img_to_bb(scene_cloud_o3d, label_image)
-        if len(o3d_bbs) != estimator_result.class_names.count('Unknown'):
-            rospy.logerr("Number of unique labels in label image inconsistent to number of detected unknown objects")
-            raise ValueError('Label image inconsistent')
-        poses = []
-        for o3d_bb in o3d_bbs:
-            center_point = o3d_bb.get_center()
-            x, y, z = center_point[0], center_point[1], center_point[2]
-
-            pos = Point(x=x, y=y, z=z)
-            rot_mat = np.eye(4)
-            rot_mat[:3, :3] = o3d_bb.R
-            quat = quaternion_from_matrix(rot_mat)
-            ros_quat = Quaternion(x = quat[0], y = quat[1], z = quat[2], w = quat[3])
-
-            pose = Pose(position = pos, orientation = ros_quat)
-            poses.append(pose)
-        return o3d_bbs, ROI_2d, poses
     
-    def get_estimator_result(self, estimator_goal):
-        '''
-        Calls the pose estimator action server and waits for the result.
-        
-        Parameters
-        ----------
-        estimator_goal: GenericImgProcAnnotatorGoal
-            The goal to send to the pose estimator.
-            
-        Raises
-        ------
-        TimeoutError
-            If the estimator doesn't return results before timing out.
-        
-        Returns
-        -------
-        GenericImgProcAnnotatorResult
-            The result of the pose estimator.
-        '''
-        rospy.logdebug('Sending goal to estimator')
-        self.pose_estimator.send_goal(estimator_goal)
-
-        rospy.logdebug('Waiting for estimator results')
-        goal_finished = self.pose_estimator.wait_for_result(rospy.Duration(self.timeout))
-        if not goal_finished:
-            rospy.logerr('Estimator didn\'t return results before timing out!')
-            raise TimeoutError
-        estimator_result = self.pose_estimator.get_result()
-        rospy.loginfo(f'Detector detected {len(estimator_result.pose_results)} potential object poses.')
-
-        return estimator_result
-
-    def perform_estimator_results_consistency_checks(self, estimator_result):
-        '''
-        Checks the consistency of the pose estimator results.
-        
-        The consistency checks are:
-        - Check if the pose estimator passed any poses.
-        - Check if the pose estimator passed any model names.
-        - Check if the number of poses and model names match.
-        - Check if the number of class confidences and poses match (optional, only if class confidences are passed).
-        
-        Parameters
-        ----------
-        estimator_result: GenericImgProcAnnotatorResult
-            The result of the pose estimator.
-        
-        Raises
-        ------
-        ValueError
-            If any of the consistency checks fails.
-        '''
-        consistent = True
-        if len(estimator_result.pose_results) < 1:
-            rospy.logerr('pose_estimator did not pass any poses!')
-            consistent = False
-        if len(estimator_result.class_names) < 1:
-            rospy.logerr('pose_estimator did not pass any model names!')
-            consistent = False
-        if len(estimator_result.pose_results) != len(estimator_result.class_names):
-            rospy.logerr(f'Mismatch between list sizes: {len(estimator_result.pose_results) = },' +
-                                    f'{len(estimator_result.class_names) = }')
-            consistent = False
-        if len(estimator_result.class_confidences) < 1:
-            rospy.logwarn("No class confidences passed. Will not perform confidence thresholding")
-        elif (len(estimator_result.pose_results) != len(estimator_result.class_confidences)):
-            rospy.logerr(f'Mismatch between list sizes: {len(estimator_result.pose_results) = },' +
-                                    f'{len(estimator_result.class_confidences) = }')
-            consistent = False
-        if not consistent:
-            raise ValueError("Consistency check failed")
-
-    def convert_label_img_to_bb(self, scene_pc, labels):
-        '''
-        Computes bounding boxes and regions of interest based on the label image and the scene point cloud.
-        
-        Parameters
-        ----------
-        scene_pc: open3d.geometry.PointCloud
-            The scene point cloud.
-        labels: numpy.ndarray
-            The label image. Should be a signed image with -1 to indicate pixels without object. 
-            Each object should have a unique label. The labels should be in the same order as the
-            class names and poses in the pose estimator result. The encoding should be 8SC1, 16SC1 
-            or 32SC1.
-
-        Returns
-        -------
-        list of open3d.geometry.OrientedBoundingBox
-            The list of bounding boxes for each object in the label image.
-        list of sensor_msgs.msg.RegionOfInterest
-            The list of regions of interest for each object in the label image.
-        '''
-        labels_unique = np.unique(labels)
-        # get bounding box for each object
-        bbs_o3d = []
-        ROI_2d = []
-        for label in labels_unique:
-            if label == -1:
-                continue
-            roi = RegionOfInterest()
-            obj_mask = (labels == label)
-            rows = np.any(obj_mask, axis=1)
-            cols = np.any(obj_mask, axis=0)
-            rmin, rmax = np.where(rows)[0][[0, -1]]
-            cmin, cmax = np.where(cols)[0][[0, -1]]
-            roi = RegionOfInterest(x_offset = cmin, 
-                                   y_offset=rmin, 
-                                   width = cmax-cmin, 
-                                   height = rmax-rmin)
-            ROI_2d.append(roi)
-            
-            obj_indices = np.nonzero(obj_mask.flatten())
-            obj_pcd = scene_pc.select_by_index(obj_indices[0])
-            obj_bb_3d = get_minimum_oriented_bounding_box(obj_pcd)
-            bbs_o3d.append(obj_bb_3d)
-        return bbs_o3d, ROI_2d
-    
-    def check_label_img(self, label_img):
-        '''
-        Checks the consistency of the label image.
-        
-        The consistency checks are:
-        - Check if the label image has a height and width greater than 0.
-        - Check if the label image encoding is supported (8SC1, 16SC1 or 32SC1).
-
-        Parameters
-        ----------
-        label_img: sensor_msgs.msg.Image
-            The label image.
-        
-        Raises
-        ------
-        ValueError
-            If the label image is inconsistent.
-        '''
-        isConsistent = True
-
-        if (label_img.height < 1 or label_img.width < 1):
-            rospy.logerr(f"No label image passed for unknown objects! {label_img.height = }, {label_img.width = }")
-            isConsistent = False
-
-        # Expect signed image with -1 to indicate pixels without object
-        supported_encodings = ['8SC1', '16SC1', '32SC1']
-        if(label_img.encoding not in supported_encodings):
-            rospy.logerr(f"Encoding not supported: Got {label_img.encoding = } but has to be one off {supported_encodings}")
-            isConsistent = False
-        if not isConsistent:
-            raise ValueError("Label image is not consistent!")
-
-    def image_callback(self, depth, rgb):
-        '''
-        Callback for the depth and rgb image topics.
-        
-        Parameters
-        ----------
-        depth: sensor_msgs.msg.Image
-            The depth image.
-        rgb: sensor_msgs.msg.Image
-            The rgb image.
-        '''
-        self.depth = depth
-        self.rgb = rgb
         
     def add_marker(self, pose_goal):
         """ 
@@ -780,28 +357,6 @@ class FindGrasppointServer:
         marker.color.g = 0
         marker.color.b = 1.0
         self.marker_pub.publish(marker)
-
-    def visualize_pose_estimation_result(self, rgb, model_poses, model_names):
-        '''
-        Visualizes the pose estimation result using the pose estimator result visualization service.
-        
-        The service creates and publishes an image with a contour of the detected objects and their 
-        object names.
-        
-        Parameters
-        ----------
-        rgb: sensor_msgs.msg.Image
-            The rgb image.
-        model_poses: list of geometry_msgs.msg.Pose
-            The poses of the detected objects.
-        model_names: list of str
-            The names of the detected objects.
-        '''
-        request = VisualizePoseEstimationRequest()
-        request.rgb_image = rgb
-        request.model_poses = model_poses
-        request.model_names = model_names
-        self.res_vis_service(request)
 
 if __name__ == '__main__':
     rospy.init_node('find_grasppoint_server')
