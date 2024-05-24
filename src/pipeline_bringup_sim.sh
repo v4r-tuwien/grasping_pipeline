@@ -15,7 +15,7 @@ tmux split-window -v
 
 tmux select-pane -t 0
 tmux send-keys "export ROS_MASTER_URI=http://$ROS_IP:$port" C-m
-tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_params.launch && roslaunch grasping_pipeline grasping_pipeline_PC.launch"
+tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_statemachine.launch"
 
 tmux select-pane -t 1
 tmux send-keys "export ROS_MASTER_URI=http://$ROS_IP:$port" C-m
@@ -23,7 +23,7 @@ tmux send-keys rv
 
 tmux select-pane -t 2
 tmux send-keys "export ROS_MASTER_URI=http://$ROS_IP:$port" C-m
-tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_robot.launch"
+tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_params.launch && roslaunch grasping_pipeline grasping_pipeline_servers.launch"
 
 tmux select-window -t $SESSION:1
 tmux split-window -h
@@ -41,9 +41,6 @@ tmux send-keys "roscore -p $port" C-m
 tmux select-pane -t 2
 tmux send-keys "export ROS_MASTER_URI=http://$ROS_IP:$port" C-m
 tmux send-keys "roslaunch hsrb_gazebo_launch hsrb_mock_home_world.launch"
-
-tmux select-window -t $SESSION:0
-tmux select-pane -t 0
 
 tmux rename-window 'grasping'
 

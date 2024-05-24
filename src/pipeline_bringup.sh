@@ -16,20 +16,18 @@ tmux select-window -t $SESSION:0
 tmux split-window -h
 tmux split-window -v
 
+
 tmux select-pane -t 0
-tmux send-keys "hsrb_mode" C-m
-tmux send-keys "source $SCRIPT_DIR/../../../devel/setup.bash" C-m
-tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_params.launch && roslaunch grasping_pipeline grasping_pipeline_PC.launch"
+tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_statemachine.launch"
 
 tmux select-pane -t 1
 tmux send-keys "hsrb_mode" C-m
 tmux send-keys rv
 
 tmux select-pane -t 2
-tmux send-keys "ssh v4r@hsrb.local" C-m
-tmux send-keys "source ~/demos/devel/setup.bash"
-tmux send-keys enter
-tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_robot.launch"
+tmux send-keys "hsrb_mode" C-m
+tmux send-keys "source $SCRIPT_DIR/../../../devel/setup.bash" C-m
+tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_params.launch && roslaunch grasping_pipeline grasping_pipeline_servers.launch"
 
 tmux select-window -t $SESSION:1
 
@@ -40,7 +38,7 @@ tmux send-keys enter
 tmux send-keys "roslaunch hsrb_moveit_config move_group.launch" C-m
 
 tmux select-window -t $SESSION:0
-tmux select-pane -t 0
+tmux select-pane -t 2
 
 tmux rename-window 'grasping'
 

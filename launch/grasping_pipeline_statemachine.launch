@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="use_llm_state_machine" default="false"/>
+    <!-- #################################################### -->
+    <group if="$(arg use_llm_state_machine)">
+        <node name="grasping_statemachine_llm" pkg="grasping_pipeline" type="statemachine_llm.py"  output="screen"/>
+    </group>
+    <group unless="$(arg use_llm_state_machine)">
+        <node name="grasping_statemachine" pkg="grasping_pipeline" type="statemachine.py"  output="screen"/>
+    </group>
+</launch>

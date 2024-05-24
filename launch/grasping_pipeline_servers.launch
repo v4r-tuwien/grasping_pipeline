@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+    <include file="$(find table_plane_extractor)/launch/table_plane_extractor.launch"/>
+    <include file="$(find table_plane_extractor)/launch/table_objects_extractor_as.launch"/>
+    <node name="execute_grasp_server" pkg="grasping_pipeline" type="execute_grasp_action_server.py" output="screen"/>
+    <node name="handover_server" pkg="handover" type="handover_server.py"/>
+    <node name="placement" pkg="grasping_pipeline" type="place.py"  output="screen"/>
+    <node name="pose_estimation_vis" pkg="grasping_pipeline" type="visualizer.py" args= "$(find grasping_pipeline)/models/" output="screen"/>
+    <node name="find_grasppoint_server" pkg="grasping_pipeline" type="grasppose_estimator.py"
+        args= "$(find grasping_pipeline)/models/" output="screen"/>
+    <node name="call_object_detector" pkg="grasping_pipeline" type="object_detector.py" output="screen"/>
+    <node name="call_pose_estimator" pkg="grasping_pipeline" type="pose_estimator.py" output="screen"/>
+    <node name="image_fetcher" pkg="grasping_pipeline" type="image_fetcher.py" output="screen"/>
+    <node name="direct_grasppose_estimator" pkg="grasping_pipeline" type="direct_grasppose_estimator.py" output="screen"/>
+    <include file="$(find haf_grasping)/launch/haf_grasping_all.launch"/>
+</launch>
