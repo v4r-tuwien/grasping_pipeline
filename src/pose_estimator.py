@@ -78,7 +78,8 @@ class CallPoseEstimatorService:
         Visualizes the pose estimation result using the pose estimator result visualization service.
         
         The service creates and publishes an image with a contour of the detected objects and their 
-        object names.
+        object names. This is only possible for known objects because the object's model is used to
+        determine the object's contour.
         
         Parameters
         ----------
@@ -87,7 +88,8 @@ class CallPoseEstimatorService:
         model_poses: list of geometry_msgs.msg.Pose
             The poses of the detected objects.
         model_names: list of str
-            The names of the detected objects.
+            The names of the detected objects. Used to lookup the object's model which is used to 
+            determine the object's contour.
         '''
         request = VisualizePoseEstimationRequest()
         request.rgb_image = rgb
