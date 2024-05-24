@@ -42,8 +42,9 @@ class CallObjectDetectorService:
             rospy.logerr('Object Detector didn\'t return results before timing out!')
             raise rospy.ServiceException
         detection_result = obj_det.get_result()
-
-        if not detection_result.success or len(detection_result.class_names) <= 0:
+        server_state = obj_det.get_state()
+        
+        if server_state != GoalStatus.SUCCEEDED or len(detection_result.class_names) <= 0:
             rospy.logerr('Object Detector failed to detect objects!')
             raise rospy.ServiceException
         rospy.loginfo(f'Detected {len(detection_result.class_names)} objects.')
