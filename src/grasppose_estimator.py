@@ -2,31 +2,24 @@
 import sys
 import os
 from copy import deepcopy
-import numpy as np
 import yaml
 from yaml.loader import SafeLoader
 from math import pi
-import message_filters
 from sensor_msgs.msg import Image, CameraInfo
 from v4r_util.depth_pcd import convert_ros_depth_img_to_pcd
 from geometry_msgs.msg import PoseStamped
-import ros_numpy
 import PyKDL
 import actionlib
 import rospy
 from grasping_pipeline_msgs.msg import (FindGrasppointAction,
                                    FindGrasppointResult)
-from object_detector_msgs.srv import VisualizePoseEstimationRequest, VisualizePoseEstimation
 from tf.transformations import (quaternion_about_axis, quaternion_from_matrix,
                                 quaternion_multiply)
 from tf_conversions import posemath
 from visualization_msgs.msg import Marker
-from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorGoal
-from sensor_msgs.msg import RegionOfInterest
-from geometry_msgs.msg import Pose, Point, Quaternion
 
 from grasp_checker import check_grasp_hsr
-from v4r_util.util import get_minimum_oriented_bounding_box, o3d_bb_to_ros_bb_stamped, create_ros_bb_stamped
+from v4r_util.util import create_ros_bb_stamped
 
 class FindGrasppointServer:
     '''
@@ -264,8 +257,6 @@ class FindGrasppointServer:
         int
             The index of the closest object in the estimator result.
         '''
-        conf_threshold = float(rospy.get_param('/pose_estimator/class_confidence_threshold'))
-
         min_dist_squared = float("inf")
         object_idx = None
 
