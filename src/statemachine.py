@@ -5,9 +5,10 @@ import smach_ros
 from states.statemachine_components import get_robot_setup_sm, get_execute_grasp_sm, get_placement_sm
 from states.userinput import UserInput
 from states.robot_control import GoToWaypoint, GoBack
+from states.grasp_method_selector import GraspMethodSelector
 from grasping_pipeline_msgs.msg import FindGrasppointAction
 from handover.msg import HandoverAction
-from grasping_pipeline_msgs.srv import FetchImages, CallObjectDetector, CallPoseEstimator
+from grasping_pipeline_msgs.srv import FetchImages, CallObjectDetector, CallPoseEstimator, CallDirectGraspPoseEstimator
 
 
 def create_statemachine(do_handover=True):
@@ -63,7 +64,9 @@ def get_find_grasp_sm():
             CallObjectDetector, 
             request_slots=['rgb', 'depth'], 
             response_slots=['bb_detections', 'mask_detections', 'class_names', 'class_confidences'])
-        smach.StateMachine.add('CALL_OBJECT_DETECTOR', call_object_detector_service, transitions={'succeeded': 'CALL_POSE_ESTIMATOR', 'aborted': 'failed', 'preempted': 'failed'})
+        smach.StateMachine.add('CALL_OBJECT_DETECTOR', call_object_detector_service, transitions={'succeeded': 'SELECT_GRASP_METHOD', 'aborted': 'failed', 'preempted': 'failed'})
+
+        smach.StateMachine.add("SELECT_GRASP_METHOD", GraspMethodSelector(), transitions={'pose_based_grasp': 'CALL_POSE_ESTIMATOR', 'direct_grasp': 'CALL_DIRECT_GRASP_POSE_ESTIMATOR'})
         
         call_pose_estimator_service = smach_ros.ServiceState(
             'call_pose_estimator', 
@@ -84,12 +87,21 @@ def get_find_grasp_sm():
         smach.StateMachine.add('FIND_GRASP', find_grasp_actionstate, transitions={
             'aborted': 'failed', 'preempted': 'failed', 'succeeded': 'end_find_grasp'})
         
+        direct_grasp_pose_estimator_service = smach_ros.ServiceState(
+            'call_direct_grasppose_estimator', 
+            CallDirectGraspPoseEstimator, 
+            request_slots=['rgb', 'depth', 'bb_detections', 'mask_detections', 'class_names'], 
+            response_slots=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
+        smach.StateMachine.add(
+            'CALL_DIRECT_GRASP_POSE_ESTIMATOR',
+            direct_grasp_pose_estimator_service,
+            transitions={'succeeded': 'end_find_grasp', 'aborted': 'failed', 'preempted': 'failed'},
+        )
 
         return find_grasp_sm
 
 if __name__ == '__main__':
     rospy.init_node('sasha_statemachine')
-    #sm = create_statemachine(do_handover=False)
     sm = create_statemachine()
 
     try:
