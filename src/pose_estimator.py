@@ -1,13 +1,10 @@
 #! /usr/bin/env python3
-import numpy as np
-import cv2
 from cv_bridge import CvBridge
 import rospy
-import matplotlib.pyplot as plt
 from actionlib import SimpleActionClient
+from actionlib_msgs.msg import GoalStatus
 from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorGoal
 from grasping_pipeline_msgs.srv import CallPoseEstimator, CallPoseEstimatorResponse, VisualizePoseEstimation, VisualizePoseEstimationRequest
-from sensor_msgs.msg import Image
 
 class CallPoseEstimatorService:
 
@@ -45,7 +42,6 @@ class CallPoseEstimatorService:
         goal.class_names = req.class_names
         goal.description = description
 
-
         rospy.logdebug('Sending goal to pose estimator')
         pose_est.send_goal(goal)
         rospy.logdebug('Waiting for pose estimation results')
@@ -54,8 +50,9 @@ class CallPoseEstimatorService:
             rospy.logerr('Pose Estimator didn\'t return results before timing out!')
             raise rospy.ServiceException
         pose_result = pose_est.get_result()
+        server_status = pose_est.get_state()
 
-        if len(pose_result.pose_results) <= 0:
+        if server_status != GoalStatus.SUCCEEDED or len(pose_result.pose_results) <= 0:
             rospy.logerr('Pose Estimator failed to estimate poses!')
             raise rospy.ServiceException
         rospy.loginfo(f'Estimated the pose of {len(pose_result.class_names)} objects.')
