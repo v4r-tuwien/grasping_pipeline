@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from actionlib import SimpleActionClient
 from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorGoal
 from grasping_pipeline_msgs.srv import CallObjectDetector, CallObjectDetectorResponse
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, RegionOfInterest
 
 class CallObjectDetectorService:
 
@@ -16,6 +16,7 @@ class CallObjectDetectorService:
         self.srv = rospy.Service('call_object_detector', CallObjectDetector , self.execute)
         self.label_image_pub = rospy.Publisher('/grasping_pipeline/obj_det_label_image', Image, queue_size=1)
         self.bb_image_pub = rospy.Publisher('/grasping_pipeline/obj_det_bb_image', Image, queue_size=1)
+        rospy.loginfo('Known Object Detector Service initialized')
     
     def execute(self, req):
         topic = rospy.get_param('/grasping_pipeline/object_detector_topic')
@@ -55,17 +56,44 @@ class CallObjectDetectorService:
             label_image_np = visualize_label_image(np_rgb, label_image_np)
             self.label_image_pub.publish(self.bridge.cv2_to_imgmsg(label_image_np))
 
+            if len(detection_result.bounding_boxes) <= 0:
+                bbs = self.convert_label_img_to_2D_BB(label_image_np)
+                detection_result.bounding_boxes = bbs
+
+        if not valid_label_image and len(detection_result.bounding_boxes) <= 0:
+            rospy.logerr('No valid label image and no bounding boxes detected! Need at least one of them!')
+            raise rospy.ServiceException
+
         bb_image_np = visualize_rois(np_rgb, detection_result.bounding_boxes)
         self.bb_image_pub.publish(self.bridge.cv2_to_imgmsg(bb_image_np))
 
         res = CallObjectDetectorResponse()
-        res.bb_detections = detection_result.bounding_boxes
         if valid_label_image:
             res.mask_detections = self.split_label_image_into_masks_ros(detection_result.image)
+        res.bb_detections = detection_result.bounding_boxes
         res.class_names = detection_result.class_names
         res.class_confidences = detection_result.class_confidences
         
         return res
+    
+    def convert_label_img_to_2D_BB(self, label_img):
+        labels_unique = np.unique(label_img)
+        ROI_2d = []
+        for label in labels_unique:
+            if label == -1:
+                continue
+            roi = RegionOfInterest()
+            obj_mask = (label_img == label)
+            rows = np.any(obj_mask, axis=1)
+            cols = np.any(obj_mask, axis=0)
+            rmin, rmax = np.where(rows)[0][[0, -1]]
+            cmin, cmax = np.where(cols)[0][[0, -1]]
+            roi = RegionOfInterest(x_offset = cmin, 
+                                   y_offset=rmin, 
+                                   width = cmax-cmin, 
+                                   height = rmax-rmin)
+            ROI_2d.append(roi)
+        return ROI_2d
     
     def split_label_image_into_masks_ros(self, label_image):
         label_image_np = self.bridge.imgmsg_to_cv2(label_image)
@@ -86,7 +114,6 @@ class CallObjectDetectorService:
             masks.append(mask)
         return masks
         
-
 def visualize_rois(image, rois):
     image_copy = image.copy()
     for roi in rois:
