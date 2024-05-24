@@ -7,13 +7,13 @@ point_cloud_topic: '/hsrb/head_rgbd_sensor/depth_registered/rectified_points'
 global_frame: '/map'
 
 grasping_pipeline:
-  object_detector_topic: /object_detector/yolov5
-  pose_estimator_topic: /pose_estimator/gdrnet
+
+  object_detector_topic: /object_detector/yolov5                      # object detector for known OR unknown objects
+                                                                      # decides whether a pose estimator or a grasp point 
+                                                                      # estimator is used afterwards
+  pose_estimator_topic: /pose_estimator/gdrnet                        # pose estimator for known objects
+  grasppoint_estimator_topic: /pose_estimator/find_grasppose_haf      # grasppoint estimator for unknown objects
+  
   result_visualization_service_name: '/pose_estimator/result_visualization_service'
   result_visualization_topic: /pose_estimator/result_visualization
   timeout_duration: 40.0
-
-#pose_estimator:
-  #unknown_object_grasp_detector_topic: /pose_estimator/find_grasppose_haf
-  #detector_topic: /table_objects_extractor/get_label_image 
-  # less relevant params
