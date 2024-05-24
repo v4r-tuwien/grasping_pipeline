@@ -5,6 +5,7 @@ from cv_bridge import CvBridge
 import rospy
 import matplotlib.pyplot as plt
 from actionlib import SimpleActionClient
+from actionlib_msgs.msg import GoalStatus
 from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorGoal
 from grasping_pipeline_msgs.srv import CallObjectDetector, CallObjectDetectorResponse
 from sensor_msgs.msg import Image, RegionOfInterest
@@ -54,8 +55,8 @@ class CallObjectDetectorService:
         valid_label_image = check_label_img(detection_result.image)
         if valid_label_image:
             label_image_np = self.bridge.imgmsg_to_cv2(detection_result.image)
-            label_image_np = visualize_label_image(np_rgb, label_image_np)
-            self.label_image_pub.publish(self.bridge.cv2_to_imgmsg(label_image_np))
+            label_image_vis = visualize_label_image(np_rgb, label_image_np)
+            self.label_image_pub.publish(self.bridge.cv2_to_imgmsg(label_image_vis))
 
             if len(detection_result.bounding_boxes) <= 0:
                 bbs = self.convert_label_img_to_2D_BB(label_image_np)
