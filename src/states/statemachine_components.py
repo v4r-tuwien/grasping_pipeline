@@ -68,6 +68,8 @@ def get_placement_sm():
 
 
 def get_find_grasp_sm():
+    '''
+    Returns a state machine that performs all steps necessary to get a grasppoint.'''
     find_grasp_sm = smach.StateMachine(outcomes=['failed', 'end_find_grasp'], output_keys=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
     with find_grasp_sm:
         image_fetcher_service = smach_ros.ServiceState('fetch_synchronized_images', FetchImages, response_slots=['rgb', 'depth'])
