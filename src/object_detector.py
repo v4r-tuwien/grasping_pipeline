@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 import numpy as np
 import cv2
-from cv_bridge import CvBridge
 import rospy
+import ros_numpy
 import matplotlib.pyplot as plt
 from actionlib import SimpleActionClient
 from actionlib_msgs.msg import GoalStatus
@@ -13,7 +13,6 @@ from sensor_msgs.msg import Image, RegionOfInterest
 class CallObjectDetectorService:
 
     def __init__(self):
-        self.bridge = CvBridge()
         self.srv = rospy.Service('call_object_detector', CallObjectDetector , self.execute)
         self.label_image_pub = rospy.Publisher('/grasping_pipeline/obj_det_label_image', Image, queue_size=1)
         self.bb_image_pub = rospy.Publisher('/grasping_pipeline/obj_det_bb_image', Image, queue_size=1)
@@ -50,13 +49,13 @@ class CallObjectDetectorService:
             raise rospy.ServiceException
         rospy.loginfo(f'Detected {len(detection_result.class_names)} objects.')
 
-        np_rgb = self.bridge.imgmsg_to_cv2(req.rgb)
+        np_rgb = ros_numpy.numpify(req.rgb)
 
         valid_label_image = check_label_img(detection_result.image)
         if valid_label_image:
-            label_image_np = self.bridge.imgmsg_to_cv2(detection_result.image)
+            label_image_np = ros_numpy.numpify(detection_result.image)
             label_image_vis = visualize_label_image(np_rgb, label_image_np)
-            self.label_image_pub.publish(self.bridge.cv2_to_imgmsg(label_image_vis))
+            self.label_image_pub.publish(ros_numpy.msgify(Image, label_image_vis, encoding='rgb8'))
 
             if len(detection_result.bounding_boxes) <= 0:
                 bbs = self.convert_label_img_to_2D_BB(label_image_np)
@@ -67,7 +66,7 @@ class CallObjectDetectorService:
             raise rospy.ServiceException
 
         bb_image_np = visualize_rois(np_rgb, detection_result.bounding_boxes)
-        self.bb_image_pub.publish(self.bridge.cv2_to_imgmsg(bb_image_np))
+        self.bb_image_pub.publish(ros_numpy.msgify(Image, bb_image_np, encoding='rgb8'))
 
         res = CallObjectDetectorResponse()
         if valid_label_image:
@@ -98,11 +97,11 @@ class CallObjectDetectorService:
         return ROI_2d
     
     def split_label_image_into_masks_ros(self, label_image):
-        label_image_np = self.bridge.imgmsg_to_cv2(label_image)
+        label_image_np = ros_numpy.numpify(label_image)
         masks_np = self.split_label_image_into_masks_np(label_image_np)
         masks_ros = []
         for mask_np in masks_np:
-            mask_ros = self.bridge.cv2_to_imgmsg(mask_np)
+            mask_ros = ros_numpy.msgify(Image, mask_np, encoding='8UC1')
             masks_ros.append(mask_ros)
         return masks_ros
 
