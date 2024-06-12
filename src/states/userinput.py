@@ -56,16 +56,31 @@ class UserInput(smach.State):
         smach.State.__init__(self, outcomes=outcomes)
 
     def execute(self, userdata):
+        '''Prints the menu and waits for user input. Returns the outcome corresponding to the key pressed.
+
+        Returns
+        -------
+        str
+            The outcome corresponding to the key pressed by the user.
+        '''
         rospy.loginfo('Executing state UserInput')
         self.print_menu()
         return self.handle_userinput()
 
     def print_menu(self):
+        '''Prints the menu with the possible outcomes.'''
         print('Enter command:')
         for key in self.map:
             print('\t' + str(key) + ' - ' + str(self.map[key][1]))
 
     def handle_userinput(self):
+        '''Waits for user input and returns the corresponding outcome.
+
+        Returns
+        -------
+        str
+            The outcome corresponding to the key pressed by the user.
+        '''
         while True:
             user_input = input('CMD> ')
             if len(user_input) != 1:
