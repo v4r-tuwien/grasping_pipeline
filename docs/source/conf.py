@@ -39,7 +39,7 @@ autodoc_mock_imports = ['hsrb_interface', 'rospy', 'tf', 'smach', 'actionlib', '
                         'table_plane_extractor', 'move_base_msgs', 'vision_msgs', 'v4r_util', 'grasping_pipeline_msgs', 'moveit_commander', 
                         'moveit_msgs', 'trajectory_msgs', 'numpy', 'handover', 'yaml', 'open3d', 'ros_numpy', 'visualization_msgs', 
                     'message_filters', 'std_msgs', 'robot_llm', 'object_detector_msgs', 'PyKDL', 'tmc_geometric_shapes_msgs',
-                    'tf_conversions', 'tmc_placement_area_detector', 'robokudo_msgs']
+                    'tf_conversions', 'tmc_placement_area_detector', 'robokudo_msgs', 'cv_bridge', 'actionlib_msgs', 'cv2', 'matplotlib']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
