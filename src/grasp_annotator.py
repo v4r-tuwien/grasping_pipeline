@@ -43,7 +43,7 @@ fail_list_description = {FailList.IN_COLLISION: "Gripper is in collision with th
     
 # NEW VERSION OF THE GRASP CHECKER
 class GraspAnnotator:
-    def __init__(self, object_pose, scene_pcd, object_name, filter_distance = 0.16, table_plane = None, filter_pcd_flag=True):
+    def __init__(self, object_pose, scene_pcd, object_name, filter_pcd_flag=True, filter_distance = 0.16, table_plane = None):
         """
         Init of the GraspAnnotator
 
@@ -51,9 +51,10 @@ class GraspAnnotator:
             object_pose (geometry_msgs.msg._PoseStamped.PoseStamped): Pose of the object to grasp
             scene_pcd (sensor_msgs.msg._PointCloud2.PointCloud2): Pointcloud of the current scene created by open3d_ros_helper from the depth image
             object_name (string): Name of the object
-            filter_distance (float, optional): Distance for the filtering of the point cloud in meters. Defaults to 0.16.
-            table_plane (np.array, optional): Parameters of the table plane (4 values). Defaults to None.
             filter_pcd_flag (bool, optional): If True, the point cloud is filtered around the grasping point. Defaults to True.
+            filter_distance (float, optional): Distance for the filtering of the point cloud in meters. Defaults to 0.16.
+            table_plane (np.array, optional): Parameters of the table plane (4 values). Defaults to None. Used to check for enough clearance between
+                                              the table and the gripper.
         """
 
         # Saving passed parameters
