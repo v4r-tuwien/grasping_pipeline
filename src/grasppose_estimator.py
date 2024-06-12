@@ -2,6 +2,7 @@
 import sys
 import os
 from copy import deepcopy
+import numpy as np
 import yaml
 from yaml.loader import SafeLoader
 from math import pi
@@ -19,7 +20,11 @@ from tf_conversions import posemath
 from visualization_msgs.msg import Marker
 
 from grasp_checker import check_grasp_hsr
+from grasp_annotator import GraspAnnotator
+
 from v4r_util.util import create_ros_bb_stamped
+
+import time
 
 class FindGrasppointServer:
     '''
@@ -147,35 +152,54 @@ class FindGrasppointServer:
             if goal.object_to_grasp != None and goal.object_to_grasp != '':
                 if goal.object_to_grasp in goal.class_names:
                     rospy.loginfo(f'Object to grasp specified. Will grasp specified object {goal.object_to_grasp}')
-                    object_idx = goal.class_names.index(goal.object_to_grasp)               
+                    object_idxs = [goal.class_names.index(goal.object_to_grasp)]     # changed           
                 else:
                     rospy.logwarn(f'Object to grasp {goal.object_to_grasp} not detected. Aborting')
                     self.server.set_aborted()
                     return
             else:
                 rospy.loginfo('No object to grasp specified. Will grasp closest object')
-                object_idx = self.get_closest_object(goal.object_poses)
+                object_idxs = self.get_closest_objects(goal.object_poses)    # changed to return a list of object indices sorted by distance
 
-            result = FindGrasppointResult()
-            object_to_grasp = goal.object_poses[object_idx]
-            object_name = goal.class_names[object_idx]
-            object_to_grasp_stamped = PoseStamped(pose = object_to_grasp, header = goal.depth.header)
 
-            rospy.logdebug('Generating grasp poses')
-            grasp_poses = check_grasp_hsr(
-                object_to_grasp_stamped, scene_cloud, object_name, table_plane=None, visualize=True)
-            object_bb_stamped = self.get_bb_for_known_objects(object_to_grasp_stamped, object_name, goal.depth.header.frame_id, goal.depth.header.stamp)
+            for object_idx in object_idxs:
 
-            if len(grasp_poses) < 1:
-                raise ValueError('No grasp pose found')
+                result = FindGrasppointResult()
+                object_to_grasp = goal.object_poses[object_idx]
+                object_name = goal.class_names[object_idx]
+                object_to_grasp_stamped = PoseStamped(pose = object_to_grasp, header = goal.depth.header)
+
+                rospy.loginfo(f"Annoting grasps for object {object_name}")
+
+                rospy.logdebug('Generating grasp poses')
+
+                #start_time = time.time()
+                #grasp_poses = check_grasp_hsr(
+                #    object_to_grasp_stamped, scene_cloud, object_name, table_plane=None, visualize=True)
+                #rospy.loginfo(f"Time for check_grasp_hsr: {time.time() - start_time}")
+                #rospy.loginfo(f"Grasp poses: {grasp_poses}")
             
-            result.grasp_poses = grasp_poses
-            result.grasp_object_bb = object_bb_stamped
-            result.grasp_object_name = object_name
+                #start_time = time.time()
+                grasp_poses = GraspAnnotator(
+                        object_to_grasp_stamped, scene_cloud, object_name).valid_poses
+                #rospy.loginfo(f"Time for GraspAnnotator: {time.time() - start_time}")
+                #rospy.loginfo(f"Grasp poses: {grasp_poses}")
+                
+                object_bb_stamped = self.get_bb_for_known_objects(object_to_grasp_stamped, object_name, goal.depth.header.frame_id, goal.depth.header.stamp)
 
-            self.add_marker(grasp_poses[0])
-            self.add_bb_marker(object_bb_stamped)
-            self.server.set_succeeded(result)
+                if grasp_poses is None or len(grasp_poses) < 1:
+                    rospy.logerr(f"No grasp pose found for object {object_name}")
+                    continue
+                
+                result.grasp_poses = grasp_poses
+                result.grasp_object_bb = object_bb_stamped
+                result.grasp_object_name = object_name
+
+                self.add_marker(grasp_poses[0])
+                self.add_bb_marker(object_bb_stamped)
+                self.server.set_succeeded(result)
+
+                break
 
         except (ValueError, TimeoutError) as e:
             rospy.logerr(str(e))
@@ -235,9 +259,9 @@ class FindGrasppointServer:
         bb_stamped.center = t_res_ros
         return bb_stamped
 
-    def get_closest_object(self, object_poses):
+    def get_closest_objects(self, object_poses):
         '''
-        Returns the index of the closest object in the estimator result.
+        Returns a sorted list with indices of the closest objects. The closest object is at index 0.
         
         The closest object is determined by the distance to the camera. The distance is calculated
         as the euclidean distance from the camera to the object pose.
@@ -253,24 +277,24 @@ class FindGrasppointServer:
             If no close object is found.
         
         Returns
-        -------
-        int
-            The index of the closest object in the estimator result.
+        -------  
+        list of int
+            The indices of the closest objects in the estimator result.
         '''
-        min_dist_squared = float("inf")
-        object_idx = None
+
+        object_idx = []
+        distances = []
 
         for i, pose in enumerate(object_poses):
             pose_pos = pose.position
-            dist_squared = pose_pos.x*pose_pos.x + pose_pos.y*pose_pos.y + pose_pos.z*pose_pos.z
-            if dist_squared < min_dist_squared:
-                min_dist_squared = dist_squared
-                object_idx = i
-
-        if object_idx is None:
-            raise ValueError("No close object found")
+            dist = pose_pos.x*pose_pos.x + pose_pos.y*pose_pos.y + pose_pos.z*pose_pos.z
+            distances.append(dist)
+            object_idx.append(i)
         
-        return object_idx
+        distances_np = np.array(distances)
+        sort_idx = np.argsort(distances_np)
+        return np.array(object_idx)[sort_idx]
+
     
         
     def add_marker(self, pose_goal):
