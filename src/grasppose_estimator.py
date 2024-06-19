@@ -19,7 +19,6 @@ from tf.transformations import (quaternion_about_axis, quaternion_from_matrix,
 from tf_conversions import posemath
 from visualization_msgs.msg import Marker
 
-from grasp_checker import check_grasp_hsr
 from grasp_annotator import GraspAnnotator
 
 from v4r_util.util import create_ros_bb_stamped
@@ -113,6 +112,8 @@ class FindGrasppointServer:
         self.timeout = rospy.get_param('/grasping_pipeline/timeout_duration')
         rospy.loginfo('Initializing FindGrasppointServer done')
 
+        self.grasp_annotator = GraspAnnotator()
+
     def execute(self, goal):
         '''
         Executes the FindGrasppoint action server.
@@ -173,17 +174,7 @@ class FindGrasppointServer:
 
                 rospy.logdebug('Generating grasp poses')
 
-                #start_time = time.time()
-                #grasp_poses = check_grasp_hsr(
-                #    object_to_grasp_stamped, scene_cloud, object_name, table_plane=None, visualize=True)
-                #rospy.loginfo(f"Time for check_grasp_hsr: {time.time() - start_time}")
-                #rospy.loginfo(f"Grasp poses: {grasp_poses}")
-            
-                #start_time = time.time()
-                grasp_poses = GraspAnnotator(
-                        object_to_grasp_stamped, scene_cloud, object_name).valid_poses
-                #rospy.loginfo(f"Time for GraspAnnotator: {time.time() - start_time}")
-                #rospy.loginfo(f"Grasp poses: {grasp_poses}")
+                grasp_poses = self.grasp_annotator.annotate(object_to_grasp_stamped, scene_cloud, object_name)
                 
                 object_bb_stamped = self.get_bb_for_known_objects(object_to_grasp_stamped, object_name, goal.depth.header.frame_id, goal.depth.header.stamp)
 

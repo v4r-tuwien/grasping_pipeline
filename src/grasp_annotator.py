@@ -41,32 +41,20 @@ class FailList(Enum):
 fail_list_description = {FailList.IN_COLLISION: "Gripper is in collision with the environment.", 
                          FailList.NOT_REACHABLE: "Grasp is not Reachable"}
     
-# NEW VERSION OF THE GRASP CHECKER
 class GraspAnnotator:
-    def __init__(self, object_pose, scene_pcd, object_name, filter_distance = 0.16, table_plane = None, filter_pcd_flag=True):
-        """
-        Init of the GraspAnnotator
+    def __init__(self, pcd_filter_distance = 0.16):
+        """Init function for the GraspAnnotator class. The class is used to check if a grasp is valid by checking if it is reachable and collision free.
 
         Args:
-            object_pose (geometry_msgs.msg._PoseStamped.PoseStamped): Pose of the object to grasp
-            scene_pcd (sensor_msgs.msg._PointCloud2.PointCloud2): Pointcloud of the current scene created by open3d_ros_helper from the depth image
-            object_name (string): Name of the object
-            filter_distance (float, optional): Distance for the filtering of the point cloud in meters. Defaults to 0.16.
-            table_plane (np.array, optional): Parameters of the table plane (4 values). Defaults to None.
-            filter_pcd_flag (bool, optional): If True, the point cloud is filtered around the grasping point. Defaults to True.
+            pcd_filter_distance (float, optional): Distance for the filtering of the point cloud in meters. Defaults to 0.16. If 0 or None, the point cloud is not filtered.
         """
-
-        # Saving passed parameters
-        self.object_pose_msg = object_pose
-        self.filter_pcd_flag = filter_pcd_flag
-        self.ros_pcd = scene_pcd
-        self.o3d_pcd = orh.rospc_to_o3dpc(self.ros_pcd, True).voxel_down_sample(voxel_size=VOXEL_SIZE)
-        self.object_name = object_name
-        self.filter_distance = filter_distance
-        self.table_plane = table_plane
-
-        if self.table_plane is None:
-            rospy.logwarn("Table plane not provided, not explicitly checking for clearance from the table.")
+        # Check if the point cloud should be filtered
+        if pcd_filter_distance is None or pcd_filter_distance == 0:
+            self.filter_pcd_flag = False
+            self.filter_distance = 0
+        else:
+            self.filter_pcd_flag = True
+            self.filter_distance = pcd_filter_distance
 
         # Initializing other stuff
         self.fail_list = []
@@ -79,25 +67,25 @@ class GraspAnnotator:
             self.gripper_cloud = o3d.io.read_point_cloud(gripper_cloud_file)
         except FileNotFoundError:
             rospy.logerr("Gripper cloud file not found. Cannot check for collisions.")
-            self.valid_poses = []
-            return None
-        
-        # Annotate the grasps
-        self.annotate_grasp_hsr()
+            self.gripper_cloud = None
 
 
-    def filter_pcd(self, center_point):
+    def filter_pcd(self, center_point, o3d_pcd):
         """
         Filters the point cloud around a center point with a given threshold. The idea is to reduce the computational time of the collision check,
         by filtering the pointcloud so that only points close to the grasping point are considered, thus reducing the computational time of the kd-tree search.
 
         Args:
             center_point (np.array): x, y, z coordinates of the current grasping points
+            o3d_pcd (open3d.geometry.PointCloud): Pointcloud of the current scene
+        
+        Returns:
+            open3d.geometry.PointCloud: Filtered point cloud
         """
-        distances = np.linalg.norm(np.asarray(self.o3d_pcd.points) - center_point, axis=1)
+        distances = np.linalg.norm(np.asarray(o3d_pcd.points) - center_point, axis=1)
         within_threshold_mask = distances < self.filter_distance
-        filtered_point_cloud = self.o3d_pcd.select_by_index(np.where(within_threshold_mask)[0])
-        self.filtered_o3d_pcd = filtered_point_cloud
+        filtered_point_cloud = o3d_pcd.select_by_index(np.where(within_threshold_mask)[0])
+        return filtered_point_cloud
 
     def is_grasp_reachable(self, grasp_pose, cam_to_base):
         """
@@ -143,20 +131,28 @@ class GraspAnnotator:
 
         return True
 
-    def is_gripper_collision_free(self, grasp_pose):
+    def is_gripper_collision_free(self, grasp_pose, o3d_pcd, table_plane):
         """
         Checks if the grasp pose is collision free 
 
         Args:
             grasp_pose (np.array): 4x4 transformation matrix of the grasp in the camera frame
+            o3d_pcd (open3d.geometry.PointCloud): Pointcloud of the current scene
+            table_plane (np.array, optional): Parameters of the table plane (4 values). Defaults to None.
     
         Returns
             bool: True if the grasp pose is not in collision with the scene and table, false otherwise
         """
+        if self.gripper_cloud is None:
+            rospy.logerr("Gripper cloud not loaded. Cannot check for collisions.")
+            return False
+
+        filtered_o3d_pcd = self.filter_pcd(grasp_pose[:3, 3], o3d_pcd)
+
         if self.filter_pcd_flag:
-            scene_tree = o3d.geometry.KDTreeFlann(self.filtered_o3d_pcd)
+            scene_tree = o3d.geometry.KDTreeFlann(filtered_o3d_pcd)
         else:
-            scene_tree = o3d.geometry.KDTreeFlann(self.o3d_pcd)
+            scene_tree = o3d.geometry.KDTreeFlann(o3d_pcd)
 
         # Transform the gripper
         gripper_cloud = copy.deepcopy(self.gripper_cloud)
@@ -164,15 +160,15 @@ class GraspAnnotator:
         gripper_points = np.asarray(gripper_cloud.points)
 
         # Find if any gripper point is within a threshold to the table plane
-        if self.table_plane is not None:
+        if table_plane is not None:
             for pt in gripper_points:
-                d = self.point_to_plane_distance(pt, self.table_plane)
+                d = self.point_to_plane_distance(pt, table_plane)
                 if d < TABLE_DISTANCE_THRESHOLD:
                     self.fail_list.append(FailList.IN_COLLISION)
                     return False
 
         if self.filter_pcd_flag:
-            if len(self.filtered_o3d_pcd.points) == 0:
+            if len(filtered_o3d_pcd.points) == 0:
                 rospy.logwarn("Filtered pcd is empty. No detections expected.")
                 return True
         
@@ -181,9 +177,9 @@ class GraspAnnotator:
             [_, idx, _] = scene_tree.search_knn_vector_3d(pt, 1)
 
             if self.filter_pcd_flag:
-                scene_pt = np.asarray(self.filtered_o3d_pcd.points)[idx[0], :]
+                scene_pt = np.asarray(filtered_o3d_pcd.points)[idx[0], :]
             else:
-                scene_pt = np.asarray(self.o3d_pcd.points)[idx[0], :]
+                scene_pt = np.asarray(o3d_pcd.points)[idx[0], :]
             
             d = np.linalg.norm(pt - scene_pt)
             if d < OBJECT_DISTANCE_THRESHOLD:
@@ -193,12 +189,14 @@ class GraspAnnotator:
         # Otherwise passed all checks and no collision detected
         return True
 
-    def is_grasp_valid(self, grasp_pose, cam_to_base=None):
+    def is_grasp_valid(self, grasp_pose, o3d_pcd, table_plane, cam_to_base=None):
         """
         Check if the grasp is valid by checking if it is reachable and collision free.
 
         Args:
             grasp_pose (np.array): 4x4 transformation matrix of the grasp in the camera frame
+            o3d_pcd (open3d.geometry.PointCloud): Pointcloud of the current scene
+            table_plane (np.array, optional): Parameters of the table plane (4 values). Defaults to None.
             cam_to_base (np.array, optional):  4x4 transformation matrix from the camera to the base
 
         Returns:
@@ -209,10 +207,8 @@ class GraspAnnotator:
         if cam_to_base is not None and not self.is_grasp_reachable(grasp_pose, cam_to_base):
             return False
 
-        self.filter_pcd(grasp_pose[:3, 3])
-
-        return self.is_gripper_collision_free(grasp_pose)
-
+        return self.is_gripper_collision_free(grasp_pose, o3d_pcd, table_plane)
+    
 
     @staticmethod
     def point_to_plane_distance(point, plane):
@@ -221,13 +217,25 @@ class GraspAnnotator:
         e = np.sqrt(plane[0] * plane[0] + plane[1]
                     * plane[1] + plane[2] * plane[2])
         return dist/e
+    
 
-    def annotate_grasp_hsr(self):
-        """
-        Goes through all annotated grasps from the .npy file and checks if they are valid. Saves the valid grasps in self.valid_poses
-        """
 
-        # In tf2.py -> rospy.Time(0) statt rospy.Time().now()
+    def annotate(self, object_pose_stamped, scene_pcd, object_name, table_plane = None):
+        """
+        Goes through all annotated grasps from the .npy file and checks if they are valid. Returns the valid grasps.
+
+        Args:
+            object_pose_stamped (geometry_msgs.PoseStamped): Pose of the object to grasp
+            scene_pcd (sensor_msgs.PointCloud2): Pointcloud of the current scene created by open3d_ros_helper from the depth image
+            object_name (string): Name of the object
+            table_plane (np.array, optional): Parameters of the table plane (4 values). Defaults to None.
+
+        Returns:
+            geometry_msgs.PoseStamped[]: List of valid grasp poses
+        """
+        o3d_pcd = orh.rospc_to_o3dpc(scene_pcd, True).voxel_down_sample(voxel_size=VOXEL_SIZE)
+        if table_plane is None:
+            rospy.logwarn("Table plane not provided, not explicitly checking for clearance from the table.")
 
         # Get the transformation from the camera to the base
         trans = self.tf2_wrapper.get_transform_between_frames(source_frame="head_rgbd_sensor_rgb_frame", target_frame="map")
@@ -238,22 +246,22 @@ class GraspAnnotator:
         head_to_wrist_mat = self.tf2_wrapper.trans2transmat(head_to_wrist_trans)
 
         # Get the object pose in a 4x4 transformation matrix
-        rot = tf3d.quaternions.quat2mat([self.object_pose_msg.pose.orientation.w, self.object_pose_msg.pose.orientation.x,
-                                        self.object_pose_msg.pose.orientation.y, self.object_pose_msg.pose.orientation.z])
+        rot = tf3d.quaternions.quat2mat([object_pose_stamped.pose.orientation.w, object_pose_stamped.pose.orientation.x,
+                                        object_pose_stamped.pose.orientation.y, object_pose_stamped.pose.orientation.z])
         object_pose = np.eye(4)
         object_pose[:3, :3] = rot
-        object_pose[:3, 3] = [self.object_pose_msg.pose.position.x,
-                            self.object_pose_msg.pose.position.y, self.object_pose_msg.pose.position.z]
+        object_pose[:3, 3] = [object_pose_stamped.pose.position.x,
+                            object_pose_stamped.pose.position.y, object_pose_stamped.pose.position.z]
 
         # Load the grasps from the .npy file
         grasps_path = os.path.join(
-            self.dir_path, os.pardir, 'grasps', self.object_name +'.npy')
+            self.dir_path, os.pardir, 'grasps', object_name +'.npy')
 
         try:
             grasp_poses = np.load(grasps_path)
         except FileNotFoundError:
-            rospy.logerr(f"Numpy file with grasps for object {self.object_name} not found (Either the object name is wrong or the grasps have not been annotated yet).")
-            self.valid_poses = []
+            rospy.logerr(f"Numpy file with grasps for object {object_name} not found (Either the object name is wrong or the grasps have not been annotated yet).")
+            return []
         
         grasp_poses = grasp_poses.reshape((grasp_poses.shape[0], 4, 4))
         
@@ -261,12 +269,12 @@ class GraspAnnotator:
         valid_grasp_poses = []
         distances = []
 
-        for i, pose in enumerate(grasp_poses):
+        for pose in grasp_poses:
 
             grasp_try = np.matmul(object_pose, pose)
 
             # Check if the grasp is valid, if not continue
-            res = self.is_grasp_valid(grasp_try, cam_to_base=cam_to_base)
+            res = self.is_grasp_valid(grasp_try, o3d_pcd, table_plane, cam_to_base=cam_to_base)
             if res is False:
                 continue
 
@@ -307,100 +315,4 @@ class GraspAnnotator:
         else:
             rospy.loginfo(f"Found {len(sorted_valid_grasp_poses)} valid grasps")
             
-        self.valid_poses = sorted_valid_grasp_poses
-
-
-
-if __name__ == "__main__":
-    # Call f.e. using python3 grasp_cecker.py Test1 0
-
-    multipleRuns = True
-
-    rospy.init_node("grasp_checker")
-
-    if len(sys.argv) < 3:
-        rospy.logwarn("No run_id passed, choosing '2'.")
-        run_id = 2
-    if len(sys.argv) < 2:
-        rospy.logwarn("No test folder passed, choosing 'Test1'.")
-        test_folder = "Test1"
-    else:
-        test_folder = sys.argv[1]
-        try:
-            run_id = int(sys.argv[2])
-        except:
-            rospy.logerr("Passed run_id not an integer. Using default value (2).")
-            run_id = 2
-
-
-    current_file_path = os.path.abspath(__file__)
-    grasping_pipeline_folder = os.path.dirname(os.path.dirname(current_file_path))
-    test_dir = os.path.join(grasping_pipeline_folder, "Tests", test_folder)
-
-    if not os.path.exists(test_dir):
-        print("Path does not exist.")
-        sys.exit()
-    
-    with open(os.path.join(test_dir, "data.txt"), "r") as file:
-        yaml_file = yaml.safe_load(file)
-
-    object_name = yaml_file["object_name"]
-    frame_id = yaml_file["object_to_grasp_stamped"]["header"]["frame_id"]
-    stamp = yaml_file["object_to_grasp_stamped"]["header"]["stamp"]
-    stamp_secs = stamp["secs"]
-    stamp_nsecs = stamp["nsecs"]
-
-    pose_stamped_msg = PoseStamped()
-    pose_stamped_msg.header = Header(seq=yaml_file["object_to_grasp_stamped"]["header"]["seq"], stamp=rospy.Time(stamp_secs, stamp_nsecs), frame_id=frame_id)
-    pose_stamped_msg.pose.position.x = yaml_file["object_to_grasp_stamped"]["pose"]["position"]["x"]
-    pose_stamped_msg.pose.position.y = yaml_file["object_to_grasp_stamped"]["pose"]["position"]["y"]
-    pose_stamped_msg.pose.position.z = yaml_file["object_to_grasp_stamped"]["pose"]["position"]["z"]
-    pose_stamped_msg.pose.orientation.x = yaml_file["object_to_grasp_stamped"]["pose"]["orientation"]["x"]
-    pose_stamped_msg.pose.orientation.y = yaml_file["object_to_grasp_stamped"]["pose"]["orientation"]["y"]
-    pose_stamped_msg.pose.orientation.z = yaml_file["object_to_grasp_stamped"]["pose"]["orientation"]["z"]
-    pose_stamped_msg.pose.orientation.w = yaml_file["object_to_grasp_stamped"]["pose"]["orientation"]["w"]
-
-    o3d_pcd = o3d.io.read_point_cloud(os.path.join(test_dir, "scene.ply"))
-    ros_pcd = orh.o3dpc_to_rospc(o3d_pcd, frame_id = frame_id, stamp=stamp)
-    
-    if multipleRuns:
-        zero_time=0
-        one_time=0
-        two_time=0
-        three_time=0
-        loop_len = 20
-        for i in range(loop_len):
-
-
-            
-
-            start = time.time()
-            grasp_poses_zero = GraspAnnotator(pose_stamped_msg, ros_pcd, object_name, None, visualize=True, run_id=0).valid_poses
-            zero_time += (time.time() - start)
-            
-            start = time.time()
-            grasp_poses_one = GraspAnnotator(pose_stamped_msg, ros_pcd, object_name, None, visualize=True, run_id=1).valid_poses
-            one_time += (time.time() - start)
-            
-            start = time.time()
-            grasp_poses_two = GraspAnnotator(pose_stamped_msg, ros_pcd, object_name, None, visualize=True, run_id=2).valid_poses
-            two_time += (time.time() - start)
-
-            
-        print(" --- RUN TIMES ---")
-        print(f"run_id 0: {zero_time/loop_len}s") # Average of 2s
-        print(f"run_id 1: {one_time/loop_len}s") # average of 0.25s
-        print(f"run_id 2: {two_time/loop_len}s") # average of 0.28s
-
-        print(" --- BEST GRASP POSE ---")
-        print(f"run_id 0: {grasp_poses_one[0].pose}")
-        print(f"run_id 1: {grasp_poses_two[0].pose}") 
-        print(f"run_id 2: {grasp_poses_two[0].pose}") 
-    else:
-        start = time.time()
-        grasp_poses = GraspAnnotator(pose_stamped_msg, ros_pcd, object_name, None, visualize=True, run_id=run_id).valid_poses
-        print(f"--- DONE AFTER {time.time() - start}s ---")
-        
-
-             
-
+        return sorted_valid_grasp_poses
