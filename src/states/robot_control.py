@@ -210,7 +210,8 @@ class GoToAndLookAtPlacementArea(smach.State):
     smach-result
         'succeeded': If the robot reached the waypoint and looked at the placement area.
         'aborted': If the robot could not reach the waypoint, either because action took to long and
-        timed out or because the connection to the move server could not be established.
+        timed out or because the connection to the move server could not be established, or if no
+        placement area is specified for this object.
     placement_area_bb: BoundingBox3DStamped
         The bounding box of the placement area the robot should place the object in. This is read
         from the parameter server.
@@ -296,5 +297,15 @@ class GoToAndLookAtPlacementArea(smach.State):
             rospy.logerr("Could not connect to move server!")
             return 'aborted'
         
-        
-        
+
+class CheckTopGrasp(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, 
+                             outcomes=['top_grasp', 'not_top_grasp'],
+                             input_keys=['top_grasp'])
+    
+    def execute(self, userdata):
+        if userdata.top_grasp:
+            return 'top_grasp'
+        else:
+            return 'not_top_grasp'
