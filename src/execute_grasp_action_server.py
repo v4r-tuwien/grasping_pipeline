@@ -305,8 +305,7 @@ class ExecuteGraspServer:
             else:
                 not_top_grasps.append(grasp)
 
-        #return not_top_grasps + top_grasps, [False]*len(not_top_grasps) + [True]*len(top_grasps)    
-        return top_grasps, [True]*len(top_grasps)    
+        return not_top_grasps + top_grasps, [False]*len(not_top_grasps) + [True]*len(top_grasps)    
            
 def qv_mult(q, v):
     """
