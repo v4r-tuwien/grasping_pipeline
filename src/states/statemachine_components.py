@@ -25,7 +25,7 @@ def get_execute_grasp_sm(after_grasp_waypoint):
     seq = smach.Sequence(outcomes=['end_execute_grasp', 'failed_to_grasp'],
                          connector_outcome='succeeded', 
                          input_keys=['grasp_object_bb', 'grasp_poses'],
-                         output_keys=['placement_surface_to_wrist'])
+                         output_keys=['placement_surface_to_wrist', 'top_grasp'])
 
     table_waypoint = GoToWaypoint(0.25, 0.41, 0)
 
@@ -35,7 +35,7 @@ def get_execute_grasp_sm(after_grasp_waypoint):
         smach.Sequence.add('ADD_COLLISION_OBJECTS', CollisionEnvironment())
 
         execute_grasp_actionstate = smach_ros.SimpleActionState(
-            'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses', 'grasp_object_name_moveit', 'table_plane_equations'], result_slots=['placement_surface_to_wrist']) 
+            'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses', 'grasp_object_name_moveit', 'table_plane_equations'], result_slots=['placement_surface_to_wrist', 'top_grasp']) 
 
         smach.Sequence.add('EXECUTE_GRASP', execute_grasp_actionstate, transitions={
                             'aborted': 'failed_to_grasp', 'preempted': 'failed_to_grasp'})

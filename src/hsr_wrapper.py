@@ -8,6 +8,8 @@ class HSR_wrapper:
         self.robot = Robot()
         self.whole_body = self.robot.try_get('whole_body')
         self.gripper = self.robot.try_get('gripper')
+        self.tts = self.robot.try_get('default_tts')
+        self.tts.language = self.tts.ENGLISH
         
     def move_eef_by_line(self, direction, distance):
         '''
@@ -65,3 +67,14 @@ class HSR_wrapper:
             pose_vec.x + delta[0], pose_vec.y + delta[1], pose_vec.z + delta[2])
         new_pose = geometry.Pose(new_pose_vec, pose_quat)
         self.whole_body.move_end_effector_pose(new_pose)
+
+    def tts_say(self, text):
+        '''
+        Let the robot say the given text.
+        
+        Parameters
+        ----------
+        text: str
+            The text to say.
+        '''
+        self.tts.say(text)
