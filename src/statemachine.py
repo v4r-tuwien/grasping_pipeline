@@ -51,8 +51,8 @@ def create_statemachine(do_handover=True):
         
         smach.StateMachine.add('PLACEMENT', placement_sm, transitions={'end_placement': 'RETREAT_AFTER_PLACEMENT', 'failed_to_place': 'GO_BACK_TO_TABLE'})
         
-        smach.StateMachine.add('RETREAT_AFTER_PLACEMENT', GoBack(0.2), transitions={'succeeded': 'GO_TO_NEUTRAL_AFTER_PALCEMENT'})
-        smach.StateMachine.add('GO_TO_NEUTRAL_AFTER_PALCEMENT', GoToNeutral(), transitions={'succeeded': 'SETUP'})
+        smach.StateMachine.add('RETREAT_AFTER_PLACEMENT', GoBack(0.2), transitions={'succeeded': 'GO_TO_NEUTRAL_AFTER_PLACEMENT'})
+        smach.StateMachine.add('GO_TO_NEUTRAL_AFTER_PLACEMENT', GoToNeutral(), transitions={'succeeded': 'SETUP'})
 
         smach.StateMachine.add('GO_BACK_TO_TABLE', table_waypoint, transitions={'succeeded': 'HANDOVER', 'aborted': 'GO_BACK_TO_TABLE'})
 
