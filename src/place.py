@@ -406,13 +406,11 @@ class PlaceObjectServer():
                 placement_area.center.position.y])
             dist_to_placement_area = np.linalg.norm(base_pose_np - placement_area_np)
             distances.append(dist_to_placement_area)
-        rospy.logerr(f"Distances: {distances}, {placement_areas = }")
         sorted_placement_areas = [
             placement_area 
             for _, placement_area 
             in sorted(zip(distances, placement_areas), key=lambda pair: pair[0], reverse=True)
             ]
-        rospy.logerr(f"Sorted placement areas: {sorted_placement_areas}")
         return sorted_placement_areas
     
     def get_surface_to_wrist_transform(self, object_placement_surface_pose):
@@ -506,7 +504,11 @@ class PlaceObjectServer():
         surface_to_wrist = self.get_surface_to_wrist_transform(goal.placement_surface_to_wrist)
 
         execution_succesful = False
+        max_placement_attempts = rospy.get_param("/grasping_pipeline/placement/max_attempts")
         for i, placement_area in enumerate(sorted_placement_areas):
+            if i >= max_placement_attempts:
+                rospy.logwarn(f"Placement: {i+1} poses failed. Aborting")
+                break
             header = Header(stamp=rospy.Time.now(), frame_id= placement_area_det_frame)
             placement_point = PoseStamped(header=header, pose=placement_area.center)
             placement_point = self.tf2_wrapper.transform_pose(base_frame, placement_point)

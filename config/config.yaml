@@ -17,3 +17,5 @@ grasping_pipeline:
   result_visualization_service_name: '/pose_estimator/result_visualization_service'
   result_visualization_topic: /pose_estimator/result_visualization
   timeout_duration: 40.0
+  placement:
+    max_attempts: 25
