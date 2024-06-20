@@ -1,0 +1,31 @@
+states.grasp\_method\_selector
+==============================
+
+.. automodule:: states.grasp_method_selector
+  
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:                                          
+      :template: custom-class-template.rst              
+   
+      GraspMethodSelector
+   
+   
+
+   
+   
+   
+
+
+
