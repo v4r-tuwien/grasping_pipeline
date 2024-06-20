@@ -26,6 +26,12 @@ class ExecuteGraspServer:
     pose is successfully executed, the object is grasped and the server returns the transform from
     the object's bottom surface to the wrist frame. If no grasp pose is successfully executed, the
     server returns terminates with an aborted status.
+    
+    The grasp poses are sorted by their orientation and distance. Top grasps are executed last.
+    This means that the closest grasp pose that is not a top grasp is executed first. After 
+    trying all non-top grasps, the top grasps are executed in the same order (closest first).
+    This is done because placing objects into shelves is easier when the object is grasped from
+    the side.
 
     The server first moves the robot gripper to a point that is a certain safety distance away from 
     the object, before moving the gripper to the grasp pose. This is to avoid collisions with the
@@ -74,7 +80,8 @@ class ExecuteGraspServer:
     -------
     ExecuteGraspResult
         The result of the action server containing the transformation from the object's bottom 
-        surface to the wrist frame ('placement_surface_to_wrist'). The server aborts if no grasp pose
+        surface to the wrist frame ('placement_surface_to_wrist') and a boolean indicating if the
+        grasp was a top grasp ('top_grasp'). The server aborts if no grasp pose
         was successfully executed or if the grasp failed. If the grasp was successful, the server
         returns succeeded and the transformation.
     '''
@@ -97,6 +104,12 @@ class ExecuteGraspServer:
         '''
         Tries to execute the grasp poses in the goal one by one until a successful grasp is done.
         
+        The grasp poses are sorted by their orientation and distance. Top grasps are executed last.
+        This means that the closest grasp pose that is not a top grasp is executed first. After 
+        trying all non-top grasps, the top grasps are executed in the same order (closest first).
+        This is done because placing objects into shelves is easier when the object is grasped from
+        the side.
+
         For each grasp pose, the server first moves the robot gripper to a point that is a certain
         safety distance away from the object, before moving the gripper to the grasp pose. This is to
         avoid collisions with the object. After grasping the object, the server moves the object up by
@@ -108,7 +121,7 @@ class ExecuteGraspServer:
         The transformation between the object's bottom surface and the wrist frame is saved right before
         the gripper closes around the object. This transformation is needed for placement because the
         only assumption we can make is that the object is placeable on the surface that it was standing
-        on when it was grasped.
+        on when it was grasped. The information about whether the grasp was a top grasp is also saved.
         
         Parameters
         ----------

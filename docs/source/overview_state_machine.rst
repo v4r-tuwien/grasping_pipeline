@@ -52,6 +52,8 @@ The ExecuteGrasp component is responsible for executing the grasp that was found
 
 First, the table plane that the object is resting on is detected. Then, the collision environment is updated with the `grasp_object_bb` and the detected table. The `grasp_object_bb` is needed if placement should be done after the grasping. The table is needed to prevent the robot from colliding with the table. 
   
+The grasp poses are sorted by their orientation and distance. Top grasps are executed last. This means that the closest grasp pose that is not a top grasp is executed first. After trying all non-top grasps, the top grasps are executed in the same order (closest first). This is done because it is much harder for the robot to place top-grasped objects into a shelve.
+
 Afterwards, the robot moves to the grasp pose and executes the grasp. Simultaneously, it records the transformation between the robot's end-effector and the object's bottom plane. This transformation is needed for placement to ensure that the object is placed in a manner that maintains the objects original orientation (i.e. the bottom side of the object when it was grasped, will also be the bottom side of the object after it is placed).
 
 If the grasp failed, the component returns a 'failed_to_grasp' outcome.
@@ -71,6 +73,7 @@ Inputs
 Outputs
 -------
 * **placement_surface_to_wrist (geometry_msgs/Transform)**: The transformation between the robot's end-effector and the object's bottom plane. This transformation is needed for placement to ensure that the object is placed in a manner that maintains the objects original orientation.
+* **top_grasp** (bool): True if the grasp pose is a top grasp, False otherwise.
 
 ==========
 RobotSetup
