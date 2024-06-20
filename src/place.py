@@ -574,6 +574,8 @@ class PlaceObjectServer():
             self.server.set_succeeded(res)
         else:
             rospy.loginfo("Placement: Placement failed")
+            self.hsr_wrapper.tts_say("I could not place the object. Switching to handover.")
+            rospy.sleep(2.0)
             self.server.set_aborted()
     
     def add_marker(self, pose_goal, id=0, r=0, g=1, b=0):

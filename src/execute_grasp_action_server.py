@@ -121,7 +121,11 @@ class ExecuteGraspServer:
         # hrisi experiments, change back to 0.1 again afterwards
         safety_distance = rospy.get_param("/safety_distance", default=0.2)
 
-        for grasp_pose in goal.grasp_poses:
+        
+        sorted_gasp_poses, is_top_grasp_array = self.sort_grasps_by_orientation(goal.grasp_poses)
+        rospy.logdebug(is_top_grasp_array)
+
+        for grasp_pose, is_top_grasp in zip(sorted_gasp_poses, is_top_grasp_array):
             # assumes static scene, i.e robot didn't move since grasp pose was found
             grasp_pose.header.stamp = rospy.Time.now()
             grasp_pose = self.tf_wrapper.transform_pose(planning_frame, grasp_pose)
@@ -153,7 +157,8 @@ class ExecuteGraspServer:
             self.hsr_wrapper.gripper_grasp_hsr(0.3)
             transform = self.get_transform_from_wrist_to_object_bottom_plane(goal, planning_frame)
             res.placement_surface_to_wrist = transform
-            
+            res.top_grasp = is_top_grasp
+
             touch_links = self.moveit_wrapper.get_link_names(group='gripper')
             self.moveit_wrapper.attach_object(goal.grasp_object_name_moveit, touch_links)
 
@@ -262,7 +267,46 @@ class ExecuteGraspServer:
         transform = Transform(rotation = transform.pose.orientation, translation = transform.pose.position)
 
         return transform
+    
+    def sort_grasps_by_orientation(self, grasp_poses):
+        """Sorts grasp poses by their orientation to distinguish between top and not top grasps
 
+        Args:
+            grasp_poses (geometry_msgs.PoseStamped[]): Array with grasp poses in the head_rgbd_sensor_rgb_frame
+
+        Returns:
+            geometry_msgs.PoseStamped[]: Array with the sorted grasp poses. The grasp are sorted by their orientation 
+            (not top grasps first, then top grasps) and their distances to the robot (=their original order)
+            list: List with False for not top grasps and True for top grasps
+
+        """
+        top_grasps = []
+        not_top_grasps = []
+
+        for grasp in grasp_poses:
+            grasp.header.stamp = rospy.Time.now()
+
+            # Define the z-axis of the grasp in the grasp frame and the negative z-axis in the map frame
+            # If the angle between the two is close to 0, the grasp is a top grasp
+            z_axis_grasp = np.array([0, 0, 1])
+            negative_z_axis_grasp_map = np.array([0, 0, -1])
+
+            # Transform the z-axis of the grasp to the map frame
+            grasp_in_map = self.tf_wrapper.transform_pose("map", grasp)
+            grasp_in_map_rot = tf.transformations.quaternion_matrix([grasp_in_map.pose.orientation.x, grasp_in_map.pose.orientation.y, grasp_in_map.pose.orientation.z, grasp_in_map.pose.orientation.w])[:3, :3]
+            z_axis_grasp_map = grasp_in_map_rot.dot(z_axis_grasp)
+            
+            # Compute the cosine of the angle between the two z-axes
+            cosine_angle = np.dot(z_axis_grasp_map, negative_z_axis_grasp_map)
+
+            # cosine_angle ~= 1 -> angle ~= 0 -> top grasp
+            if cosine_angle > 0.9:
+                top_grasps.append(grasp)
+            else:
+                not_top_grasps.append(grasp)
+
+        return not_top_grasps + top_grasps, [False]*len(not_top_grasps) + [True]*len(top_grasps)    
+           
 def qv_mult(q, v):
     """
     Rotates the vector v by the quaternion q

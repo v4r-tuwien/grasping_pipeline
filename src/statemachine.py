@@ -4,7 +4,9 @@ import smach
 import smach_ros
 from states.statemachine_components import get_robot_setup_sm, get_execute_grasp_sm, get_placement_sm, get_find_grasp_sm
 from states.userinput import UserInput
-from states.robot_control import GoToWaypoint, GoBack
+from states.robot_control import GoToWaypoint, GoBack, GoToNeutral, CheckTopGrasp
+from states.grasp_method_selector import GraspMethodSelector
+from grasping_pipeline_msgs.msg import FindGrasppointAction
 from handover.msg import HandoverAction
 
 def create_statemachine(do_handover=True):
@@ -33,7 +35,9 @@ def create_statemachine(do_handover=True):
             map), transitions={'retry': 'FIND_GRASP', 'succeeded': 'EXECUTE_GRASP'})
         
         smach.StateMachine.add('EXECUTE_GRASP', execute_grasp_sm, transitions={
-            'end_execute_grasp': 'AFTER_GRASP_USERINPUT', 'failed_to_grasp': 'SETUP'})
+            'end_execute_grasp': 'CHECK_TOP_GRASP', 'failed_to_grasp': 'SETUP'})
+        
+        smach.StateMachine.add('CHECK_TOP_GRASP', CheckTopGrasp(), transitions={'top_grasp': 'HANDOVER', 'not_top_grasp': 'AFTER_GRASP_USERINPUT'})
         
         map = {'p': ['placement', 'place object'],
                'h': ['handover', 'handover object']}
@@ -45,8 +49,13 @@ def create_statemachine(do_handover=True):
                                              'preempted': 'SETUP',
                                              'aborted': 'SETUP'})
         
-        smach.StateMachine.add('PLACEMENT', placement_sm, transitions={'end_placement': 'RETREAT_AFTER_PLACEMENT', 'failed_to_place': 'AFTER_GRASP_USERINPUT'})
-        smach.StateMachine.add('RETREAT_AFTER_PLACEMENT', GoBack(0.2), transitions={'succeeded': 'SETUP'})
+        smach.StateMachine.add('PLACEMENT', placement_sm, transitions={'end_placement': 'RETREAT_AFTER_PLACEMENT', 'failed_to_place': 'GO_BACK_TO_TABLE'})
+        
+        smach.StateMachine.add('RETREAT_AFTER_PLACEMENT', GoBack(0.2), transitions={'succeeded': 'GO_TO_NEUTRAL_AFTER_PALCEMENT'})
+        smach.StateMachine.add('GO_TO_NEUTRAL_AFTER_PALCEMENT', GoToNeutral(), transitions={'succeeded': 'SETUP'})
+
+        smach.StateMachine.add('GO_BACK_TO_TABLE', table_waypoint, transitions={'succeeded': 'HANDOVER', 'aborted': 'GO_BACK_TO_TABLE'})
+
     return sm
 
 if __name__ == '__main__':
