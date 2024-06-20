@@ -575,6 +575,8 @@ class PlaceObjectServer():
         else:
             rospy.loginfo("Placement: Placement failed")
             self.hsr_wrapper.tts_say("I could not place the object. Switching to handover.")
+            rospy.logerr("Placement: Placement failed. Make sure that the robot is physically able to place the object")
+            rospy.logerr("(e.g. tall objects generally can't be placed into the shelf without collisions when grasped from the top)")
             rospy.sleep(2.0)
             self.server.set_aborted()
     

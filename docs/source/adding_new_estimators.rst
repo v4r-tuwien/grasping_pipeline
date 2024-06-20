@@ -33,6 +33,14 @@ The model should be ROS compatible and should expose an action server that uses 
 
 Depending on the type of model you want to add, you will get different goals and are expected to return different results.
 
+   
+You can clone the `robokudo_msgs` repository with the following command:
+
+.. code-block:: console
+
+    $ git clone https://gitlab.informatik.uni-bremen.de/robokudo/robokudo_msgs.git
+
+
 ============================
 Adding a new object detector
 ============================
