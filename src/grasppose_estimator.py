@@ -110,9 +110,10 @@ class FindGrasppointServer:
         self.cam_info = rospy.wait_for_message(rospy.get_param('/cam_info_topic'), CameraInfo)
         
         self.timeout = rospy.get_param('/grasping_pipeline/timeout_duration')
+        self.grasp_annotator = GraspAnnotator()
+      
         rospy.loginfo('Initializing FindGrasppointServer done')
 
-        self.grasp_annotator = GraspAnnotator()
 
     def execute(self, goal):
         '''
