@@ -27,54 +27,39 @@ import time
 
 class FindGrasppointServer:
     '''
-    Calls the pose estimator to get object poses and then calculates grasp poses for the detected objects.
+    Computes the grasp_poses for the object to grasp based on annotated grasps.
 
-    The server subscribes to the rgb and depth image topics. It then calls the pose estimator to get
-    object poses. If the pose estimator detects unknown objects, the server will use the label image
-    to get the bounding boxes, regions of interest and bb center-poses. The poses of the unknown objects
-    are then overwritten with the center poses of their bounding boxes.
-    If an object to grasp is specified in the goal, the server will grasp the specified object.
-    Otherwise, it will grasp the closest object. The server then calculates the grasp poses for the
-    specified or the closest object.
-    In the case of unknown objects the server will call the unknown object grasp detector to get
-    grasp poses for the unknown objects.
-    In the case of known objects the server will call the grasp checker which uses grasp-annotations
-    to calculate grasp poses.
-    In the end the server will add markers to the rviz visualization to show the grasp pose and the
-    bounding box of the object.
+    The FindGrasppointServer uses the grasp checker to calculate the grasp poses for the
+    object, based on grasp-annotations and the estimated object poses. 
+    The server returns the grasp poses, the bounding box of the
+    object to grasp and the object name of the object to grasp.
+    The server adds markers to the rviz visualization to show the grasp pose and the bounding box of
+    the object.
     
     Attributes
     ----------
     models_metadata: dict
         The metadata of the known objects. Contains the bounding box information.
     server: actionlib.SimpleActionServer
-        The action server for the FindGrasppoint action.
+        This action server. Computes grasp poses for the object to grasp.
     marker_pub: rospy.Publisher
         The publisher for the rviz markers.
-    depth: sensor_msgs.msg.Image
-        The most recent depth image from the camera.
-    rgb: sensor_msgs.msg.Image
-        The most recent rgb image from the camera.
-    image_sub: ApproximateTimeSynchronizer
-        The message filter for the depth and rgb image topics.
     cam_info: sensor_msgs.msg.CameraInfo
         The camera info message containing the camera parameters.
     timeout: float
         The timeout duration for setting up the action servers and waiting for results.
-    pose_estimator: actionlib.SimpleActionClient
-        The action client for the pose estimator.
-    res_vis_service: rospy.ServiceProxy
-        The service proxy for the result visualization service, which visualizes the pose estimation
-        results in an image with object contours and names.
-    unknown_object_grasp_detector: actionlib.SimpleActionClient
-        The action client for the unknown object grasp detector, which calculates grasp poses for
-        unknown objects based on a region of interest.
     
     Parameters
     ----------
     object_to_grasp: str
         The name of the object to grasp. If specified, the server will grasp this object. If not
         specified (empty string), the server will grasp the closest object.
+    object_poses: list of geometry_msgs.msg.Pose
+        The poses of the objects detected by the pose estimator.
+    depth: sensor_msgs.msg.Image
+        The depth image of the scene.
+    class_names: list of str
+        The class names of the objects detected by the pose estimator.
     
     Returns
     -------
@@ -88,9 +73,9 @@ class FindGrasppointServer:
         Initializes the FindGrasppointServer.
 
         Loads the model metadata from the models_metadata.yml file in the model_dir. This file 
-        contains the bounding box information for known objects. Afterwards it subscribes to the
-        rgb and depth imag topics. It then connects to the pose estimator action server and 
-        (optionally) to the unknown object grasp detector action server.
+        contains the bounding box information for known objects. The server then waits for the
+        camera info message. After that it initializes the action server and the rviz marker
+        publisher.
         Finally it starts the action server.
         
         Parameters
@@ -110,26 +95,19 @@ class FindGrasppointServer:
         self.cam_info = rospy.wait_for_message(rospy.get_param('/cam_info_topic'), CameraInfo)
         
         self.timeout = rospy.get_param('/grasping_pipeline/timeout_duration')
+        self.grasp_annotator = GraspAnnotator()
+      
         rospy.loginfo('Initializing FindGrasppointServer done')
 
-        self.grasp_annotator = GraspAnnotator()
 
     def execute(self, goal):
         '''
         Executes the FindGrasppoint action server.
         
-        The server first calls the pose estimator to get object poses. It then performs a check
-        to ensure that the results were passed correctly. If the pose estimator detected unknown
-        objects, it will use the label image to get the bbs, regions of interest and bb center-poses. 
-        The poses of the unknown objects are then overwritten with the center poses of their
-        bounding boxes. 
-        If an object to grasp is specified in the goal, the server will grasp the specified object.
-        Otherwise, it will grasp the closest object. 
-        The server then calculates the grasp poses for the specified or the closest object.
-        In the case of unknown objects the server will call the unknown object grasp detector to get
-        grasp poses for the unknown objects. 
-        In the case of known objects the server will call the grasp checker which uses grasp-annotations
-        to calculate grasp poses.
+        If an object to grasp is specified in the goal, the server will estimate the grasp pose for
+        the specified object. Otherwise, it will estimate the grasp pose for the closest object.
+        The server uses the grasp checker which uses grasp-annotations to calculate grasp poses from
+        the estimated object pose.
         In the end the server will add markers to the rviz visualization to show the grasp pose and the
         bounding box of the object.
         

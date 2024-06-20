@@ -59,7 +59,7 @@ This should open up a tmux session.
     .. code-block:: console
 
         $ ssh-keygen
-        $ ssh-copy-id v4r@hsrb.local
+        $ ssh-copy-id -i ~/.ssh/NAME_OF_THE_KEY.pub v4r@hsrb.local
     
     This creates a key pair and copies the public key to sasha. You should now be able to connect to sasha without entering a password.
 
@@ -69,7 +69,7 @@ Tmux session layout
 When starting the grasping pipeline, a tmux session is created. The tmux session is divided into two windows and multiple panes. 
 
 The first window you will see is the window for the grasping pipeline. It is divided into three panes. 
-The first pane is for the grasping pipeline nodes that are running locally, the second pane is for the rviz visualization and the third pane is for the grasping pipeline nodes running on sasha.
+The first pane is for the statemachine, the second pane is for the rviz visualization and the third pane is for running all grasping-pipeline nodes.
 
 .. note::
     Generally, most nodes are running locally because the development computer is much more powerful than sasha. 
@@ -83,10 +83,11 @@ None of the panes are running when the tmux session is started. You can start th
 You should start the nodes in the following order:
 
 1. Start the pose estimator and wait until it is running (optional). By default the table plane extractor is used to estimate the pose of the object. If this is sufficient for your use case, you don't have to do anything. However, if you want to use another pose estimator, you should start it before starting the grasping pipeline. Additionally you need to update the ```config/config.yaml``` file to use the new pose estimator.
-2. Start both the local and sasha grasping pipeline nodes.
-3. Open rviz if needed.
+2. Start the locally running nodes by navigating to the lower-right pane and pressing enter. 
+3. Wait for a couple of seconds and then start the statemachine by navigating to the left pane and pressing enter.
+4. Open rviz if needed.
 
-Additionally, there is a second window in the tmux session. This window only has one pane which is used to automatically start MoveIt. MoveIt is also running on sasha because of the high bandwith requirements.
+Additionally, there is a second window in the tmux session. This window only has one pane which is used to automatically start MoveIt. MoveIt is running on sasha because of the high bandwith requirements.
 
 .. image:: images/tmux_panes2.svg
     :width: 80%
@@ -100,7 +101,7 @@ The grasping pipeline succesfully started if you see the following output in the
     :width: 80%
     :align: center
 
-You should see the user input prompt in the left pane and the message "Initializing FindGrasppointServer done" in the lower right pane.
+You should see the user input prompt in the left pane and the messages "Init Placement" and "Execute grasp: Init" in the lower-right pane.
 
 The MoveIt window should show the message "You can start planning now!":
 

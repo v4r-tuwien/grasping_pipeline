@@ -7,12 +7,16 @@ API
    :template: custom-module-template.rst
 
    states
-   hsr_wrapper
+   direct_grasppose_estimator
    execute_grasp_action_server
-   find_grasppoint_action_server
    grasp_checker
+   grasppose_estimator
+   hsr_wrapper
+   image_fetcher
    moveit_wrapper
+   object_detector
    place
+   pose_estimator
    statemachine_llm
    statemachine
    visualizer

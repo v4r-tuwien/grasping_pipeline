@@ -16,7 +16,59 @@ from v4r_util.util import get_minimum_oriented_bounding_box, o3d_bb_to_ros_bb_st
 from tf.transformations import (quaternion_about_axis, quaternion_multiply)
 
 class DirectGraspposeEstimatorCaller:
+    '''Calls a service that directly estimates the grasppose.
+    
+    Calls a service that directly estimates the grasppose without needing an 
+    object pose and annotations. The topic of the service is defined in the
+    parameter '/grasping_pipeline/grasppoint_estimator_topic'. The results are 
+    published as a marker in the rviz visualization with the topic 
+    '/grasping_pipeline/grasp_marker'.
 
+    If an object to grasp is specified, the service will only estimate the
+    grasppose of the specified object. If no object is specified, the service
+    will only estimate the grasppose of the closest object to the camera.
+
+    Parameters
+    ----------
+    rgb: sensor_msgs.msg.Image
+        The RGB image of the scene.
+    depth: sensor_msgs.msg.Image
+        The depth image of the scene.
+    mask_detections: list of sensor_msgs.msg.Image
+        The object masks.
+    bb_detections: list of sensor_msgs.msg.RegionOfInterest
+        The 2D bounding boxes of the objects.
+    class_names: list of str
+        The class names of the objects.
+    object_to_grasp: str
+        The name of the object to grasp. If empty, the closest object to the camera is grasped.
+    
+    Attributes
+    ----------
+    bridge: CvBridge
+        The OpenCV bridge to convert images.
+    srv: rospy.Service
+        This service. Calls the direct grasppose estimator when called.
+    cam_info: sensor_msgs.msg.CameraInfo
+        The camera information/intrinsics.
+    marker_pub: rospy.Publisher
+        The publisher that publishes the markers in the rviz visualization.
+    
+    Raises
+    ------
+    rospy.ServiceException
+        If the direct grasppose estimator service times out or fails to estimate the grasppose
+        or if no mask or bounding box detections are provided.
+    
+    Returns
+    -------
+    grasp_poses: list of geometry_msgs.msg.PoseStamped
+        The estimated graspposes.
+    grasp_object_bb: grasping_pipeline_msgs.msg.BoundingBoxStamped
+        The bounding box of the object to grasp.
+    grasp_object_name: str
+        The name of the object to grasp.
+    '''
     def __init__(self):
         self.bridge = CvBridge()
         self.srv = rospy.Service('call_direct_grasppose_estimator', CallDirectGraspPoseEstimator , self.execute)
@@ -24,6 +76,34 @@ class DirectGraspposeEstimatorCaller:
         self.marker_pub = rospy.Publisher('/grasping_pipeline/grasp_marker', Marker, queue_size=10)
     
     def execute(self, req):
+        '''
+        Calls the direct grasppose estimator service and returns the grasppose.
+
+        If an object to grasp is specified, the service will only estimate the
+        grasppose of the specified object. If no object is specified, the service
+        will only estimate the grasppose of the closest object to the camera.
+
+        If no mask or bounding box detections are provided, the service will raise
+        an error.
+
+        Parameters
+        ----------
+        req: grasping_pipeline_msgs.srv.CallDirectGraspPoseEstimatorRequest
+            The request to the service. Contains the RGB image, depth image, mask detections,
+            bounding box detections, class names, and (optionally) the name of the object to grasp.
+
+        Raises
+        ------
+        rospy.ServiceException
+            If the direct grasppose estimator service times out or fails to estimate the grasppose
+            or if no mask or bounding box detections are provided.
+        
+        Returns
+        -------
+        grasping_pipeline_msgs.srv.CallDirectGraspPoseEstimatorResponse
+            The response of the service. Contains the name of the object to grasp, the bounding box
+            of the object, and the estimated graspposes.
+        '''
         topic = rospy.get_param('/grasping_pipeline/grasppoint_estimator_topic')
         timeout = rospy.get_param('/grasping_pipeline/timeout_duration')
 
@@ -93,12 +173,40 @@ class DirectGraspposeEstimatorCaller:
         return res
 
     def get_bb_center_poses(self, bbs):
+        '''Extracts the center poses of the bounding boxes.
+
+        Parameters
+        ----------
+        bbs: list of 
+            A list of bounding boxes.
+        
+        Returns
+        -------
+        list
+            A list of the center poses of the bounding boxes.
+        '''
         center_poses = []
         for bb in bbs:
             center_poses.append(bb.center)
         return center_poses
     
     def get_3D_bbs(self, depth, masks, bbs_2d):
+        '''Extracts the 3D bounding boxes of the objects.
+
+        If masks are provided, the 3D bounding boxes are extracted from the masks 
+        and the depth image. Otherwise, if 2D bounding boxes are provided, the 3D
+        bounding boxes are extracted from the 2D bounding boxes. If neither masks
+        nor 2D bounding boxes are provided, an error is raised.
+
+        Parameters
+        ----------
+        depth: sensor_msgs.msg.Image
+            The depth image.
+        masks: list of sensor_msgs.msg.Image
+            The object masks.
+        bbs_2d: list of sensor_msgs.msg.RegionOfInterest
+            The 2D bounding boxes of the objects.
+        '''
         bbs = []
         depth_np = ros_numpy.numpify(depth)
         if len(masks) > 0:
@@ -115,6 +223,22 @@ class DirectGraspposeEstimatorCaller:
         return bbs
         
     def get_bb_3D_from_mask(self, depth, depth_np, mask):
+        '''Extracts the 3D bounding box of the object from the mask.
+
+        Parameters
+        ----------
+        depth: sensor_msgs.msg.Image
+            The depth image.
+        depth_np: numpy.ndarray
+            The depth image as a numpy array.
+        mask: sensor_msgs.msg.Image
+            The object mask.
+
+        Returns
+        -------
+        grasping_pipeline_msgs.msg.BoundingBoxStamped
+            The 3D bounding box of the object.
+        '''
         depth_img_obj = np.full_like(depth_np, np.nan, dtype=np.float32)
         mask = ros_numpy.numpify(mask)
         mask = mask != 0
@@ -125,6 +249,17 @@ class DirectGraspposeEstimatorCaller:
         return o3d_bb_to_ros_bb_stamped(obj_bb_o3d, depth.header.frame_id, depth.header.stamp)
 
     def get_bb_3D_from_bb(self, depth, depth_np, bb_2d):
+        '''Extracts the 3D bounding box of the object from the 2D bounding box.
+
+        Parameters
+        ----------
+        depth: sensor_msgs.msg.Image
+            The depth image.
+        depth_np: numpy.ndarray
+            The depth image as a numpy array.
+        bb_2d: sensor_msgs.msg.RegionOfInterest
+            The 2D bounding box of the object.
+        '''
         depth_img_obj = np.full_like(depth_np, np.nan)
         bb = bb_2d
         y, x = bb.y_offset, bb.x_offset

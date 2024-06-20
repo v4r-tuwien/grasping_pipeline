@@ -274,7 +274,10 @@ def check_grasp_hsr(pose_odm, scene_cloud_ros, name=None, table_plane=None, visu
         grasp_checker.dir_path, os.pardir, 'grasps', name +'.npy')
 
     rospy.loginfo(grasps_path)
-    grasp_poses = np.load(grasps_path)
+    if os.path.exists(grasps_path):
+        grasp_poses = np.load(grasps_path)
+    else:
+        raise ValueError('No annotations for object {} found! Checked at path: {}'.format(name, grasps_path))
     grasp_poses = grasp_poses.reshape((grasp_poses.shape[0], 4, 4))
     successes = []
     grasp_trials = []

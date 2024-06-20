@@ -7,6 +7,51 @@ from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnot
 from grasping_pipeline_msgs.srv import CallPoseEstimator, CallPoseEstimatorResponse, VisualizePoseEstimation, VisualizePoseEstimationRequest
 
 class CallPoseEstimatorService:
+    '''
+    This class provides a service that calls a pose estimator to estimate the pose of objects in an image.
+
+    The service sends an action goal to the pose estimator with the input image, bounding box detections, and
+    mask detections. The pose estimator returns the estimated poses of the objects in the image.
+
+    Parameters
+    ----------
+    rgb : sensor_msgs.msg.Image
+        RGB image of the scene
+    depth : sensor_msgs.msg.Image
+        Depth image of the scene
+    bb_detections : list of sensor_msgs.msg.RegionOfInterest
+        Bounding box detections of the objects in the image
+    mask_detections : list of sensor_msgs.msg.Image
+        Masks of the objects in the image
+    class_names : list of str
+        Names of the detected objects
+    class_confidences : list of float
+        Confidence scores of the detected objects
+
+    Attributes
+    ----------
+    bridge : CvBridge
+        Converts between ROS Image messages and OpenCV images
+    srv : rospy.Service
+        Service that calls the pose estimator when called
+    res_vis_service : rospy.ServiceProxy
+        Service that visualizes the pose estimation result
+    
+    Other Parameters
+    ----------------
+    res_vis_service_name : str
+        Topic of the result visualization service. 
+        Loaded from the 'result_visualization_service_name' parameter
+    
+    Returns
+    -------
+    class_confidences : list of float
+        Confidence scores of the detected objects
+    class_names : list of str
+        Names of the detected objects
+    pose_results : list of geometry_msgs.msg.Pose
+        Estimated poses of the detected objects in the image frame.
+    '''
 
     def __init__(self):
         self.bridge = CvBridge()
@@ -15,6 +60,21 @@ class CallPoseEstimatorService:
         self.res_vis_service = rospy.ServiceProxy(res_vis_service_name, VisualizePoseEstimation)
     
     def execute(self, req):
+        '''
+        Calls the pose estimator to estimate the pose of objects in the input image.
+
+        Parameters
+        ----------
+        req : grasping_pipeline_msgs.srv.CallPoseEstimatorRequest
+            Request containing the input images, bounding box detections, and mask detections,
+            class names, and class confidences
+        
+        Returns
+        -------
+        grasping_pipeline_msgs.srv.CallPoseEstimatorResponse
+            Response containing the estimated poses of the objects in the image, class names
+            and class confidences
+        '''
         topic = rospy.get_param('/grasping_pipeline/pose_estimator_topic')
         timeout = rospy.get_param('/grasping_pipeline/timeout_duration')
 

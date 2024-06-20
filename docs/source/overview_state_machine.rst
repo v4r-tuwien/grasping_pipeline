@@ -14,7 +14,7 @@ The following diagram shows the structure of the statemachine:
 
 It currently consists of 5 main components:
 
-* FindGrasp: This component is responsible for calling the pose estimator and finding grasp points for the robot.
+* FindGrasp: This component is responsible for calling the object detector, pose estimator and grasp pose estimator to find graspable objects and return the grasp pose(s) for these objects.
 * ExecuteGrasp: This component is responsible for executing the grasp(s) that was found by the FindGrasp component. It also updates the collision environment.
 * RobotSetup: This component is responsible for moving the robot and all of its joints into a predefined position.
 * Placement: This component is responsible for placing the grasped, known object to its appointed location.
@@ -26,16 +26,14 @@ Each of these components is implemented as a state machine (and therefore consis
 =========
 FindGrasp
 =========
-The FindGrasp component calls the pose estimator to get the estimated poses for each of the objects detected in the scene. 
-
-In the case of known object pose estimation, it uses the name to lookup the grasp annotations for that object. In the case of unknown object pose estimation an unknown object grasp pose estimator is called to get the grasp pose. 
+The FindGrasp component fetches the newest RGB and depth images from the camera and passes those to an object detector. If the detected objects are known objects the component calls a pose_estimator and uses the name of the object to look up the grasp annotations for that object. 
+If the detected objects are unknown objects the component calls an unknown object grasp pose estimator to get the grasp pose without calling a pose estimator.
 
 
 Outcomes
 --------
-* **succeeded**: The grasp was found successfully.
-* **aborted**: No object or grasp was found.
-* **preempted**: This outcome is currently not used.
+* **end_find_grasp**: The grasp was found successfully.
+* **failed**: No object or grasp was found. This is also returned if the object detector/pose estimator/grasp pose estimator raise an exception.
 
 Inputs
 ------

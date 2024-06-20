@@ -4,7 +4,9 @@ from states.robot_control import GoToNeutral, OpenGripper, GoToWaypoint, GoToAnd
 from states.find_table_planes import FindTablePlanes
 from states.collision_environment import CollisionEnvironment
 from grasping_pipeline_msgs.msg import ExecuteGraspAction, PlaceAction
-
+from states.grasp_method_selector import GraspMethodSelector
+from grasping_pipeline_msgs.msg import FindGrasppointAction
+from grasping_pipeline_msgs.srv import FetchImages, CallObjectDetector, CallPoseEstimator, CallDirectGraspPoseEstimator
 
 def get_robot_setup_sm(setup_waypoint):
     '''
@@ -63,3 +65,53 @@ def get_placement_sm():
                                     'aborted': 'failed_to_place',
                                     'preempted': 'failed_to_place'})
     return sm
+
+
+def get_find_grasp_sm():
+    '''
+    Returns a state machine that performs all steps necessary to get a grasppoint.'''
+    find_grasp_sm = smach.StateMachine(outcomes=['failed', 'end_find_grasp'], output_keys=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
+    with find_grasp_sm:
+        image_fetcher_service = smach_ros.ServiceState('fetch_synchronized_images', FetchImages, response_slots=['rgb', 'depth'])
+        smach.StateMachine.add('IMAGE_FETCHER', image_fetcher_service, transitions={'succeeded': 'CALL_OBJECT_DETECTOR', 'aborted': 'failed', 'preempted': 'failed'})
+        
+        call_object_detector_service = smach_ros.ServiceState(
+            'call_object_detector', 
+            CallObjectDetector, 
+            request_slots=['rgb', 'depth'], 
+            response_slots=['bb_detections', 'mask_detections', 'class_names', 'class_confidences'])
+        smach.StateMachine.add('CALL_OBJECT_DETECTOR', call_object_detector_service, transitions={'succeeded': 'SELECT_GRASP_METHOD', 'aborted': 'failed', 'preempted': 'failed'})
+
+        smach.StateMachine.add("SELECT_GRASP_METHOD", GraspMethodSelector(), transitions={'pose_based_grasp': 'CALL_POSE_ESTIMATOR', 'direct_grasp': 'CALL_DIRECT_GRASP_POSE_ESTIMATOR'})
+        
+        call_pose_estimator_service = smach_ros.ServiceState(
+            'call_pose_estimator', 
+            CallPoseEstimator, 
+            request_slots=['rgb', 'depth', 'bb_detections', 'mask_detections', 'class_names', 'class_confidences'], 
+            response_slots=['pose_results', 'class_names', 'class_confidences'])
+        smach.StateMachine.add(
+            'CALL_POSE_ESTIMATOR', 
+            call_pose_estimator_service, 
+            transitions={'succeeded': 'FIND_GRASP', 'aborted': 'failed', 'preempted': 'failed'},
+            remapping={'pose_results':'object_poses'})
+        
+        find_grasp_actionstate = smach_ros.SimpleActionState(
+            'find_grasppoint', 
+            FindGrasppointAction, 
+            goal_slots=['depth', 'class_names', 'object_poses'],
+            result_slots=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
+        smach.StateMachine.add('FIND_GRASP', find_grasp_actionstate, transitions={
+            'aborted': 'failed', 'preempted': 'failed', 'succeeded': 'end_find_grasp'})
+        
+        direct_grasp_pose_estimator_service = smach_ros.ServiceState(
+            'call_direct_grasppose_estimator', 
+            CallDirectGraspPoseEstimator, 
+            request_slots=['rgb', 'depth', 'bb_detections', 'mask_detections', 'class_names'], 
+            response_slots=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
+        smach.StateMachine.add(
+            'CALL_DIRECT_GRASP_POSE_ESTIMATOR',
+            direct_grasp_pose_estimator_service,
+            transitions={'succeeded': 'end_find_grasp', 'aborted': 'failed', 'preempted': 'failed'},
+        )
+
+        return find_grasp_sm
