@@ -17,6 +17,7 @@ placement_planes:
 placement_objects:
   002_master_chef_can: 'shelf_compartment1'
   003_cracker_box: 'shelf_compartment1'
+  005_tomato_soup_can: 'shelf_compartment1'
   006_mustard_bottle: 'shelf_compartment1'
   009_gelatin_box: 'shelf_compartment1'
   010_potted_meat_can: 'shelf_compartment1'

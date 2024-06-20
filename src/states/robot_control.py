@@ -5,6 +5,7 @@ import actionlib
 import smach
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from hsrb_interface import Robot
+from hsrb_interface.exceptions import MobileBaseError
 from grasping_pipeline_msgs.msg import BoundingBox3DStamped
 
 
@@ -88,7 +89,7 @@ class GoBack(smach.State):
         distance: float
             The distance to move backwards in meters.
         '''
-        smach.State.__init__(self, outcomes=['succeeded'])
+        smach.State.__init__(self, outcomes=['succeeded', 'aborted'])
         # Robot initialization
         self.robot = Robot()
         self.base = self.robot.try_get('omni_base')
@@ -97,7 +98,11 @@ class GoBack(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state GoBack')
-        self.base.go_rel(-self.distance, 0, 0)
+        try:
+            self.base.go_rel(-self.distance, 0, 0, timeout=20.0)
+        except MobileBaseError as e:
+            rospy.logerr(e)
+            return 'aborted'
         return 'succeeded'
 
 

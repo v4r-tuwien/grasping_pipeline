@@ -42,7 +42,7 @@ def get_execute_grasp_sm(after_grasp_waypoint):
         smach.Sequence.add('EXECUTE_GRASP', execute_grasp_actionstate, transitions={
                             'aborted': 'failed_to_grasp', 'preempted': 'failed_to_grasp'})
 
-        smach.Sequence.add('RETREAT_AFTER_GRASP', GoBack(0.2))
+        smach.Sequence.add('RETREAT_AFTER_GRASP', GoBack(0.2), transitions={'succeeded': 'GO_TO_NEUTRAL_AFTER_GRASP', 'aborted': 'GO_TO_NEUTRAL_AFTER_GRASP'})
 
         smach.Sequence.add('GO_TO_NEUTRAL_AFTER_GRASP', GoToNeutral())
 
