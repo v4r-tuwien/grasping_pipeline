@@ -54,13 +54,9 @@ The object detector will only get the **rgb** and **depth** images as input.
 The object detector is expected to return the following fields:
 
 * **bounding_boxes(optional)**: The bounding boxes of the detected objects in the image. 
-* **class_names**: The name of the detected objects. In the case of known objects, the name is used to look up the grasp annotations.
-   Therefore, the names have to be identical to the names used in the `grasping_pipeline/models` and `grasping_pipeline/grasps` directories.
-   In the case of unknown objects, the name should be set to "Unknown" (Uppercase U!).
+* **class_names**: The name of the detected objects. In the case of known objects, the name is used to look up the grasp annotations. Therefore, the names have to be identical to the names used in the `grasping_pipeline/models` and `grasping_pipeline/grasps` directories. In the case of unknown objects, the name should be set to "Unknown" (Uppercase U!).
 * **class_confidences (optional)**: The confidence of the detection.
-* **image (optional)**: This should be an image with the same dimensions as the input rgb image. 
-   The image should be a label image (with dtype=int) where each object pixel is labeled with a unique id (eg. pixels of object A == 1, pixels of object B == 2). "No Object" pixels MUST be encoded with -1.
-   So basically, the image shows the segmentation masks of the detected objects.
+* **image (optional)**: This should be an image with the same dimensions as the input rgb image. The image should be a label image (with dtype=int) where each object pixel is labeled with a unique id (eg. pixels of object A == 1, pixels of object B == 2). "No Object" pixels MUST be encoded with -1. So basically, the image shows the segmentation masks of the detected objects.
 
 The object detector should return either the bounding boxes or the image. If only the image is returned, the grasping pipeline will calculate the bounding boxes from the label image.
 
@@ -81,8 +77,7 @@ The pose estimator will get the following fields as input:
 * **bb_detections**: The bounding boxes of the detected objects in the image.
 * **mask_detections (optional)**: The segmentation masks of the detected objects in the image.
 * **class_names**: The name of the detected objects. In the case of unknown objects, the name is set to "Unknown" (Uppercase U!).
-* **description**: A string in json format, which is used to pass the confidence scores from the object detector. The format is as follows: "{obj_name: confidence, obj_name2: confidence}". 
-   You can simply use the json library to parse the string and get a python dictionary that you can index with the object names to get the confidence scores.
+* **description**: A string in json format, which is used to pass the confidence scores from the object detector. The format is as follows: "{obj_name: confidence, obj_name2: confidence}". You can simply use the json library to parse the string and get a python dictionary that you can index with the object names to get the confidence scores.
 
 The pose estimator is expected to return the following fields:
 
