@@ -66,10 +66,14 @@ class ExecuteGraspServer:
     ----------
     grasp_poses: list of PoseStamped
         The list of grasp poses to execute.
-    grasp_object_name_moveit: string
-        The name of the object to grasp in the Moveit environment.
-    table_plane_equations: list of Plane
-        The plane equations of the table surfaces.
+    grasp_object_name_moveit: string (optional)
+        The name of the object to grasp in the Moveit environment. If provided, the object is attached
+        to the gripper after grasping it. The transformation 'placement_surface_to_wrist' is only computed
+        when this parameter is provided. This transformation is currently only used for placement.
+    table_plane_equations: list of Plane (optional)
+        The plane equations of the table surfaces. The table plane equations are used to compute the
+        transformation between the object's bottom surface and the wrist frame 'placement_surface_to_wrist'.
+        This transformation is currently only used for placement.
     
     Other Parameters
     ----------------
@@ -81,9 +85,10 @@ class ExecuteGraspServer:
     ExecuteGraspResult
         The result of the action server containing the transformation from the object's bottom 
         surface to the wrist frame ('placement_surface_to_wrist') and a boolean indicating if the
-        grasp was a top grasp ('top_grasp'). The server aborts if no grasp pose
-        was successfully executed or if the grasp failed. If the grasp was successful, the server
-        returns succeeded and the transformation.
+        grasp was a top grasp ('top_grasp'). The transformation is only computed and returned if 
+        'grasp_object_name_moveit' is provided. It is currently only used/needed for placement.
+        The server aborts if no grasp pose was successfully executed or if the grasp failed. 
+        If the grasp was successful, the server returns succeeded and the transformation.
     '''
     def __init__(self):
         '''
@@ -168,13 +173,17 @@ class ExecuteGraspServer:
             rospy.sleep(0.1)
                 
             self.hsr_wrapper.gripper_grasp_hsr(0.3)
-            transform = self.get_transform_from_wrist_to_object_bottom_plane(goal, planning_frame)
-            res.placement_surface_to_wrist = transform
+            if goal.grasp_object_name_moveit is not None and goal.grasp_object_name_moveit != "":
+                transform = self.get_transform_from_wrist_to_object_bottom_plane(
+                    goal.grasp_object_name_moveit, 
+                    goal.table_plane_equations[0], 
+                    planning_frame
+                )
+                res.placement_surface_to_wrist = transform
+                touch_links = self.moveit_wrapper.get_link_names(group='gripper')
+                self.moveit_wrapper.attach_object(goal.grasp_object_name_moveit, touch_links)
+
             res.top_grasp = is_top_grasp
-
-            touch_links = self.moveit_wrapper.get_link_names(group='gripper')
-            self.moveit_wrapper.attach_object(goal.grasp_object_name_moveit, touch_links)
-
             # Move the object up to avoid collision with the table
             self.hsr_wrapper.move_eef_by_delta((0, 0, 0.05))
 
@@ -195,7 +204,7 @@ class ExecuteGraspServer:
         rospy.logerr("Grasping failed")
         self.server.set_aborted(res)
 
-    def get_transform_from_wrist_to_object_bottom_plane(self, goal, planning_frame):
+    def get_transform_from_wrist_to_object_bottom_plane(self, grasp_object_name_moveit, table_plane_equation, planning_frame):
         '''
         Compute the transformation from the wrist frame to the object's bottom surface frame.
 
@@ -221,14 +230,14 @@ class ExecuteGraspServer:
             The transformation from the object's bottom surface to the wrist frame.
         '''
         # Get the object's pose in the planning frame
-        object_poses = self.moveit_wrapper.get_object_poses([goal.grasp_object_name_moveit])
-        object_pose = object_poses[goal.grasp_object_name_moveit]
+        object_poses = self.moveit_wrapper.get_object_poses([grasp_object_name_moveit])
+        object_pose = object_poses[grasp_object_name_moveit]
         object_pose_st = PoseStamped(pose=object_pose)
         object_pose_st.header.frame_id = planning_frame
         object_pose_st.header.stamp = rospy.Time.now()
         
         # Transform the object's pose to the table frame
-        plane_equation = goal.table_plane_equations[0]
+        plane_equation = table_plane_equation
         object_pose_table_frame = self.tf_wrapper.transform_pose(plane_equation.header.frame_id, object_pose_st)
         self.tf_wrapper.send_transform(object_pose_table_frame.header.frame_id, 'object_center', object_pose_table_frame.pose)
 
