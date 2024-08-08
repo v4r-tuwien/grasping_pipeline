@@ -167,12 +167,12 @@ class FindGrasppointServer:
                 self.add_marker(grasp_poses[0])
                 self.add_bb_marker(object_bb_stamped)
                 self.server.set_succeeded(result)
-
-                break
+                return
 
         except (ValueError, TimeoutError) as e:
             rospy.logerr(str(e))
             self.server.set_aborted(text=str(e))
+        self.server.set_aborted()
 
     def transform_to_kdl(self, pose):
         '''

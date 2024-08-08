@@ -8,15 +8,23 @@ model_files_directory = '../models/'
 result_file_path = '../models/models_metadata.yml'
 show_visualization = True
 model_to_m_conversion_factor = 1/1000.0 # e.g. 1/1000.0 to convert to m if model is in mm
-wanted_files = ['fluidcontainer.stl', 'largerinsefluidabottle.stl', 'smallsoybrothbottle.stl']
+wanted_files = None #['DINO_7_Grasp_2.stl', 'DINO_10_Grasp_1.stl']
 
 if __name__ == '__main__':
     metadata = {}
+    if os.path.exists(result_file_path):
+        with open(result_file_path, 'r') as f:
+            metadata = yaml.load(f, Loader=yaml.FullLoader)
+    
     for filename in os.listdir(model_files_directory):
         if wanted_files is not None and filename not in wanted_files:
             continue
         filepath = os.path.join(model_files_directory, filename)
-        if filename.endswith('stl'):
+        model_name = filename.replace('.stl', '').replace('.ply', '')
+        if model_name in metadata:
+            print(f"Skipping file {filepath} because it is already in the metadata.")
+            continue
+        if filename.endswith('stl') or filename.endswith('ply'):
             print(f"Working on file {filepath}")
             model = o3d.io.read_triangle_mesh(filepath)
             or_bb = model.get_minimal_oriented_bounding_box(robust = True)
@@ -39,10 +47,9 @@ if __name__ == '__main__':
                     center = (or_bb.get_center() * model_to_m_conversion_factor).tolist()
                     extent = (or_bb.extent * model_to_m_conversion_factor).tolist()
                     break
-            model_name = filename.replace('.stl', '')
             obj_data = {'center': center, 'rot': rot_mat, 'extent': extent}
             metadata[model_name] = obj_data
         else:
             print(f"Skipping file {filepath}")
-    with open(result_file_path, "w") as f:
+    with open(result_file_path, "a") as f:
         yaml.dump(metadata, f)

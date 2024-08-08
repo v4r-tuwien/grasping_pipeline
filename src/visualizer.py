@@ -149,7 +149,7 @@ class PoseEstimationVisualizerRos(PoseEstimationVisualizer):
         '''
         meshes = {}
         for mesh_file in os.listdir(model_dir):
-            if not mesh_file.endswith('.stl'):
+            if not mesh_file.endswith('.stl') and not mesh_file.endswith('.ply'):
                 continue
             model_name = mesh_file.split('.')[0]
             path = os.path.join(model_dir, mesh_file)
