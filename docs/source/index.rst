@@ -19,6 +19,7 @@ The pipeline is implemented in Python and uses the Robot Operating System (ROS) 
    installation
    startup
    adding_new_estimators
+   adding_new_objects
    overview_state_machine
    details_state_machine
    api
