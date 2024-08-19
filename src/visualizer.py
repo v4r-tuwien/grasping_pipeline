@@ -88,9 +88,10 @@ class PoseEstimationVisualizerRos(PoseEstimationVisualizer):
         rospy.loginfo("PoseEstimVis: Initializing renderer")
         super().__init__(image_width, image_height, intrinsics_matrix)
 
+        dataset = rospy.get_param('/grasping_pipeline/dataset')
         meshes = []
         for name in req.model_names:
-            mesh = self.meshes.get(name, None)
+            mesh = self.meshes.get(dataset, {}).get(name, None)
             if mesh is None and name != 'Unknown':
                 rospy.logwarn(f'No mesh for model {name} found!')
                 continue
@@ -148,15 +149,19 @@ class PoseEstimationVisualizerRos(PoseEstimationVisualizer):
             The models are scaled to meters. The names are the filenames without the .stl extension.
         '''
         meshes = {}
-        for mesh_file in os.listdir(model_dir):
-            if not mesh_file.endswith('.stl') and not mesh_file.endswith('.ply'):
+        for dataset_name in os.listdir(model_dir):
+            if not os.path.isdir(os.path.join(model_dir, dataset_name)):
                 continue
-            model_name = mesh_file.split('.')[0]
-            path = os.path.join(model_dir, mesh_file)
-            mesh = o3d.io.read_triangle_mesh(path)
-            depth_mm_to_m = 0.001
-            mesh.scale(depth_mm_to_m, center = [0, 0, 0])
-            meshes[model_name] = mesh
+            meshes[dataset_name] = {}
+            for mesh_file in os.listdir(os.path.join(model_dir, dataset_name)):
+                if not mesh_file.endswith('.stl') and not mesh_file.endswith('.ply'):
+                    continue
+                model_name = mesh_file.split('.')[0]
+                path = os.path.join(model_dir, dataset_name, mesh_file)
+                mesh = o3d.io.read_triangle_mesh(path)
+                depth_mm_to_m = 0.001
+                mesh.scale(depth_mm_to_m, center = [0, 0, 0])
+                meshes[dataset_name][model_name] = mesh
         return meshes
         
 if __name__ == '__main__':

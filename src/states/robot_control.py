@@ -239,13 +239,14 @@ class GoToAndLookAtPlacementArea(smach.State):
         '''
         placement_planes = rospy.get_param('/placement_planes')
         placement_objects = rospy.get_param('/placement_objects')
+        dataset = rospy.get_param('/grasping_pipeline/dataset')
         grasp_object_name = userdata.grasp_object_name
 
-        if grasp_object_name not in placement_objects:
+        if grasp_object_name not in placement_objects[dataset]:
             rospy.logerr(f"Object {grasp_object_name} not found in placement_objects!")
             return 'aborted'
         
-        placement_plane_name = placement_objects[grasp_object_name]
+        placement_plane_name = placement_objects[dataset][grasp_object_name]
         placement_plane_config = placement_planes['planes'][placement_plane_name]
         frame_id = placement_planes['metadata']['frame_id']
         waypoint = placement_plane_config['waypoint']

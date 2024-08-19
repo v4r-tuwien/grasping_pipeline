@@ -253,9 +253,10 @@ class GraspAnnotator:
         object_pose[:3, 3] = [object_pose_stamped.pose.position.x,
                             object_pose_stamped.pose.position.y, object_pose_stamped.pose.position.z]
 
+        dataset = rospy.get_param("/grasping_pipeline/dataset")
         # Load the grasps from the .npy file
         grasps_path = os.path.join(
-            self.dir_path, os.pardir, 'grasps', object_name +'.npy')
+            self.dir_path, os.pardir, 'grasps', dataset, object_name +'.npy')
 
         try:
             grasp_poses = np.load(grasps_path)

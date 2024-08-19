@@ -7,8 +7,9 @@ point_cloud_topic: '/hsrb/head_rgbd_sensor/depth_registered/rectified_points'
 global_frame: '/map'
 
 grasping_pipeline:
-
-  object_detector_topic: /object_detector/yolov5                      # object detector for known OR unknown objects
+  dataset: 'ycb_ichores'                                                  # dataset to use for pose estimation. Should be the name of 
+                                                                      # one of the sub-folders in the models and grasps directory
+  object_detector_topic: /object_detector/yolov8                      # object detector for known OR unknown objects
                                                                       # decides whether a pose estimator or a grasp point 
                                                                       # estimator is used afterwards
   pose_estimator_topic: /pose_estimator/gdrnet                        # pose estimator for known objects

@@ -216,7 +216,8 @@ class FindGrasppointServer:
         grasping_pipeline_msgs.msg.BoundingBoxStamped
             The bounding box for the object with frame id and timestamp.
         '''
-        metadata = self.models_metadata[object_name]
+        dataset = rospy.get_param('/grasping_pipeline/dataset')
+        metadata = self.models_metadata[dataset][object_name]
         center = metadata['center']
         extent = metadata['extent']
         rot_mat = metadata['rot']

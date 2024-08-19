@@ -4,18 +4,22 @@ import yaml
 import open3d as o3d
 import numpy as np
 
-model_files_directory = '../models/'
+dataset_name = "ycb_bop"
+models_directory = '../models/'
+model_files_directory = os.path.join(models_directory, dataset_name)
 result_file_path = '../models/models_metadata.yml'
 show_visualization = True
 model_to_m_conversion_factor = 1/1000.0 # e.g. 1/1000.0 to convert to m if model is in mm
-wanted_files = None #['DINO_7_Grasp_2.stl', 'DINO_10_Grasp_1.stl']
+wanted_files = None # None to process all files, or a list of filenames to process only those
 
 if __name__ == '__main__':
+    print("You will be asked to choose between the axis aligned bounding box (red) and the oriented bounding box (blue) for each model.")
+    print("Please choose the one that fits the model better.")
     metadata = {}
     if os.path.exists(result_file_path):
         with open(result_file_path, 'r') as f:
             metadata = yaml.load(f, Loader=yaml.FullLoader)
-    
+    metadata[dataset_name] = {}
     for filename in os.listdir(model_files_directory):
         if wanted_files is not None and filename not in wanted_files:
             continue
@@ -27,7 +31,9 @@ if __name__ == '__main__':
         if filename.endswith('stl') or filename.endswith('ply'):
             print(f"Working on file {filepath}")
             model = o3d.io.read_triangle_mesh(filepath)
-            or_bb = model.get_minimal_oriented_bounding_box(robust = True)
+            # o3d bug: get_minimal_oriented_bounding_box does not work when directly called on the mesh -> convert to point cloud first
+            # should be fixed in 0.19 (fix already merged in master)
+            or_bb = model.sample_points_uniformly(5000, use_triangle_normal=True).get_minimal_oriented_bounding_box(robust = True)
             aa_bb = model.get_axis_aligned_bounding_box()
             if show_visualization:
                 or_bb.color = [0.0, 0.0, 1.0]
@@ -48,8 +54,8 @@ if __name__ == '__main__':
                     extent = (or_bb.extent * model_to_m_conversion_factor).tolist()
                     break
             obj_data = {'center': center, 'rot': rot_mat, 'extent': extent}
-            metadata[model_name] = obj_data
+            metadata[dataset_name][model_name] = obj_data
         else:
             print(f"Skipping file {filepath}")
-    with open(result_file_path, "a") as f:
+    with open(result_file_path, "w") as f:
         yaml.dump(metadata, f)

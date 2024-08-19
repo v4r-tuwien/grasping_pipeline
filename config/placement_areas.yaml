@@ -15,16 +15,20 @@ placement_planes:
 
 #TODO add fallback plane and fallback handling
 placement_objects:
-  002_master_chef_can: 'shelf_compartment1'
-  003_cracker_box: 'shelf_compartment1'
-  005_tomato_soup_can: 'shelf_compartment1'
-  006_mustard_bottle: 'shelf_compartment1'
-  009_gelatin_box: 'shelf_compartment1'
-  010_potted_meat_can: 'shelf_compartment1'
-  011_banana: 'shelf_compartment1'
-  021_bleach_cleanser: 'shelf_compartment1'
-  024_bowl: 'shelf_compartment1'
-  025_mug: 'shelf_compartment1'
-  035_power_drill: 'shelf_compartment1'
-  061_foam_brick: 'shelf_compartment1'
-  Unknown: 'shelf_compartment1'
+  ycb_bop:
+    002_master_chef_can: 'shelf_compartment1'
+    003_cracker_box: 'shelf_compartment1'
+    005_tomato_soup_can: 'shelf_compartment1'
+    006_mustard_bottle: 'shelf_compartment1'
+    009_gelatin_box: 'shelf_compartment1'
+    010_potted_meat_can: 'shelf_compartment1'
+    011_banana: 'shelf_compartment1'
+    021_bleach_cleanser: 'shelf_compartment1'
+    024_bowl: 'shelf_compartment1'
+    025_mug: 'shelf_compartment1'
+    035_power_drill: 'shelf_compartment1'
+    061_foam_brick: 'shelf_compartment1'
+    Unknown: 'shelf_compartment1'
+  ycb_ichores:
+    obj_000003: 'shelf_compartment1'
+    obj_000006: 'shelf_compartment1'
