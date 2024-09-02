@@ -37,8 +37,7 @@ import rospy
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 import moveit_msgs
 import trajectory_msgs
-
-
+from moveit_msgs.msg import Constraints, OrientationConstraint
 
 
 class MoveitWrapper:
@@ -87,13 +86,14 @@ class MoveitWrapper:
         timeout_sec = 30.0
         whole_body = moveit_commander.MoveGroupCommander("whole_body", wait_for_servers=timeout_sec)
         #gripper = moveit_commander.MoveGroupCommander("gripper", wait_for_servers=timeout_sec)
+        #arm = moveit_commander.MoveGroupCommander("arm", wait_for_servers=timeout_sec)
         gripper = None
         scene = moveit_commander.PlanningSceneInterface()
         robot = moveit_commander.RobotCommander()
 
         # Moveit settings
         whole_body.allow_replanning(True)
-        whole_body.set_workspace([-3.0, -3.0, 3.0, 3.0])
+        whole_body.set_workspace([-6.0, -6.0, 6.0, 6.0])
         whole_body.set_num_planning_attempts(10)
         whole_body.set_planning_time(planning_time)
         whole_body.set_max_acceleration_scaling_factor(1.0)
@@ -706,5 +706,61 @@ class MoveitWrapper:
         p.pose.orientation.w = 1.0
         base_pose = self.lib['tf'].transform_pose(frame, p)
         return base_pose
-
+    
+    def get_current_eef_pose(self, eef_link="hand_palm_link", reference_frame="map"):
+        '''
+        Returns the current pose of the end effector link in the specified frame
         
+        Parameters
+        ----------
+        eef_link : str, optional
+            The name of the end effector link, by default "hand_palm_link"
+        reference_frame : str, optional
+            The name of the reference frame to transform the eef pose to, by default "map"
+        '''
+        eef_pose = self.whole_body.get_current_pose(end_effector_link=eef_link)
+        eef_pose = self.lib['tf'].transform_pose(reference_frame, eef_pose)
+        return eef_pose
+    
+    def clear_path_constraints(self):
+        '''
+        Clears the path constraints of the whole body
+        '''
+        self.whole_body.clear_path_constraints()
+
+    def add_orientation_constraint(self, reference_frame, end_effector_link, orientation, tolerances_xyz=[0.3, 0.3, 0.3]):
+        '''
+        Adds an orientation constraint to the whole body until it is cleared
+        
+        Parameters
+        ----------
+        reference_frame : str
+            The name of the reference frame (i.e. the frame in which the orientation constrain is defined in)
+        end_effector_link : str
+            The name of the end effector link which should be constrained
+        orientation : geometry_msgs/Quaternion
+            The target orientation of the end effector link (i.e. the eef should have this orientation during the motion)
+        tolerances_xyz : list[float], optional
+            The tolerances for the orientation constraint, by default [0.3, 0.3, 0.3] (radians)
+    '''
+    
+        orientation_constraint = OrientationConstraint()
+        orientation_constraint.link_name = end_effector_link
+        orientation_constraint.header.frame_id = reference_frame
+        orientation_constraint.orientation = orientation
+
+        # Set tolerances for the orientation constraint
+        orientation_constraint.absolute_x_axis_tolerance = tolerances_xyz[0]
+        orientation_constraint.absolute_y_axis_tolerance = tolerances_xyz[1]
+        orientation_constraint.absolute_z_axis_tolerance = tolerances_xyz[2]
+
+        # Weight the constraint such that it is strictly enforced
+        orientation_constraint.weight = 1.0
+
+        # Create a Constraints object and add the orientation constraint to it
+        constraints = Constraints()
+        constraints.orientation_constraints.append(orientation_constraint)
+
+        # Apply the path constraints to the move group
+        self.whole_body.set_path_constraints(constraints)
+    

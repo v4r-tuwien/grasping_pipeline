@@ -3,6 +3,9 @@ from tf.transformations import quaternion_about_axis
 import rospy
 import actionlib
 import smach
+from moveit_wrapper import MoveitWrapper
+from v4r_util.tf2 import TF2Wrapper
+from geometry_msgs.msg import PointStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from hsrb_interface import Robot
 from hsrb_interface.exceptions import MobileBaseError
@@ -37,6 +40,54 @@ class GoToNeutral(smach.State):
             }
         self.whole_body.move_to_joint_positions(joint_positions)
         return 'succeeded'
+
+class GoToNeutralMoveIt(smach.State):
+    """ Smach state that tries to move the robot to a neutral position with moveit and orientation
+    constraints, such that e.g. the water in the glass does not spill. Does not work well. GoToNeutral()
+    should be used instead, unless it is necessary that the robot wrist is not rotated.
+
+    Returns
+    -------
+    smach-result
+        'succeeded': The state only returns succeeded, even though the movement might fail. This is 
+        probably not the best way, but I decided to do it like this so you can easily replace it with
+        GoToNeutral() by just changing the state name and not having to touch the transitions.
+    """
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['succeeded'])
+        # Robot initialization
+        self.tf_wrapper = TF2Wrapper()
+        self.moveit_wrapper = MoveitWrapper(self.tf_wrapper, 5.0)
+
+    def execute(self, userdata):
+        mw = self.moveit_wrapper
+        tf2 = self.tf_wrapper
+        reference_frame = "map"
+        end_effector_link = "hand_palm_link"
+        
+        eef_pose = mw.get_current_eef_pose(end_effector_link, reference_frame)
+        target_eef_pose = PointStamped()
+        target_eef_pose.header.frame_id = 'base_link'
+        target_eef_pose.header.stamp = rospy.Time.now()
+        target_eef_pose.point.x = 0.14
+        target_eef_pose.point.y = 0.217
+        target_eef_pose.point.z = 0.673
+        point = tf2.transform_point(mw.get_planning_frame(), target_eef_pose)
+        mw.whole_body.set_position_target([point.point.x, point.point.y, point.point.z])
+
+        mw.add_orientation_constraint(reference_frame, end_effector_link, eef_pose.pose.orientation, [666, 0.05, 0.05])
+
+        plan_found, plan, planning_time, error_code  = mw.whole_body.plan()
+        # Check if planning was successful
+        if plan_found and len(plan.joint_trajectory.points) > 0:
+            rospy.loginfo("Planning successful. Executing plan...")
+            # Execute the plan
+            mw.whole_body.execute(plan, wait=True)
+            rospy.loginfo("Motion execution completed.")
+        else:
+            rospy.logerr("Planning failed. Planning time: %s, Errorcode: %s", planning_time, error_code)
+        return 'succeeded'
+        
 
 class MoveToJointPositions(smach.State):
     """ Smach state that will move the robots joints to the

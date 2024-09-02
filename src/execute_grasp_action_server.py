@@ -138,6 +138,7 @@ class ExecuteGraspServer:
         planning_frame = self.moveit_wrapper.get_planning_frame("whole_body")
         # hrisi experiments, change back to 0.1 again afterwards
         safety_distance = rospy.get_param("/safety_distance", default=0.2)
+        self.moveit_wrapper.clear_path_constraints()
 
         
         sorted_gasp_poses, is_top_grasp_array = self.sort_grasps_by_orientation(goal.grasp_poses)
@@ -198,6 +199,7 @@ class ExecuteGraspServer:
                 # which potentially invalidates the grasp pose
                 self.server.set_aborted(res)
                 return
+            
             self.server.set_succeeded(res)
             return
         
