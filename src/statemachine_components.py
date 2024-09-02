@@ -1,10 +1,10 @@
 import smach
 import smach_ros
-from states.robot_control import GoToNeutral, OpenGripper, GoToWaypoint, GoToAndLookAtPlacementArea, GoBack
-from states.find_table_planes import FindTablePlanes
-from states.collision_environment import CollisionEnvironment
+from robot_control import GoToNeutral, OpenGripper, GoToWaypoint, GoToAndLookAtPlacementArea, GoBack, GoToNeutralMoveIt
+from find_table_planes import FindTablePlanes
+from collision_environment import CollisionEnvironment
 from grasping_pipeline_msgs.msg import ExecuteGraspAction, PlaceAction
-from states.grasp_method_selector import GraspMethodSelector
+from grasp_method_selector import GraspMethodSelector
 from grasping_pipeline_msgs.msg import FindGrasppointAction
 from grasping_pipeline_msgs.srv import FetchImages, CallObjectDetector, CallPoseEstimator, CallDirectGraspPoseEstimator
 
@@ -42,7 +42,7 @@ def get_execute_grasp_sm(after_grasp_waypoint):
         smach.Sequence.add('EXECUTE_GRASP', execute_grasp_actionstate, transitions={
                             'aborted': 'failed_to_grasp', 'preempted': 'failed_to_grasp'})
 
-        smach.Sequence.add('RETREAT_AFTER_GRASP', GoBack(0.2), transitions={'succeeded': 'GO_TO_NEUTRAL_AFTER_GRASP', 'aborted': 'GO_TO_NEUTRAL_AFTER_GRASP'})
+        smach.Sequence.add('RETREAT_AFTER_GRASP', GoBack(0.3), transitions={'succeeded': 'GO_TO_NEUTRAL_AFTER_GRASP', 'aborted': 'GO_TO_NEUTRAL_AFTER_GRASP'})
 
         smach.Sequence.add('GO_TO_NEUTRAL_AFTER_GRASP', GoToNeutral())
 

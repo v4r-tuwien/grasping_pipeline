@@ -275,14 +275,12 @@ class GoToAndLookAtPlacementArea(smach.State):
 
         # arm_lift moves by ~ 10 cm for each 0.2 increase and has to be between 0 and 0.6
         arm_lift_joint = max(0.0, (placement_area['center'][2] - 0.45)*2.0)
-        rospy.logerr(f"{arm_lift_joint = }")
-        rospy.logerr(f"{placement_area['center'][2] = }")
         arm_lift_joint = min(arm_lift_joint, 0.6)
 
         # move that pesky arm out of the way
         arm_flex_joint = -2.6 if arm_lift_joint > 0.1 else -0.1
         self.whole_body.move_to_joint_positions({'arm_flex_joint': arm_flex_joint, 'arm_lift_joint': arm_lift_joint})
-        rospy.sleep(5.0)
+        rospy.sleep(1.0)
         
         rospy.loginfo("Waiting for move client server!")
         finished = self.move_client.wait_for_server(rospy.Duration(self.timeout))
