@@ -149,7 +149,7 @@ class PlaceObjectServer():
             
         Returns
         -------
-        list of vision_msgs/BoundingBox3D
+        list of tmc_placement_area_detector/PlacementArea
             The detected placement areas
         '''
         if placement_area_bb.header.frame_id != placement_area_det_frame:
@@ -262,7 +262,7 @@ class PlaceObjectServer():
         
         Returns
         -------
-        list of vision_msgs/BoundingBox3D
+        list of tmc_placement_area_detector/PlacementArea
             The detected placement areas. As long as no placement areas are found, the service will
             be called again and again (aka endless loop might happen)
         '''
@@ -489,7 +489,7 @@ class PlaceObjectServer():
             return
 
         table_bb = goal.table_bbs.boxes[table_idx]
-        self.moveit.add_box('placement_table', goal.table_bbs.header.frame_id, table_bb.center, vector3_to_list(table_bb.size))
+        self.moveit.add_box('table', goal.table_bbs.header.frame_id, table_bb.center, vector3_to_list(table_bb.size))
 
         table_equation = goal.table_plane_equations[table_idx]
         table_bb_stamped = bounding_box_to_bounding_box_stamped(table_bb, goal.table_bbs.header.frame_id, rospy.Time.now())
@@ -505,69 +505,122 @@ class PlaceObjectServer():
 
         execution_succesful = False
         max_placement_attempts = rospy.get_param("/grasping_pipeline/placement/max_attempts")
-        for i, placement_area in enumerate(sorted_placement_areas):
-            if i >= max_placement_attempts:
-                rospy.logwarn(f"Placement: {i+1} poses failed. Aborting")
-                break
-            header = Header(stamp=rospy.Time.now(), frame_id= placement_area_det_frame)
-            placement_point = PoseStamped(header=header, pose=placement_area.center)
-            placement_point = self.tf2_wrapper.transform_pose(base_frame, placement_point)
-            # set the orientation of the placement point to the orientation of the table (which is aligned with the base frame)
-            # This is needed because the surface to wrist transformation assumes this to be the case.
-            # Otherwise the object would be placed rotated by 90 degrees
-            placement_point.pose.orientation = quat
-            self.add_marker(placement_point, 5000000, 0, 0, 1)
-            
-            rospy.sleep(0.02)
 
-            safety_distance = min(0.01 + i/100, 0.04)
-            safety_distance = np.random.uniform(0.01, 0.05)
-            waypoints = []
-
-            placement_point_rot_mat = quat_to_rot_mat(placement_point.pose.orientation)
-            placement_point_transl = np.array([placement_point.pose.position.x, placement_point.pose.position.y, placement_point.pose.position.z])
-            placement_point_transform = np.eye(4)
-            placement_point_transform[:3, :3] = placement_point_rot_mat
-            placement_point_transform[:3, 3] = placement_point_transl
-            hand_palm_point = placement_point_transform @ surface_to_wrist
-            hand_palm_point_ros = PoseStamped(header=placement_point.header, pose=np_transform_to_ros_pose(hand_palm_point))
-            
-            placement_point = hand_palm_point_ros
-            self.add_marker(placement_point, 5000002, 0, 1, 0)
-            
-            plane_normal_eef_frame = self.transform_plane_normal(table_equation, eef_frame, rospy.Time.now())
-            placement_point.pose.position.x = placement_point.pose.position.x + \
-                safety_distance * plane_normal_eef_frame[0]
-            placement_point.pose.position.y = placement_point.pose.position.y + \
-                safety_distance * plane_normal_eef_frame[1]
-            placement_point.pose.position.z = placement_point.pose.position.z + \
-                safety_distance * plane_normal_eef_frame[2]
-            waypoints.append(deepcopy(placement_point))
-            self.add_marker(placement_point, 5000001, 1, 0, 0)
-
-            waypoints_tr = [self.tf2_wrapper.transform_pose(planning_frame, waypoint) for waypoint in reversed(waypoints)]
-            for i, waypoint in enumerate(waypoints_tr):
-                r = 1
-                g = 1
-                b = 1
-                self.add_marker(waypoint, i+7000, r, g, b)           
+        method = rospy.get_param("/grasping_pipeline/placement/method")
+        if method == 'waypoint':
+            for i, placement_area in enumerate(sorted_placement_areas):
+                if i >= max_placement_attempts:
+                    rospy.logwarn(f"Placement: {i+1} poses failed. Aborting")
+                    break
+                header = Header(stamp=rospy.Time.now(), frame_id= placement_area_det_frame)
+                placement_point = PoseStamped(header=header, pose=placement_area.center)
+                placement_point = self.tf2_wrapper.transform_pose(base_frame, placement_point)
+                # set the orientation of the placement point to the orientation of the table (which is aligned with the base frame)
+                # This is needed because the surface to wrist transformation assumes this to be the case.
+                # Otherwise the object would be placed rotated by 90 degrees
+                placement_point.pose.orientation = quat
+                self.add_marker(placement_point, 5000000, 0, 0, 1)
+                
                 rospy.sleep(0.02)
 
-            plan_found = self.moveit.whole_body_plan_and_go(waypoints_tr[0])
-            if not plan_found:
-                rospy.loginfo("Placement: No plan found. Trying next pose")
-                continue
+                safety_distance = min(0.01 + i/100, 0.04)
+                safety_distance = np.random.uniform(0.01, 0.05)
+                waypoints = []
 
-            execution_succesful = self.moveit.current_pose_close_to_target(waypoints_tr[0])
-            if not execution_succesful:
-                rospy.loginfo("Placement: Execution failed, Trying next pose")
-                continue
+                placement_point_rot_mat = quat_to_rot_mat(placement_point.pose.orientation)
+                placement_point_transl = np.array([placement_point.pose.position.x, placement_point.pose.position.y, placement_point.pose.position.z])
+                placement_point_transform = np.eye(4)
+                placement_point_transform[:3, :3] = placement_point_rot_mat
+                placement_point_transform[:3, 3] = placement_point_transl
+                hand_palm_point = placement_point_transform @ surface_to_wrist
+                hand_palm_point_ros = PoseStamped(header=placement_point.header, pose=np_transform_to_ros_pose(hand_palm_point))
+                
+                placement_point = hand_palm_point_ros
+                self.add_marker(placement_point, 5000002, 0, 1, 0)
+                
+                plane_normal_eef_frame = self.transform_plane_normal(table_equation, eef_frame, rospy.Time.now())
+                placement_point.pose.position.x = placement_point.pose.position.x + \
+                    safety_distance * plane_normal_eef_frame[0]
+                placement_point.pose.position.y = placement_point.pose.position.y + \
+                    safety_distance * plane_normal_eef_frame[1]
+                placement_point.pose.position.z = placement_point.pose.position.z + \
+                    safety_distance * plane_normal_eef_frame[2]
+                waypoints.append(deepcopy(placement_point))
+                self.add_marker(placement_point, 5000001, 1, 0, 0)
 
-            plane_normal_eef_frame = self.transform_plane_normal(table_equation, eef_frame, rospy.Time.now())
-            self.hsr_wrapper.move_eef_by_line((-plane_normal_eef_frame[0], -plane_normal_eef_frame[1], -plane_normal_eef_frame[2]), safety_distance)
+                waypoints_tr = [self.tf2_wrapper.transform_pose(planning_frame, waypoint) for waypoint in reversed(waypoints)]
+                for i, waypoint in enumerate(waypoints_tr):
+                    r = 1
+                    g = 1
+                    b = 1
+                    self.add_marker(waypoint, i+7000, r, g, b)           
+                    rospy.sleep(0.02)
 
-            self.hsr_wrapper.gripper_open_hsr()
-            break
+                plan_found = self.moveit.whole_body_plan_and_go(waypoints_tr[0])
+                if not plan_found:
+                    rospy.loginfo("Placement: No plan found. Trying next pose")
+                    continue
+
+                execution_succesful = self.moveit.current_pose_close_to_target(waypoints_tr[0])
+                if not execution_succesful:
+                    rospy.loginfo("Placement: Execution failed, Trying next pose")
+                    continue
+
+                plane_normal_eef_frame = self.transform_plane_normal(table_equation, eef_frame, rospy.Time.now())
+                self.hsr_wrapper.move_eef_by_line((-plane_normal_eef_frame[0], -plane_normal_eef_frame[1], -plane_normal_eef_frame[2]), safety_distance)
+
+                self.hsr_wrapper.gripper_open_hsr()
+                break
+        elif method == 'place':
+            obj = self.moveit.get_attached_objects()['object'].object
+            obj_pose = PoseStamped(header = obj.header, pose = obj.pose)
+            obj_pose = self.tf2_wrapper.transform_pose('hand_palm_link', obj_pose).pose
+            hand_palm_to_obj_center = np.eye(4)
+            hand_palm_to_obj_center[:3, :3] = quat_to_rot_mat(obj_pose.orientation)
+            hand_palm_to_obj_center[:3, 3] = [obj_pose.position.x, obj_pose.position.y, obj_pose.position.z]
+
+            self.moveit.set_support_surface('table')
+            for i, placement_area in enumerate(sorted_placement_areas):
+                if i >= max_placement_attempts:
+                    rospy.logwarn(f"Placement: {i+1} poses failed. Aborting")
+                    break
+                header = Header(stamp=rospy.Time.now(), frame_id= placement_area_det_frame)
+                placement_point = PoseStamped(header=header, pose=placement_area.center)
+                placement_point = self.tf2_wrapper.transform_pose(base_frame, placement_point)
+                # set the orientation of the placement point to the orientation of the table (which is aligned with the base frame)
+                # This is needed because the surface to wrist transformation assumes this to be the case.
+                # Otherwise the object would be placed rotated by 90 degrees
+                placement_point.pose.orientation = quat
+                placement_point_rot_mat = quat_to_rot_mat(placement_point.pose.orientation)
+                placement_point_transl = np.array([placement_point.pose.position.x, placement_point.pose.position.y, placement_point.pose.position.z])
+                placement_point_transform = np.eye(4)
+                placement_point_transform[:3, :3] = placement_point_rot_mat
+                placement_point_transform[:3, 3] = placement_point_transl
+                hand_palm_point = placement_point_transform @ surface_to_wrist
+                hand_palm_point_ros = PoseStamped(header=placement_point.header, pose=np_transform_to_ros_pose(hand_palm_point))
+                obj_center_pose = hand_palm_point @ hand_palm_to_obj_center
+                obj_center_pose_ros = PoseStamped(header=placement_point.header, pose=np_transform_to_ros_pose(obj_center_pose))
+                
+                placement_point = obj_center_pose_ros
+                self.add_marker(placement_point, 5000002, 0, 1, 0)
+
+                # dunno why but moveit always thinks it failed the execution even though it looks like it worked in real life
+                # so we just ignore the return value and check whether the wrist is close to the target
+                self.hsr_wrapper.set_impedance_config('placing')
+                execution_succesful = self.moveit.place('object', placement_point)
+                self.hsr_wrapper.reset_impedance_config()
+                if not execution_succesful:
+                    rospy.loginfo("Placement: Execution failed, Trying next pose")
+                    continue
+
+                self.hsr_wrapper.gripper_open_hsr()
+                break
+        else:
+            rospy.logerr(f"Placement: Invalid placement method '{method}'. Aborting. Fix the parameter /grasping_pipeline/placement/method.")
+            self.server.set_aborted()
+            return
+
+        rospy.sleep(2)
             
         if execution_succesful:
             rospy.loginfo("Placement: Placement successful")

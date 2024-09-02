@@ -764,3 +764,25 @@ class MoveitWrapper:
         # Apply the path constraints to the move group
         self.whole_body.set_path_constraints(constraints)
     
+    def set_support_surface(self, surface_name):
+        '''
+        Sets the support surface for the whole body
+        '''
+        self.whole_body.set_support_surface_name(surface_name)
+    
+    def place(self, object, pose):
+        '''
+        Places an object at the specified pose
+        
+        Parameters
+        ----------
+        object : str
+            The name of the object to place
+        pose : geometry_msgs/Pose
+            The pose to place the object at
+        
+        Returns
+        -------
+        not None if the object was placed successfully, None otherwise
+        '''
+        return self.whole_body.place(object, pose)

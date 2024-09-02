@@ -78,3 +78,29 @@ class HSR_wrapper:
             The text to say.
         '''
         self.tts.say(text)
+    
+    def set_impedance_config(self, config):
+        '''
+        Set the impedance configuration of the robot.
+        
+        Parameters
+        ----------
+        config: string
+            The name of the impedance configuration to set. Possible values are: ['compliance_hard',
+                'compliance_middle',
+                'compliance_soft',
+                'dumper_hard',
+                'dumper_soft',
+                'grasping',
+                'placing']
+        '''
+        possible_configs = ['compliance_hard', 'compliance_middle', 'compliance_soft', 'dumper_hard', 'dumper_soft', 'grasping', 'placing']
+        if config not in possible_configs:
+            raise ValueError('Invalid impedance configuration! Possible values are: ' + str(possible_configs))
+        self.whole_body.impedance_config = config
+    
+    def reset_impedance_config(self):
+        '''
+        Reset the impedance configuration to the default value.
+        '''
+        self.whole_body.impedance_config = None

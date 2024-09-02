@@ -20,3 +20,4 @@ grasping_pipeline:
   timeout_duration: 40.0
   placement:
     max_attempts: 25
+    method: 'place' # 'place' or 'waypoint'. Use place if placing on a table, waypoint if placing in a shelf
