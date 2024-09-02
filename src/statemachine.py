@@ -2,10 +2,10 @@
 import rospy
 import smach
 import smach_ros
-from states.statemachine_components import get_robot_setup_sm, get_execute_grasp_sm, get_placement_sm, get_find_grasp_sm
-from states.userinput import UserInput
-from states.robot_control import GoToWaypoint, GoBack, GoToNeutral, CheckTopGrasp
-from states.grasp_method_selector import GraspMethodSelector
+from statemachine_components import get_robot_setup_sm, get_execute_grasp_sm, get_placement_sm, get_find_grasp_sm
+from userinput import UserInput
+from robot_control import GoToWaypoint, GoBack, GoToNeutral, CheckTopGrasp
+from grasp_method_selector import GraspMethodSelector
 from grasping_pipeline_msgs.msg import FindGrasppointAction
 from handover.msg import HandoverAction
 

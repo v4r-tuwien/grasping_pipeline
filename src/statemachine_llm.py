@@ -5,10 +5,10 @@ import smach
 import smach_ros
 import json
 from grasping_pipeline_msgs.msg import FindGrasppointAction
-from states.robot_control import GoToWaypoint
+from robot_control import GoToWaypoint
 from handover.msg import HandoverAction
 from robot_llm.msg import RobotLLMAction, RobotLLMResult
-from states.statemachine_components import get_robot_setup_sm, get_execute_grasp_sm, get_placement_sm, get_find_grasp_sm
+from statemachine_components import get_robot_setup_sm, get_execute_grasp_sm, get_placement_sm, get_find_grasp_sm
 from grasping_pipeline_msgs.srv import FetchImages, CallObjectDetector, CallPoseEstimator, CallDirectGraspPoseEstimator
 
 def get_object_detection_sm():
