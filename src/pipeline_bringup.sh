@@ -14,7 +14,7 @@ tmux new-window -t $SESSION:1
 ## with map setting
 tmux select-window -t $SESSION:0
 tmux split-window -h
-tmux split-window -v
+tmux split-window -h
 
 
 tmux select-pane -t 0
@@ -22,12 +22,21 @@ tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_statemachine.launc
 
 tmux select-pane -t 1
 tmux send-keys "hsrb_mode" C-m
-tmux send-keys rv
-
+tmux send-keys "source $SCRIPT_DIR/../../../devel/setup.bash" C-m
+tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_servers.launch"
+tmux split-window -v
 tmux select-pane -t 2
 tmux send-keys "hsrb_mode" C-m
 tmux send-keys "source $SCRIPT_DIR/../../../devel/setup.bash" C-m
-tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_params.launch && roslaunch grasping_pipeline grasping_pipeline_servers.launch"
+tmux send-keys "roslaunch grasping_pipeline grasping_pipeline_params.launch"
+
+tmux select-pane -t 3
+tmux send-keys "hsrb_mode" C-m
+tmux send-keys rv
+tmux split-window -v
+tmux select-pane -t 4
+tmux send-keys "ssh v4r@hsrb.local" C-m
+tmux send-keys "startup && table"
 
 tmux select-window -t $SESSION:1
 
