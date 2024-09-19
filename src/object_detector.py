@@ -135,7 +135,7 @@ class CallObjectDetectorService:
             rospy.logerr('No valid label image and no bounding boxes detected! Need at least one of them!')
             raise rospy.ServiceException
 
-        bb_image_np = visualize_rois(np_rgb, detection_result.bounding_boxes)
+        bb_image_np = visualize_rois(np_rgb, detection_result.bounding_boxes, detection_result.class_names)
         self.bb_image_pub.publish(ros_numpy.msgify(Image, bb_image_np, encoding='rgb8'))
 
         res = CallObjectDetectorResponse()
@@ -232,11 +232,11 @@ class CallObjectDetectorService:
             masks.append(mask)
         return masks
         
-def visualize_rois(image, rois):
+def visualize_rois(image, rois, class_names):
     '''Visualizes the bounding boxes on the image.
 
     Visualizes the bounding boxes on the image. The bounding boxes are visualized by drawing
-    a rectangle around each object.
+    a rectangle around each object. The class name of each object is also displayed above the bounding box.
 
     Parameters
     ----------
@@ -244,19 +244,30 @@ def visualize_rois(image, rois):
         The image on which the bounding boxes are visualized.
     rois : List[sensor_msgs.msg.RegionOfInterest]
         List of bounding boxes for each detected object.
+    class_names : List[str]
+        List of class names for each detected object.
     
     Returns
     -------
     np.ndarray
         The image with the bounding boxes visualized.
     '''
+    num_classes = len(class_names)
     image_copy = image.copy()
-    for roi in rois:
+    
+    for i, (roi, class_name) in enumerate(zip(rois, class_names)):
+        
+        blue = 255 / num_classes * i
+        green = 255 - blue
+        red = 0
+        color = (blue, green, red)
+
         x1 = roi.x_offset
         y1 = roi.y_offset
         x2 = roi.x_offset + roi.width
         y2 = roi.y_offset + roi.height
-        cv2.rectangle(image_copy, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.rectangle(image_copy, (x1, y1), (x2, y2), color, 2)
+        cv2.putText(image_copy, class_name, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
     return image_copy
 
 def visualize_label_image(image, label_image):
