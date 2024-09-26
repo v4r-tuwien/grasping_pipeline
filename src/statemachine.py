@@ -12,7 +12,7 @@ from handover.msg import HandoverAction
 def create_statemachine(do_handover=True):
     sm = smach.StateMachine(outcomes=['end'])
 
-    table_waypoint = GoToWaypoint(0.25, 0.41, 0)
+    table_waypoint = GoToWaypoint(0.4, 0.4, 0)
     setup_sm = get_robot_setup_sm(table_waypoint)
     find_grasp_sm = get_find_grasp_sm()
     execute_grasp_sm = get_execute_grasp_sm(table_waypoint)
