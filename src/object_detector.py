@@ -60,8 +60,8 @@ class CallObjectDetectorService:
 
     def __init__(self):
         self.srv = rospy.Service('call_object_detector', CallObjectDetector , self.execute)
-        self.label_image_pub = rospy.Publisher('/grasping_pipeline/obj_det_label_image', Image, queue_size=1)
-        self.bb_image_pub = rospy.Publisher('/grasping_pipeline/obj_det_bb_image', Image, queue_size=1)
+        self.label_image_pub = rospy.Publisher('/grasping_pipeline/obj_det_label_image', Image, queue_size=1, latch=True)
+        self.bb_image_pub = rospy.Publisher('/grasping_pipeline/obj_det_bb_image', Image, queue_size=1, latch=True)
         rospy.loginfo('Known Object Detector Service initialized')
     
     def execute(self, req):

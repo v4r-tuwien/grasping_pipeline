@@ -37,8 +37,6 @@ class GraspMethodSelector(smach.State):
         files = glob.glob(os.path.join(grasps_path, '*.npy'))
         objects = [os.path.basename(f).split('.')[0] for f in files]
 
-        rospy.logwarn(objects)
-
         for class_name in userdata.class_names:
             if class_name not in objects or class_name == 'Unknown':
                 return 'direct_grasp'
