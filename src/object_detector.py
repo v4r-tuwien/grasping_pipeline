@@ -232,7 +232,7 @@ class CallObjectDetectorService:
             masks.append(mask)
         return masks
         
-def visualize_rois(image, rois, class_names):
+def visualize_rois(image, rois, class_names, scale=2):
     '''Visualizes the bounding boxes on the image.
 
     Visualizes the bounding boxes on the image. The bounding boxes are visualized by drawing
@@ -246,7 +246,9 @@ def visualize_rois(image, rois, class_names):
         List of bounding boxes for each detected object.
     class_names : List[str]
         List of class names for each detected object.
-    
+    scale : int
+        Scale factor for the image. The image is resized by this factor before visualizing the bounding boxes. This is used to make the labeled text more readable (since it has more pixels).
+
     Returns
     -------
     np.ndarray
@@ -254,6 +256,7 @@ def visualize_rois(image, rois, class_names):
     '''
     num_classes = len(class_names)
     image_copy = image.copy()
+    image_copy = cv2.resize(image_copy, (image_copy.shape[1]*scale, image_copy.shape[0]*scale))
     
     for i, (roi, class_name) in enumerate(zip(rois, class_names)):
         
@@ -261,13 +264,14 @@ def visualize_rois(image, rois, class_names):
         green = 255 - blue
         red = 0
         color = (blue, green, red)
+        color = (0, 0, 0)
 
-        x1 = roi.x_offset
-        y1 = roi.y_offset
-        x2 = roi.x_offset + roi.width
-        y2 = roi.y_offset + roi.height
+        x1 = roi.x_offset * scale
+        y1 = roi.y_offset * scale
+        x2 = (roi.x_offset + roi.width) * scale
+        y2 = (roi.y_offset + roi.height) * scale
         cv2.rectangle(image_copy, (x1, y1), (x2, y2), color, 2)
-        cv2.putText(image_copy, class_name, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        cv2.putText(image_copy, class_name, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5*scale, color, 2)
     return image_copy
 
 def visualize_label_image(image, label_image):
