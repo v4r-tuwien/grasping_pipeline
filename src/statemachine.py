@@ -2,12 +2,13 @@
 import rospy
 import smach
 import smach_ros
-from statemachine_components import get_robot_setup_sm, get_execute_grasp_sm, get_placement_sm, get_find_grasp_sm
+from statemachine_components import get_robot_setup_sm, get_execute_grasp_sm, get_placement_sm, get_find_grasp_sm, get_object_detector_sm, get_pose_estimator_sm
 from userinput import UserInput
 from robot_control import GoToWaypoint, GoBack, GoToNeutral, CheckTopGrasp
 from grasp_method_selector import GraspMethodSelector
 from grasping_pipeline_msgs.msg import FindGrasppointAction
 from handover.msg import HandoverAction
+from check_table_clean import CheckTableClean
 
 def create_statemachine(do_handover=True):
     sm = smach.StateMachine(outcomes=['end'])
@@ -17,45 +18,78 @@ def create_statemachine(do_handover=True):
     find_grasp_sm = get_find_grasp_sm()
     execute_grasp_sm = get_execute_grasp_sm(table_waypoint)
     placement_sm = get_placement_sm()
+    single_grasp_sm = get_single_grasp_sm(table_waypoint, find_grasp_sm, execute_grasp_sm, placement_sm)
+    clear_table_sm = get_clear_table_sm(table_waypoint, get_object_detector_sm(), get_pose_estimator_sm(), execute_grasp_sm, placement_sm, setup_sm)
     with sm:
-        smach.StateMachine.add('SETUP', setup_sm, transitions={'setup_succeeded': 'FIND_GRASP_USERINPUT'})
-
-        map = {'f': ['succeeded', 'find grasp point']}
-        smach.StateMachine.add('FIND_GRASP_USERINPUT', UserInput(
-            map), transitions={'succeeded': 'FIND_GRASP'})
-
-        smach.StateMachine.add('FIND_GRASP', find_grasp_sm, transitions={
-            'end_find_grasp': 'EXECUTE_GRASP_USERINPUT', 'failed': 'SETUP'}, 
-            remapping={'grasp_poses':'grasp_poses', 'grasp_object_bb':'grasp_object_bb', 'grasp_object_name':'grasp_object_name'})
+        smach.StateMachine.add('SETUP', setup_sm, transitions={'setup_succeeded': 'DECIDE_PROCEDURE'})
         
+        map = {'g': ['single_grasp', 'single grasp'], 't': ['clear_table', 'clear table']}
+        smach.StateMachine.add('DECIDE_PROCEDURE', UserInput(
+            map), transitions={'single_grasp': 'SINGLE_GRASP', 'clear_table': 'CLEAR_TABLE'})
+        smach.StateMachine.add('SINGLE_GRASP', single_grasp_sm, transitions={'succeeded': 'SETUP', 'failed': 'SETUP'})
+        smach.StateMachine.add('CLEAR_TABLE', clear_table_sm, transitions={'succeeded': 'SETUP'})
 
-        map = {'g': ['succeeded', 'grasp object'],
-               't': ['retry', 'try again']}
-        smach.StateMachine.add('EXECUTE_GRASP_USERINPUT', UserInput(
-            map), transitions={'retry': 'FIND_GRASP', 'succeeded': 'EXECUTE_GRASP'})
-        
+    return sm
+
+def get_clear_table_sm(table_waypoint, object_detector_sm, pose_estimator_sm, execute_grasp_sm, placement_sm, setup_sm):
+    sm = smach.StateMachine(outcomes=['succeeded'])
+    with sm:
+        smach.StateMachine.add('SETUP', setup_sm, transitions={'setup_succeeded': 'DETECT_OBJECTS'})
+        smach.StateMachine.add('DETECT_OBJECTS', object_detector_sm, transitions={'failed': 'SETUP', 'succeeded': 'CHECK_TABLE_CLEAN'})
+        smach.StateMachine.add('CHECK_TABLE_CLEAN', CheckTableClean(), transitions={'clean': 'succeeded', 'not_clean': 'POSE_ESTIMATION'})
+        smach.StateMachine.add('POSE_ESTIMATION', pose_estimator_sm, transitions={'failed': 'SETUP', 'succeeded': 'EXECUTE_GRASP'})
         smach.StateMachine.add('EXECUTE_GRASP', execute_grasp_sm, transitions={
-            'end_execute_grasp': 'CHECK_TOP_GRASP', 'failed_to_grasp': 'SETUP'})
+                'end_execute_grasp': 'CHECK_TOP_GRASP', 'failed_to_grasp': 'SETUP'})
         
-        smach.StateMachine.add('CHECK_TOP_GRASP', CheckTopGrasp(), transitions={'top_grasp': 'HANDOVER', 'not_top_grasp': 'AFTER_GRASP_USERINPUT'})
-        
-        map = {'p': ['placement', 'place object'],
-               'h': ['handover', 'handover object']}
-        smach.StateMachine.add('AFTER_GRASP_USERINPUT', UserInput(
-            map), transitions={'placement': 'PLACEMENT', 'handover': 'HANDOVER'})
+        #TODO test with combination of placement + handover, instead of only handover
+        smach.StateMachine.add('CHECK_TOP_GRASP', CheckTopGrasp(), transitions={'top_grasp': 'HANDOVER', 'not_top_grasp': 'HANDOVER'})
 
         smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
-                                transitions={'succeeded': 'SETUP',
-                                             'preempted': 'SETUP',
-                                             'aborted': 'SETUP'})
-        
+                                    transitions={'succeeded': 'SETUP',
+                                                'preempted': 'SETUP',
+                                                'aborted': 'SETUP'})
+            
         smach.StateMachine.add('PLACEMENT', placement_sm, transitions={'end_placement': 'RETREAT_AFTER_PLACEMENT', 'failed_to_place': 'GO_BACK_TO_TABLE'})
-        
+            
         smach.StateMachine.add('RETREAT_AFTER_PLACEMENT', GoBack(0.2), transitions={'succeeded': 'GO_TO_NEUTRAL_AFTER_PLACEMENT', 'aborted': 'GO_TO_NEUTRAL_AFTER_PLACEMENT'})
         smach.StateMachine.add('GO_TO_NEUTRAL_AFTER_PLACEMENT', GoToNeutral(), transitions={'succeeded': 'SETUP'})
 
         smach.StateMachine.add('GO_BACK_TO_TABLE', table_waypoint, transitions={'succeeded': 'HANDOVER', 'aborted': 'GO_BACK_TO_TABLE'})
+    return sm
 
+def get_single_grasp_sm(table_waypoint, find_grasp_sm, execute_grasp_sm, placement_sm):
+    sm = smach.StateMachine(outcomes=['failed', 'succeeded'])
+    with sm:
+        smach.StateMachine.add('FIND_GRASP', find_grasp_sm, transitions={
+                'end_find_grasp': 'EXECUTE_GRASP_USERINPUT', 'failed': 'failed'}, 
+                remapping={'grasp_poses':'grasp_poses', 'grasp_object_bb':'grasp_object_bb', 'grasp_object_name':'grasp_object_name'})
+
+        map = {'g': ['succeeded', 'grasp object'],
+                't': ['retry', 'try again']}
+        smach.StateMachine.add('EXECUTE_GRASP_USERINPUT', UserInput(
+                map), transitions={'retry': 'FIND_GRASP', 'succeeded': 'EXECUTE_GRASP'})
+            
+        smach.StateMachine.add('EXECUTE_GRASP', execute_grasp_sm, transitions={
+                'end_execute_grasp': 'CHECK_TOP_GRASP', 'failed_to_grasp': 'failed'})
+            
+        smach.StateMachine.add('CHECK_TOP_GRASP', CheckTopGrasp(), transitions={'top_grasp': 'HANDOVER', 'not_top_grasp': 'AFTER_GRASP_USERINPUT'})
+            
+        map = {'p': ['placement', 'place object'],
+                'h': ['handover', 'handover object']}
+        smach.StateMachine.add('AFTER_GRASP_USERINPUT', UserInput(
+                map), transitions={'placement': 'PLACEMENT', 'handover': 'HANDOVER'})
+
+        smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
+                                    transitions={'succeeded': 'succeeded',
+                                                'preempted': 'succeeded',
+                                                'aborted': 'succeeded'})
+            
+        smach.StateMachine.add('PLACEMENT', placement_sm, transitions={'end_placement': 'RETREAT_AFTER_PLACEMENT', 'failed_to_place': 'GO_BACK_TO_TABLE'})
+            
+        smach.StateMachine.add('RETREAT_AFTER_PLACEMENT', GoBack(0.2), transitions={'succeeded': 'GO_TO_NEUTRAL_AFTER_PLACEMENT', 'aborted': 'GO_TO_NEUTRAL_AFTER_PLACEMENT'})
+        smach.StateMachine.add('GO_TO_NEUTRAL_AFTER_PLACEMENT', GoToNeutral(), transitions={'succeeded': 'succeeded'})
+
+        smach.StateMachine.add('GO_BACK_TO_TABLE', table_waypoint, transitions={'succeeded': 'HANDOVER', 'aborted': 'GO_BACK_TO_TABLE'})
     return sm
 
 if __name__ == '__main__':

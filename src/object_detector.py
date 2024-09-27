@@ -115,8 +115,9 @@ class CallObjectDetectorService:
         server_state = obj_det.get_state()
         
         if server_state != GoalStatus.SUCCEEDED or len(detection_result.class_names) <= 0:
-            rospy.logerr('Object Detector failed to detect objects!')
-            raise rospy.ServiceException
+            rospy.logwarn('Object Detector failed to detect objects!')
+            # return empty response if no objects were detected
+            return CallObjectDetectorResponse()
         rospy.loginfo(f'Detected {len(detection_result.class_names)} objects.')
 
         np_rgb = ros_numpy.numpify(req.rgb)
