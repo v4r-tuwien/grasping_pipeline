@@ -354,6 +354,9 @@ class GoToAndLookAtPlacementArea(smach.State):
         
 
 class CheckTopGrasp(smach.State):
+    """
+    Checks if the grasp is a top grasp.
+    """
     def __init__(self):
         smach.State.__init__(self, 
                              outcomes=['top_grasp', 'not_top_grasp'],
@@ -364,3 +367,68 @@ class CheckTopGrasp(smach.State):
             return 'top_grasp'
         else:
             return 'not_top_grasp'
+        
+class CheckVerifyGrasp(smach.State):
+    """
+    Checks if the grasp should be verified.
+    """
+    def __init__(self):
+        smach.State.__init__(self, 
+                             outcomes=['succeeded', 'verify_grasp'],
+                             input_keys=['verify_grasp'])
+    
+    def execute(self, userdata):
+        if userdata.verify_grasp:
+            return 'verify_grasp'
+        else:
+            return 'succeeded'
+        
+class VerifyGrasp(smach.State):
+    """
+    Verifies the grasp by checking if the object is still in the scene.
+    """
+    def __init__(self):
+        smach.State.__init__(self, 
+                             outcomes=['succeeded', 'failed'],
+                             input_keys=['class_names', 'class_names_new', 'grasp_object_name'])
+    
+    def execute(self, userdata):
+        if userdata.grasp_object_name not in userdata.class_names:
+            rospy.logerr("How did you manage to grasp a object that was never detected? (This is most likely a bug)")
+            return 'failed'
+        
+        object_count_old = userdata.class_names.count(userdata.grasp_object_name)
+        object_count_new = userdata.class_names_new.count(userdata.grasp_object_name)
+        
+        if object_count_old == (object_count_new + 1):
+            rospy.loginfo("The object was removed from the scene. The grasp is considered successful.")
+            return 'succeeded'
+        
+        if object_count_old > (object_count_new - 1):
+            rospy.loginfo("The object was removed multiple times from the scene. This is most likely due to incorrect object detection. The grasp is considered successful.")
+            return 'succeeded'
+        
+        if object_count_old == object_count_new:
+            rospy.logerr("The object was not removed from the scene. The grasp is considered failed.")
+            return 'failed'
+        
+        if object_count_old < object_count_new:
+            rospy.logerr("The object was added to the scene. The grasp is considered failed.")
+            return 'failed'
+        
+
+class CheckObjectDetection(smach.State):   
+    """
+    Checks if the object detection was successful.
+    """        
+    def __init__(self):
+        smach.State.__init__(self, 
+                             outcomes=['succeeded', 'failed'],
+                             input_keys=['bb_detections', 'mask_detections', 'class_names'])
+        
+    def execute(self, userdata):
+        if (len(userdata.bb_detections) == 0 and len(userdata.mask_detections) == 0) or len(userdata.class_names) == 0:
+            rospy.logerr("No objects detected!")
+            return 'failed'
+        return 'succeeded'
+            
