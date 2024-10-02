@@ -115,8 +115,14 @@ class CallObjectDetectorService:
         server_state = obj_det.get_state()
         
         if server_state != GoalStatus.SUCCEEDED or len(detection_result.class_names) <= 0:
-            rospy.logerr('Object Detector failed to detect objects!')
-            raise rospy.ServiceException
+            rospy.logwarn('Object Detector failed to detect objects!')
+            # Not raising an exception here, as this can happen when the a grasp needs to be verified and all objects were removed from the table
+            res = CallObjectDetectorResponse()
+            res.bb_detections = []
+            res.mask_detections = []
+            res.class_names = []
+            res.class_confidences = []
+            return res
         rospy.loginfo(f'Detected {len(detection_result.class_names)} objects.')
 
         np_rgb = ros_numpy.numpify(req.rgb)
