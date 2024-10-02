@@ -191,6 +191,10 @@ class ExecuteGraspServer:
             self.hsr_wrapper.move_eef_by_line((0, 0, 1), -safety_distance)
 
             self.hsr_wrapper.gripper_grasp_hsr(0.5)
+
+            res.verify_grasp = not self.hsr_wrapper.grasp_succesful()
+
+            """
             if not self.hsr_wrapper.grasp_succesful():
                 rospy.logdebug("Execute grasp: Grasp failed")
                 self.moveit_wrapper.detach_all_objects()
@@ -199,7 +203,7 @@ class ExecuteGraspServer:
                 # which potentially invalidates the grasp pose
                 self.server.set_aborted(res)
                 return
-            
+            """
             self.server.set_succeeded(res)
             return
         
