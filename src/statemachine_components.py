@@ -20,6 +20,25 @@ def get_robot_setup_sm(setup_waypoint):
     return seq
 
     
+def get_obj_detection_sm():
+    """
+    Returns a state machine that performs image fetching and object detection.
+    """
+    sm = smach.StateMachine(outcomes=['succeeded', 'aborted', 'failed'], output_keys=['rgb', 'depth', 'bb_detections', 'mask_detections', 'class_names', 'class_confidences'])
+
+    with sm:
+        image_fetcher_service = smach_ros.ServiceState('fetch_synchronized_images', FetchImages, response_slots=['rgb', 'depth'])
+        smach.StateMachine.add('IMAGE_FETCHER', image_fetcher_service, transitions={'succeeded': 'CALL_OBJECT_DETECTOR', 'aborted': 'failed', 'preempted': 'failed'})
+    
+        call_object_detector_service = smach_ros.ServiceState(
+                'call_object_detector', 
+                CallObjectDetector, 
+                request_slots=['rgb', 'depth'], 
+                response_slots=['bb_detections', 'mask_detections', 'class_names', 'class_confidences'])
+        smach.StateMachine.add('CALL_OBJECT_DETECTOR', call_object_detector_service, transitions={'succeeded': 'succeeded', 'aborted': 'aborted', 'preempted': 'failed'})
+    return sm
+
+
 def get_execute_grasp_sm(after_grasp_waypoint):
     '''
     Returns a state machine that performs all steps necessary to execute a grasp.
@@ -27,7 +46,7 @@ def get_execute_grasp_sm(after_grasp_waypoint):
     seq = smach.Sequence(outcomes=['end_execute_grasp', 'failed_to_grasp'],
                          connector_outcome='succeeded', 
                          input_keys=['grasp_object_bb', 'grasp_poses'],
-                         output_keys=['placement_surface_to_wrist', 'top_grasp'])
+                         output_keys=['placement_surface_to_wrist', 'top_grasp', 'verify_grasp'])
 
     table_waypoint = GoToWaypoint(0.25, 0.41, 0)
 
@@ -37,7 +56,7 @@ def get_execute_grasp_sm(after_grasp_waypoint):
         smach.Sequence.add('ADD_COLLISION_OBJECTS', CollisionEnvironment())
 
         execute_grasp_actionstate = smach_ros.SimpleActionState(
-            'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses', 'grasp_object_name_moveit', 'table_plane_equations'], result_slots=['placement_surface_to_wrist', 'top_grasp']) 
+            'execute_grasp', ExecuteGraspAction, goal_slots=['grasp_poses', 'grasp_object_name_moveit', 'table_plane_equations'], result_slots=['placement_surface_to_wrist', 'top_grasp', 'verify_grasp']) 
 
         smach.Sequence.add('EXECUTE_GRASP', execute_grasp_actionstate, transitions={
                             'aborted': 'failed_to_grasp', 'preempted': 'failed_to_grasp'})
@@ -70,9 +89,12 @@ def get_placement_sm():
 
 def get_find_grasp_sm():
     '''
-    Returns a state machine that performs all steps necessary to get a grasppoint.'''
-    find_grasp_sm = smach.StateMachine(outcomes=['failed', 'end_find_grasp'], output_keys=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
+    Returns a state machine that performs all steps necessary to get a grasppoint.
+    '''
+
+    find_grasp_sm = smach.StateMachine(outcomes=['failed', 'end_find_grasp'], input_keys=['rgb', 'depth', 'bb_detections', 'mask_detections', 'class_names', 'class_confidences'], output_keys=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
     with find_grasp_sm:
+        """
         image_fetcher_service = smach_ros.ServiceState('fetch_synchronized_images', FetchImages, response_slots=['rgb', 'depth'])
         smach.StateMachine.add('IMAGE_FETCHER', image_fetcher_service, transitions={'succeeded': 'CALL_OBJECT_DETECTOR', 'aborted': 'failed', 'preempted': 'failed'})
         
@@ -82,6 +104,7 @@ def get_find_grasp_sm():
             request_slots=['rgb', 'depth'], 
             response_slots=['bb_detections', 'mask_detections', 'class_names', 'class_confidences'])
         smach.StateMachine.add('CALL_OBJECT_DETECTOR', call_object_detector_service, transitions={'succeeded': 'SELECT_GRASP_METHOD', 'aborted': 'failed', 'preempted': 'failed'})
+        """
 
         smach.StateMachine.add("SELECT_GRASP_METHOD", GraspMethodSelector(), transitions={'pose_based_grasp': 'CALL_POSE_ESTIMATOR', 'direct_grasp': 'CALL_DIRECT_GRASP_POSE_ESTIMATOR'})
         
