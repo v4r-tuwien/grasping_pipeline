@@ -9,17 +9,13 @@ from sensor_msgs.msg import RegionOfInterest
 from v4r_util.tf2 import TF2Wrapper
 import ros_numpy
 
-#TODO probably best to split this into two states: one state that removes all objects that are not on the table and
-# another state that checks if the table is clean. This way, we can reuse the first state in other parts of the pipeline.
-class CheckTableClean(smach.State):
+class RemoveNonTableObjects(smach.State):
     '''
     Checks whether any objects remain on the table.
-    
-    
     '''
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['clean', 'not_clean'], input_keys=['table_bbs', 'bb_detections', 'mask_detections', 'class_names'], output_keys=['bb_detections', 'mask_detections', 'class_names'])
+        smach.State.__init__(self, outcomes=['succeeded'], input_keys=['table_bbs', 'bb_detections', 'mask_detections', 'class_names'], output_keys=['bb_detections', 'mask_detections', 'class_names'])
         self.hsr_wrapper = HSR_wrapper()
         self.tf_wrapper = TF2Wrapper()
     
@@ -144,8 +140,7 @@ class CheckTableClean(smach.State):
         camera_info = rospy.wait_for_message(cam_info_topic, CameraInfo)
         
         if len(userdata.bb_detections) == 0 and len(userdata.mask_detections) == 0:
-            self.hsr_wrapper.tts_say('The table is clean.')
-            return 'clean'
+            return 'succeeded'
         
         table_bb = userdata.table_bbs.boxes[0]
         table_bb = bounding_box_to_bounding_box_stamped(table_bb, userdata.table_bbs.header.frame_id, userdata.table_bbs.header.stamp)
@@ -185,6 +180,22 @@ class CheckTableClean(smach.State):
         userdata.bb_detections = bb_detections
         userdata.mask_detections = mask_detections
         userdata.class_names = class_names
+        return 'succeeded'
+
+
+class CheckTableClean(smach.State):
+    '''
+    Checks whether any objects remain on the table.
+    
+    
+    '''
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['clean', 'not_clean'], input_keys=['bb_detections', 'mask_detections', 'class_names'])
+        self.hsr_wrapper = HSR_wrapper()
+
+    def execute(self, userdata):
+        objects_left = max(len(userdata.bb_detections), len(userdata.mask_detections))
         
         if objects_left == 0:
             self.hsr_wrapper.tts_say('The table is clean. I am finally done.')
@@ -196,6 +207,3 @@ class CheckTableClean(smach.State):
                 self.hsr_wrapper.tts_say(f'The table is not clean. There are {objects_left} objects left on the table.')
             
             return 'not_clean'
-   
-
-        

@@ -7,6 +7,7 @@ from grasping_pipeline_msgs.msg import ExecuteGraspAction, PlaceAction
 from grasp_method_selector import GraspMethodSelector
 from grasping_pipeline_msgs.msg import FindGrasppointAction
 from grasping_pipeline_msgs.srv import FetchImages, CallObjectDetector, CallPoseEstimator, CallDirectGraspPoseEstimator
+from check_table_clean import RemoveNonTableObjects
 
 def get_robot_setup_sm(setup_waypoint):
     '''
@@ -81,7 +82,10 @@ def get_find_grasp_sm():
             CallObjectDetector, 
             request_slots=['rgb', 'depth'], 
             response_slots=['bb_detections', 'mask_detections', 'class_names', 'class_confidences'])
-        smach.StateMachine.add('CALL_OBJECT_DETECTOR', call_object_detector_service, transitions={'succeeded': 'SELECT_GRASP_METHOD', 'aborted': 'failed', 'preempted': 'failed'})
+        smach.StateMachine.add('CALL_OBJECT_DETECTOR', call_object_detector_service, transitions={'succeeded': 'GET_TABLE_PLANES', 'aborted': 'failed', 'preempted': 'failed'})
+        
+        smach.StateMachine.add('GET_TABLE_PLANES', FindTablePlanes(enlarge_table_bb_to_floor=False), transitions={'succeeded': 'REMOVE_NON_TABLE_OBJECTS'})
+        smach.StateMachine.add('REMOVE_NON_TABLE_OBJECTS', RemoveNonTableObjects(), transitions={'succeeded': 'SELECT_GRASP_METHOD'})
 
         smach.StateMachine.add("SELECT_GRASP_METHOD", GraspMethodSelector(), transitions={'pose_based_grasp': 'CALL_POSE_ESTIMATOR', 'direct_grasp': 'CALL_DIRECT_GRASP_POSE_ESTIMATOR'})
         
