@@ -45,10 +45,10 @@ def get_clear_table_sm(table_waypoint, object_detector_sm, pose_estimator_sm, ex
         #TODO test with combination of placement + handover, instead of only handover
         smach.StateMachine.add('CHECK_TOP_GRASP', CheckTopGrasp(), transitions={'top_grasp': 'HANDOVER', 'not_top_grasp': 'HANDOVER'})
 
-        smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
+        smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction, goal_slots=['object_name']),
                                     transitions={'succeeded': 'SETUP',
                                                 'preempted': 'SETUP',
-                                                'aborted': 'SETUP'})
+                                                'aborted': 'SETUP'}, remapping={'object_name':'grasp_object_name'})
             
         smach.StateMachine.add('PLACEMENT', placement_sm, transitions={'end_placement': 'RETREAT_AFTER_PLACEMENT', 'failed_to_place': 'GO_BACK_TO_TABLE'})
             
@@ -62,8 +62,7 @@ def get_single_grasp_sm(table_waypoint, find_grasp_sm, execute_grasp_sm, placeme
     sm = smach.StateMachine(outcomes=['failed', 'succeeded'])
     with sm:
         smach.StateMachine.add('FIND_GRASP', find_grasp_sm, transitions={
-                'end_find_grasp': 'EXECUTE_GRASP_USERINPUT', 'failed': 'failed'}, 
-                remapping={'grasp_poses':'grasp_poses', 'grasp_object_bb':'grasp_object_bb', 'grasp_object_name':'grasp_object_name'})
+                'end_find_grasp': 'EXECUTE_GRASP_USERINPUT', 'failed': 'failed'})
 
         map = {'g': ['succeeded', 'grasp object'],
                 't': ['retry', 'try again']}
@@ -80,10 +79,10 @@ def get_single_grasp_sm(table_waypoint, find_grasp_sm, execute_grasp_sm, placeme
         smach.StateMachine.add('AFTER_GRASP_USERINPUT', UserInput(
                 map), transitions={'placement': 'PLACEMENT', 'handover': 'HANDOVER'})
 
-        smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction),
+        smach.StateMachine.add('HANDOVER', smach_ros.SimpleActionState('/handover', HandoverAction, goal_slots=['object_name']),
                                     transitions={'succeeded': 'succeeded',
                                                 'preempted': 'succeeded',
-                                                'aborted': 'succeeded'})
+                                                'aborted': 'succeeded'}, remapping={'object_name':'grasp_object_name'})
             
         smach.StateMachine.add('PLACEMENT', placement_sm, transitions={'end_placement': 'RETREAT_AFTER_PLACEMENT', 'failed_to_place': 'GO_BACK_TO_TABLE'})
             
