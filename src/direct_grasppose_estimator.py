@@ -128,6 +128,7 @@ class DirectGraspposeEstimatorCaller:
         else:
             rospy.loginfo('No object to grasp specified. Will grasp closest object')
             object_idx = self.get_closest_object(center_poses)
+            rospy.loginfo(f'Closest object to camera is {req.class_names[object_idx]}')
         
         object_mask, object_bb = [], []
         if len(req.mask_detections) > 0:
@@ -215,7 +216,7 @@ class DirectGraspposeEstimatorCaller:
                 bbs.append(bb)
         elif len(bbs_2d) > 0:
             for bb in bbs_2d:
-                self.get_bb_3D(depth, depth_np, bb)
+                self.get_bb_3D_from_bb(depth, depth_np, bb)
                 bbs.append(bb)
         else:
             rospy.logerr('No masks or bbs provided to extract object depth values!')
@@ -245,6 +246,13 @@ class DirectGraspposeEstimatorCaller:
         # only copy the object's depth values, rest stay NaN
         depth_img_obj[mask] = depth_np[mask]
         object_pcd = convert_np_depth_img_to_o3d_pcd(depth_img_obj, self.cam_info, project_valid_depth_only=True)
+        
+        # do clustering to remove parts from the background
+        labels = object_pcd.cluster_dbscan(eps=0.04, min_points=100, print_progress=False)
+        labels_unique, counts = np.unique(labels, return_counts=True)
+        max_label = labels_unique[np.argmax(counts)]
+        object_pcd = object_pcd.select_by_index(np.where(labels == max_label)[0])
+        
         obj_bb_o3d = get_minimum_oriented_bounding_box(object_pcd)
         return o3d_bb_to_ros_bb_stamped(obj_bb_o3d, depth.header.frame_id, depth.header.stamp)
 
@@ -267,6 +275,13 @@ class DirectGraspposeEstimatorCaller:
         # only copy the object's depth values, rest stay NaN
         depth_img_obj[y:y+h, x:x+w] = depth_np[y:y+h, x:x+w]
         object_pcd = convert_np_depth_img_to_o3d_pcd(depth_img_obj, self.cam_info, project_valid_depth_only=True)
+        
+        # do clustering to remove parts from the background
+        labels = object_pcd.cluster_dbscan(eps=0.04, min_points=100, print_progress=False)
+        labels_unique, counts = np.unique(labels, return_counts=True)
+        max_label = labels_unique[np.argmax(counts)]
+        object_pcd = object_pcd.select_by_index(np.where(labels == max_label)[0])
+        
         obj_bb_o3d = get_minimum_oriented_bounding_box(object_pcd)
         return o3d_bb_to_ros_bb_stamped(obj_bb_o3d, depth.header.frame_id, depth.header.stamp)
     
