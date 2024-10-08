@@ -1,0 +1,6 @@
+statemachine.get\_clear\_table\_sm
+==================================
+
+.. currentmodule:: statemachine
+
+.. autofunction:: get_clear_table_sm
