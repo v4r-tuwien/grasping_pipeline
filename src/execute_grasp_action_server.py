@@ -243,12 +243,10 @@ class ExecuteGraspServer:
         object_pose_table_frame = self.tf_wrapper.transform_pose(plane_equation.header.frame_id, object_pose_st)
         self.tf_wrapper.send_transform(object_pose_table_frame.header.frame_id, 'object_center', object_pose_table_frame.pose)
 
-        #TODO need to add table_plane_height/2 to object_center_to_table_distance, else
-        # we get the distance to the middle of the tableBB, not the distance to the table surface
         object_center_to_table_distance = abs(plane_equation.x * object_pose_table_frame.pose.position.x + 
                                                   plane_equation.y * object_pose_table_frame.pose.position.y + 
                                                   plane_equation.z * object_pose_table_frame.pose.position.z + 
-                                                  plane_equation.d) / np.sqrt(plane_equation.x ** 2 + plane_equation.y ** 2 + plane_equation.z ** 2)
+                                                  plane_equation.d) / np.sqrt(plane_equation.x ** 2 + plane_equation.y ** 2 + plane_equation.z ** 2) + 0.015
         
         # Compute the object's bottom surface center in the table frame
         object_bottom_surface_center = copy.deepcopy(object_pose_table_frame)
