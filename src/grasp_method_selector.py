@@ -39,6 +39,7 @@ class GraspMethodSelector(smach.State):
 
         for class_name in userdata.class_names:
             if class_name not in objects or class_name == 'Unknown':
+                rospy.loginfo('Detected unknown object class: {}'.format(class_name))
                 return 'direct_grasp'
         return 'pose_based_grasp'
    
