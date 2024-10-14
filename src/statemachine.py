@@ -67,7 +67,7 @@ def get_single_grasp_sm(table_waypoint, find_grasp_sm, execute_grasp_sm, placeme
         map = {'g': ['succeeded', 'grasp object'],
                 't': ['retry', 'try again']}
         smach.StateMachine.add('EXECUTE_GRASP_USERINPUT', UserInput(
-                map), transitions={'retry': 'FIND_GRASP', 'succeeded': 'EXECUTE_GRASP'})
+                map), transitions={'retry': 'failed', 'succeeded': 'EXECUTE_GRASP'})
             
         smach.StateMachine.add('EXECUTE_GRASP', execute_grasp_sm, transitions={
                 'end_execute_grasp': 'CHECK_TOP_GRASP', 'failed_to_grasp': 'failed'})
