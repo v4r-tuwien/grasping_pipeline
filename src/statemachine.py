@@ -6,6 +6,7 @@ from states.statemachine_components import get_robot_setup_sm, get_execute_grasp
 from states.userinput import UserInput
 from states.robot_control import GoToWaypoint, GoBack, GoToNeutral, CheckTopGrasp
 from states.grasp_method_selector import GraspMethodSelector
+from states.find_table_planes import FindTablePlanesOptimized
 from grasping_pipeline_msgs.msg import FindGrasppointAction
 from handover.msg import HandoverAction
 
@@ -18,6 +19,8 @@ def create_statemachine(do_handover=True):
     execute_grasp_sm = get_execute_grasp_sm(table_waypoint)
     placement_sm = get_placement_sm()
     with sm:
+        smach.StateMachine.add('INIT_SETUP', setup_sm, transitions={'setup_succeeded': 'FIND_TABLE_OPTIM'})
+        smach.StateMachine.add('FIND_TABLE_OPTIM', FindTablePlanesOptimized(), transitions={'succeeded': 'FIND_GRASP_USERINPUT'})
         smach.StateMachine.add('SETUP', setup_sm, transitions={'setup_succeeded': 'FIND_GRASP_USERINPUT'})
 
         map = {'f': ['succeeded', 'find grasp point']}
@@ -25,17 +28,17 @@ def create_statemachine(do_handover=True):
             map), transitions={'succeeded': 'FIND_GRASP'})
 
         smach.StateMachine.add('FIND_GRASP', find_grasp_sm, transitions={
-            'end_find_grasp': 'EXECUTE_GRASP_USERINPUT', 'failed': 'SETUP'}, 
+            'end_find_grasp': 'EXECUTE_GRASP', 'failed': 'SETUP'}, #EXECUTE_GRASP_USERINPUT
             remapping={'grasp_poses':'grasp_poses', 'grasp_object_bb':'grasp_object_bb', 'grasp_object_name':'grasp_object_name'})
         
 
-        map = {'g': ['succeeded', 'grasp object'],
-               't': ['retry', 'try again']}
+        map = {'r': ['retry', 'retry grasp_planning'],
+               'f': ['find', 'find grasp again']}
         smach.StateMachine.add('EXECUTE_GRASP_USERINPUT', UserInput(
-            map), transitions={'retry': 'FIND_GRASP', 'succeeded': 'EXECUTE_GRASP'})
+            map), transitions={'find': 'FIND_GRASP', 'retry': 'EXECUTE_GRASP'})
         
         smach.StateMachine.add('EXECUTE_GRASP', execute_grasp_sm, transitions={
-            'end_execute_grasp': 'CHECK_TOP_GRASP', 'failed_to_grasp': 'SETUP'})
+            'end_execute_grasp': 'CHECK_TOP_GRASP', 'failed_to_grasp': 'EXECUTE_GRASP_USERINPUT'}, remapping={'table_plane_equations': 'gr_table_plane_equations'})
         
         smach.StateMachine.add('CHECK_TOP_GRASP', CheckTopGrasp(), transitions={'top_grasp': 'HANDOVER', 'not_top_grasp': 'AFTER_GRASP_USERINPUT'})
         

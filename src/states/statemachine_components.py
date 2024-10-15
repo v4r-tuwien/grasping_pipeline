@@ -3,6 +3,7 @@ import smach_ros
 from states.robot_control import GoToNeutral, OpenGripper, GoToWaypoint, GoToAndLookAtPlacementArea, GoBack
 from states.find_table_planes import FindTablePlanes
 from states.collision_environment import CollisionEnvironment
+from states.select_highest_confidence_object import SelectHighestConfidenceObject
 from grasping_pipeline_msgs.msg import ExecuteGraspAction, PlaceAction
 from states.grasp_method_selector import GraspMethodSelector
 from grasping_pipeline_msgs.msg import FindGrasppointAction
@@ -26,14 +27,12 @@ def get_execute_grasp_sm(after_grasp_waypoint):
     '''
     seq = smach.Sequence(outcomes=['end_execute_grasp', 'failed_to_grasp'],
                          connector_outcome='succeeded', 
-                         input_keys=['grasp_object_bb', 'grasp_poses'],
+                         input_keys=['grasp_object_bb', 'grasp_poses', 'table_plane_equations'],
                          output_keys=['placement_surface_to_wrist', 'top_grasp'])
 
     table_waypoint = GoToWaypoint(0.25, 0.41, 0)
 
     with seq:
-        smach.Sequence.add('FIND_TABLE_PLANES', FindTablePlanes())
-
         smach.Sequence.add('ADD_COLLISION_OBJECTS', CollisionEnvironment())
 
         execute_grasp_actionstate = smach_ros.SimpleActionState(
@@ -92,13 +91,29 @@ def get_find_grasp_sm():
         smach.StateMachine.add(
             'CALL_POSE_ESTIMATOR', 
             call_pose_estimator_service, 
-            transitions={'succeeded': 'FIND_GRASP', 'aborted': 'failed', 'preempted': 'failed'},
+            transitions={'succeeded': 'SELECT_HIGHEST_CONFIDENCE', 'aborted': 'failed', 'preempted': 'failed'},
             remapping={'pose_results':'object_poses'})
         
+        
+        # Add the custom SelectHighestConfidenceObject state
+        select_highest_confidence_state = SelectHighestConfidenceObject()
+        smach.StateMachine.add(
+            'SELECT_HIGHEST_CONFIDENCE', 
+            select_highest_confidence_state, 
+            transitions={'succeeded': 'FIND_GRASP', 'aborted': 'failed'},
+            remapping={
+                'object_poses': 'object_poses',  # From CALL_POSE_ESTIMATOR
+                'class_confidences': 'class_confidences',  # From CALL_POSE_ESTIMATOR
+                'class_names': 'class_names',  # From CALL_POSE_ESTIMATOR
+                #'selected_object_pose': 'selected_object_pose',  # Output to FIND_GRASP
+                'object_to_grasp': 'object_to_grasp'  # Output to FIND_GRASP
+            })
+
+
         find_grasp_actionstate = smach_ros.SimpleActionState(
             'find_grasppoint', 
             FindGrasppointAction, 
-            goal_slots=['depth', 'class_names', 'object_poses'],
+            goal_slots=['depth', 'class_names', 'object_poses', 'object_to_grasp'],
             result_slots=['grasp_poses', 'grasp_object_bb', 'grasp_object_name'])
         smach.StateMachine.add('FIND_GRASP', find_grasp_actionstate, transitions={
             'aborted': 'failed', 'preempted': 'failed', 'succeeded': 'end_find_grasp'})

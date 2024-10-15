@@ -274,8 +274,6 @@ class GoToAndLookAtPlacementArea(smach.State):
 
         # arm_lift moves by ~ 10 cm for each 0.2 increase and has to be between 0 and 0.6
         arm_lift_joint = max(0.0, (placement_area['center'][2] - 0.45)*2.0)
-        rospy.logerr(f"{arm_lift_joint = }")
-        rospy.logerr(f"{placement_area['center'][2] = }")
         arm_lift_joint = min(arm_lift_joint, 0.6)
 
         # move that pesky arm out of the way

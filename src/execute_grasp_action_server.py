@@ -16,6 +16,10 @@ from hsr_wrapper import HSR_wrapper
 from geometry_msgs.msg import Pose, PoseStamped, Transform
 from visualization_msgs.msg import Marker
 from grasping_pipeline_msgs.msg import ExecuteGraspAction, ExecuteGraspResult
+from std_msgs.msg import String
+from grasping_pipeline_msgs.srv import FetchImages, CallObjectDetector, CallPoseEstimator
+import threading
+import time
 
 
 class ExecuteGraspServer:
@@ -94,15 +98,26 @@ class ExecuteGraspServer:
         '''
         Initialize and starts the action server.
         '''
+        self._stop_thread = threading.Event()
+        self._thread = None
+        self.tf_ready = False
         self.tf_wrapper = TF2Wrapper()
         rospy.loginfo("Execute grasp: Waiting for moveit")
         self.moveit_wrapper = MoveitWrapper(self.tf_wrapper)
         rospy.loginfo("Execute grasp: Got Moveit")
         self.hsr_wrapper = HSR_wrapper()
+        self.image_fetcher = rospy.ServiceProxy('fetch_synchronized_images', FetchImages)
+        self.object_detector = rospy.ServiceProxy('call_object_detector', CallObjectDetector)
+        self.object_pose_estimator = rospy.ServiceProxy('call_pose_estimator', CallPoseEstimator)
         
         self.server = actionlib.SimpleActionServer(
             'execute_grasp', ExecuteGraspAction, self.execute, False)
         self.server.start()
+
+        self.speech_output = rospy.get_param("/speech_output", default='none')
+        if self.speech_output == 'german':
+            self.tts_coqui_publisher = rospy.Publisher('/tts_request', String, queue_size=0)
+
         rospy.loginfo("Execute grasp: Init")
 
     def execute(self, goal):
@@ -134,14 +149,23 @@ class ExecuteGraspServer:
             The goal containing the grasp poses to execute. Includes the grasp poses, the name of the
             object to grasp in the Moveit environment and the plane equations of the table surfaces.
         '''
+        self.start_thread()
+        while not self.tf_ready:
+            time.sleep(1.)
         res = ExecuteGraspResult()
         planning_frame = self.moveit_wrapper.get_planning_frame("whole_body")
         # hrisi experiments, change back to 0.1 again afterwards
         safety_distance = rospy.get_param("/safety_distance", default=0.2)
 
+
         
         sorted_gasp_poses, is_top_grasp_array = self.sort_grasps_by_orientation(goal.grasp_poses)
         rospy.logdebug(is_top_grasp_array)
+
+        if self.speech_output == 'english':
+            self.hsr_wrapper.tts_say("Step Back. I will start moving now.")
+        elif self.speech_output == 'german':
+            self.tts_coqui_publisher.publish(String("Tritt zurück. Ich werde mich gleich bewegen."))
 
         for grasp_pose, is_top_grasp in zip(sorted_gasp_poses, is_top_grasp_array):
             # assumes static scene, i.e robot didn't move since grasp pose was found
@@ -191,6 +215,7 @@ class ExecuteGraspServer:
 
             self.hsr_wrapper.gripper_grasp_hsr(0.5)
             if not self.hsr_wrapper.grasp_succesful():
+                self.stop_thread()
                 rospy.logdebug("Execute grasp: Grasp failed")
                 self.moveit_wrapper.detach_all_objects()
                 self.hsr_wrapper.gripper_open_hsr()
@@ -199,8 +224,10 @@ class ExecuteGraspServer:
                 self.server.set_aborted(res)
                 return
             self.server.set_succeeded(res)
+            self.stop_thread()
             return
         
+        self.stop_thread()
         rospy.logerr("Grasping failed")
         self.server.set_aborted(res)
 
@@ -327,7 +354,40 @@ class ExecuteGraspServer:
             else:
                 not_top_grasps.append(grasp)
 
-        return not_top_grasps + top_grasps, [False]*len(not_top_grasps) + [True]*len(top_grasps)    
+        return not_top_grasps + top_grasps, [False]*len(not_top_grasps) + [True]*len(top_grasps)
+    def get_poses_lexi(self):
+        fetched_image_res = self.image_fetcher()
+        obj_detector_res = self.object_detector(fetched_image_res.rgb, fetched_image_res.depth)
+        obj_pose_res = self.object_pose_estimator(fetched_image_res.rgb, 
+                                                  fetched_image_res.depth, 
+                                                  obj_detector_res.bb_detections, 
+                                                  obj_detector_res.mask_detections, 
+                                                  obj_detector_res.class_names, 
+                                                  obj_detector_res.class_confidences)
+        return obj_pose_res.class_names, obj_pose_res.class_confidences, obj_pose_res.pose_results 
+    
+    def _loop_function(self):
+        rate = rospy.Rate(10)
+        while not self._stop_thread.is_set():
+            class_names, _, _ = self.get_poses_lexi()
+            print(class_names)  # Do something with the result here
+            self.tf_ready = True
+            rate.sleep()
+
+    def start_thread(self):
+        if self._thread is None:
+            self._stop_thread.clear()
+            self._thread = threading.Thread(target=self._loop_function)
+            self._thread.start()
+            print("MATTHIAS STARTED A FUCKING THREAD")
+
+
+    def stop_thread(self):
+        if self._thread is not None:
+            self._stop_thread.set()
+            self._thread.join()
+            self._thread = None
+            self.tf_ready = False
            
 def qv_mult(q, v):
     """

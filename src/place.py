@@ -153,8 +153,9 @@ class PlaceObjectServer():
             The detected placement areas
         '''
         if placement_area_bb.header.frame_id != placement_area_det_frame:
-            rospy.logerr("Wrong frame for placement area bb. Should probably do a transform here at some point. Expected: %s, got: %s" % (placement_area_det_frame, placement_area_bb.header.frame_id))
-            raise NotImplementedError
+            placement_area_bb = self.tf2_wrapper.transform_bounding_box(placement_area_bb, placement_area_det_frame)
+            #rospy.logerr("Wrong frame for placement area bb. Should probably do a transform here at some point. Expected: %s, got: %s" % (placement_area_det_frame, placement_area_bb.header.frame_id))
+            #raise NotImplementedError
         
         att_objects = self.moveit.get_attached_objects()
         att_object_pose = att_objects['object'].object.pose
@@ -409,7 +410,7 @@ class PlaceObjectServer():
         sorted_placement_areas = [
             placement_area 
             for _, placement_area 
-            in sorted(zip(distances, placement_areas), key=lambda pair: pair[0], reverse=True)
+            in sorted(zip(distances, placement_areas), key=lambda pair: pair[0], reverse=False)
             ]
         return sorted_placement_areas
     
