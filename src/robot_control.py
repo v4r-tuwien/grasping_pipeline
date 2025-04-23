@@ -292,8 +292,8 @@ class GoToAndLookAtPlacementArea(smach.State):
         '''
         dataset = rospy.get_param('/grasping_pipeline/dataset')
 
-        if rospy.has_param("/grasping_pipeline/placement/pacement_area"):
-            placement_area_name = rospy.get_param("/grasping_pipeline/placement/pacement_area")
+        if rospy.has_param("/grasping_pipeline/placement/placement_area"):
+            placement_area_name = rospy.get_param("/grasping_pipeline/placement/placement_area")
         else:
             placement_area_name = 'predefined'
 
@@ -326,7 +326,7 @@ class GoToAndLookAtPlacementArea(smach.State):
         # Check if the placement area has a defined center and size
         placement_area_bb = BoundingBox3DStamped()
         if "center" in placement_area.keys() and "size" in placement_area.keys() and \
-            type(placement_area["center"]) == list or type(placement_area["size"]) == list:
+            type(placement_area["center"]) == list and type(placement_area["size"]) == list:
                 
             placement_area_bb.center.position.x = placement_area['center'][0]
             placement_area_bb.center.position.y = placement_area['center'][1]
