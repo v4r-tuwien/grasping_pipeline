@@ -15,7 +15,7 @@ class RemoveNonTableObjects(smach.State):
     '''
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['succeeded'], input_keys=['table_bbs', 'bb_detections', 'mask_detections', 'class_names'], output_keys=['bb_detections', 'mask_detections', 'class_names'])
+        smach.State.__init__(self, outcomes=['succeeded', 'failed'], input_keys=['table_bbs', 'bb_detections', 'mask_detections', 'class_names'], output_keys=['bb_detections', 'mask_detections', 'class_names'])
         self.hsr_wrapper = HSR_wrapper()
         self.tf_wrapper = TF2Wrapper()
     
@@ -138,6 +138,10 @@ class RemoveNonTableObjects(smach.State):
     def execute(self, userdata):
         cam_info_topic = rospy.get_param('/cam_info_topic')
         camera_info = rospy.wait_for_message(cam_info_topic, CameraInfo)
+
+        if len(userdata.table_bbs.boxes) == 0:
+            rospy.logwarn('No table bounding box detected.')
+            return 'failed'
         
         if len(userdata.bb_detections) == 0 and len(userdata.mask_detections) == 0:
             return 'succeeded'
@@ -186,8 +190,6 @@ class RemoveNonTableObjects(smach.State):
 class CheckTableClean(smach.State):
     '''
     Checks whether any objects remain on the table.
-    
-    
     '''
 
     def __init__(self):
