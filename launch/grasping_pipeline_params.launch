@@ -3,5 +3,6 @@
     <!-- Load parameters -->
     <rosparam command="load" ns="" file="$(find grasping_pipeline)/config/config.yaml"/>
     <rosparam command="load" ns="" file="$(find grasping_pipeline)/config/placement_areas.yaml"/>
+    <rosparam command="load" ns="" file="$(find grasping_pipeline)/config/object_mapping.yaml"/>
     <rosparam command="load" ns="" file="$(find table_plane_extractor)/config/config.yaml"/>
 </launch>
