@@ -27,7 +27,7 @@ grasping_pipeline:
   timeout_duration: 40.0
   placement:
     max_attempts: 25
-    pacement_area: 'table'  # Name of your waypoint. The pose of the waypoint should be defined in placement_areas.yaml. 
+    placement_area: 'table'  # Name of your waypoint. The pose of the waypoint should be defined in placement_areas.yaml. 
                             # Choosing a not defined waypoint or not setting this parameter at all will lead to default placement
 
   # Object to grasp, must be from the dataset. If 'None' or object not in scene, closest object is grasped
