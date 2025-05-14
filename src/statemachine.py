@@ -12,7 +12,7 @@ from find_table_planes import FindTablePlanes
 def create_statemachine(do_handover=True):
     sm = smach.StateMachine(outcomes=['end'])
 
-    table_waypoint = GoToWaypoint(0.4, 0.4, 0)
+    table_waypoint = GoToWaypoint(0.50, 0.4, 0)
     setup_sm = get_robot_setup_sm(table_waypoint)
     find_grasp_sm = get_find_grasp_sm()
     execute_grasp_sm = get_execute_grasp_sm(table_waypoint)
@@ -36,7 +36,7 @@ def get_clear_table_sm(table_waypoint, object_detector_sm, pose_estimator_sm, ex
         smach.StateMachine.add('SETUP', setup_sm, transitions={'setup_succeeded': 'DETECT_OBJECTS'})
         smach.StateMachine.add('DETECT_OBJECTS', object_detector_sm, transitions={'failed': 'SETUP', 'succeeded': 'GET_TABLE_PLANES'})
         smach.StateMachine.add('GET_TABLE_PLANES', FindTablePlanes(enlarge_table_bb_to_floor=False), transitions={'succeeded': 'REMOVE_NON_TABLE_OBJECTS'})
-        smach.StateMachine.add('REMOVE_NON_TABLE_OBJECTS', RemoveNonTableObjects(), transitions={'succeeded': 'CHECK_TABLE_CLEAN'})
+        smach.StateMachine.add('REMOVE_NON_TABLE_OBJECTS', RemoveNonTableObjects(), transitions={'succeeded': 'CHECK_TABLE_CLEAN', 'failed': 'SETUP'})
         smach.StateMachine.add('CHECK_TABLE_CLEAN', CheckTableClean(), transitions={'clean': 'succeeded', 'not_clean': 'POSE_ESTIMATION'})
         smach.StateMachine.add('POSE_ESTIMATION', pose_estimator_sm, transitions={'failed': 'SETUP', 'succeeded': 'EXECUTE_GRASP'})
         smach.StateMachine.add('EXECUTE_GRASP', execute_grasp_sm, transitions={

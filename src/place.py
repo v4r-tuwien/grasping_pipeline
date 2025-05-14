@@ -1,31 +1,37 @@
 #! /usr/bin/env python3
+
+# General imports
 from math import pi
 from copy import deepcopy
 import numpy as np
-import rospy
 import open3d as o3d
+
+# ROS
+import rospy
 import actionlib
 import tf
 import tf.transformations
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import PoseStamped, Vector3Stamped, Transform, Point, Quaternion, PointStamped, Vector3, Pose
+from std_msgs.msg import Header
+from vision_msgs.msg import BoundingBox3D, BoundingBox3DArray
+
+# V4R
 from moveit_wrapper import MoveitWrapper
 from hsr_wrapper import HSR_wrapper
 from v4r_util.tf2 import TF2Wrapper
 from v4r_util.conversions import bounding_box_to_bounding_box_stamped, list_to_vector3, vector3_to_list, rot_mat_to_quat, quat_to_rot_mat, np_transform_to_ros_transform, np_transform_to_ros_pose
-from v4r_util.util import ros_bb_to_o3d_bb, align_bounding_box_rotation
-from v4r_util.util import transform_bounding_box_w_transform, transform_pose, align_bounding_box_rotation
-from v4r_util.util import ros_bb_to_o3d_bb, o3d_bb_to_ros_bb
+from v4r_util.util import transform_bounding_box_w_transform, transform_pose, align_bounding_box_rotation, ros_bb_to_o3d_bb, o3d_bb_to_ros_bb
 from v4r_util.rviz_visualization.rviz_visualizer import RvizVisualizer
-from visualization_msgs.msg import Marker
-from geometry_msgs.msg import PoseStamped, Vector3Stamped, Transform, Point, Quaternion, PointStamped, Vector3, Pose
-from std_msgs.msg import Header
 from grasping_pipeline_msgs.msg import PlaceAction, PlaceActionResult 
-from vision_msgs.msg import BoundingBox3D
+
+# Toyota
 from tmc_geometric_shapes_msgs.msg import Shape
 from tmc_placement_area_detector.srv import DetectPlacementArea
 
 class PlaceObjectServer():
     '''
-    Server for placing an object on a table
+    Server for placing an object on a plane
     
     The server assumes that the object is able to be placed on the same surface that it was standing
     on when it was grasped (i.e. bottom surface). 
@@ -52,7 +58,7 @@ class PlaceObjectServer():
     Parameters
     ----------
     placement_area_bb: grasping_pipeline_msgs/BoundingBox3DStamped
-        The bounding box of the target placement area/plane
+        The bounding box of the target placement area/plane. If None or a empty message, the server will choose the closest plane instead
     table_plane_equations: list of object_detector_msgs/Plane
         The plane equations of the detected tables. The equations are used to calculate the plane
         normals, which are then used to define 'upwards/downwards' for the object placement.
@@ -152,34 +158,45 @@ class PlaceObjectServer():
         list of tmc_placement_area_detector/PlacementArea
             The detected placement areas
         '''
-        if placement_area_bb.header.frame_id != placement_area_det_frame:
-            rospy.logerr("Wrong frame for placement area bb. Should probably do a transform here at some point. Expected: %s, got: %s" % (placement_area_det_frame, placement_area_bb.header.frame_id))
-            raise NotImplementedError
-        
+        # Get the bounding box of the object that is attached to the robot
         att_objects = self.moveit.get_attached_objects()
         att_object_pose = att_objects['object'].object.pose
         att_object_dimensions = att_objects['object'].object.primitives[0].dimensions
         attached_object_bb = BoundingBox3D(center = att_object_pose, size = list_to_vector3(att_object_dimensions))
-        
+
+
+        # Get the bounding box of the object after placement (only use the orientation, the translation is unknown)
         obj_bb_aligned = self.get_object_bb_orientation_after_placement(base_pose, attached_object_bb, wrist_to_table, aligned_table_bb_base_frame)
 
+        # Translate the table bb center to the top of the table
         target_bb = deepcopy(aligned_table_bb_base_frame)
         target_bb.center.position.z = target_bb.center.position.z + target_bb.size.z / 2
-        target_point = target_bb.center.position
-        box_filter_range = target_bb.size
+
+        # Transform the target bounding box to the placement area detection frame (usually map)
         target_bb = self.tf2_wrapper.transform_bounding_box(
             bounding_box_to_bounding_box_stamped(target_bb, 'base_link', rospy.Time.now()), 
             placement_area_det_frame)
-        target_bb.size = placement_area_bb.size
-        target_bb.center.orientation = Quaternion(x=0, y=0, z=0, w=1)
+        
+        if placement_area_bb is not None and placement_area_bb.header.frame_id is not '':
+            if placement_area_bb.header.frame_id != placement_area_det_frame:
+                rospy.logerr("Wrong frame for placement area bb. Should probably do a transform here at some point. Expected: %s, got: %s" % (placement_area_det_frame, placement_area_bb.header.frame_id))
+                raise NotImplementedError
+            
+            # Using the passed placement area bb. Fixing the rotation for visualization
+            target_bb.size = placement_area_bb.size
+            target_bb.center.orientation = Quaternion(x=0, y=0, z=0, w=1)
+
+        # Visualize the target bounding box
         header = Header(stamp=rospy.Time.now(), frame_id=placement_area_det_frame)
         self.bb_vis.publish_ros_bb(target_bb, header, "target_bb")
         rospy.sleep(0.05)
 
+        # Get the target point and box filter range for the placement area detector and call the detector
         target_point = target_bb.center.position
         box_filter_range = target_bb.size
 
         placement_areas = self.call_placement_area_detector(obj_bb_aligned, placement_area_det_frame, target_point, box_filter_range)
+        
         return placement_areas
         
     
@@ -292,7 +309,6 @@ class PlaceObjectServer():
         surface_range = 1.0
 
         rospy.wait_for_service('detect_placement_area')
-
         while True:
             try:
                 # Toyota Detect Placement Area Service:
@@ -331,37 +347,11 @@ class PlaceObjectServer():
                 print("ErrorCode: NON_POSITIVE")
             elif response.error_code.val == -1:
                 print("ErrorCode: ZERO_VECTOR")
-    
-    def test_bb_plane_intersection(self, bb_pts, plane):
-        '''
-        Check if the bounding box intersects with the plane
-        
-        Parameters
-        ----------
-        bb_pts: np.array of shape (8, 3)
-            xyz-points of the bounding box corners
-        plane: object_detector_msgs/Plane
-            The plane equation
-        
-        Returns
-        -------
-        bool
-            True if the bounding box intersects with the plane, False otherwise
-        '''
-        num_pts_above_plane = 0
-        for pt in bb_pts:
-            object_center_to_table_distance = abs(plane.x * pt[0] + 
-                                                  plane.y * pt[1] + 
-                                                  plane.z * pt[2] + 
-                                                  plane.d) / np.sqrt(plane.x ** 2 + plane.y ** 2 + plane.z ** 2)
-            if object_center_to_table_distance > 0:
-                num_pts_above_plane += 1
-        # if all points are above or below the plane, the object is not intersecting with the plane
-        return num_pts_above_plane == 0 or num_pts_above_plane == 8
                 
     def find_intersecting_table_plane(self, table_planes, bb):
         '''
-        Returns the index of one of the table planes that the bounding box is intersecting with
+        Uses the Separating Axis Theorem to calculate if the bb is intersecting with a table plane.
+        Returns the index of one of the table planes that the bounding box is intersecting with.
         
         Parameters
         ----------
@@ -378,20 +368,33 @@ class PlaceObjectServer():
         '''
         bb_pts = np.asarray(bb.get_box_points())
         for i, plane in enumerate(table_planes):
-            if self.test_bb_plane_intersection(bb_pts, plane):
-                return i
-        return None
+            # Define the plane's normal vector and D (for the plane equation Ax + By + Cz + D = 0) (-D is the distance to the plane)
+            normal = np.array([plane.x, plane.y, plane.z])
+            d = plane.d
+
+            # Project the bounding box points onto the normal of the plane. Substract the distance to the plane to have the projection around 0
+            projections = [np.dot(pt, normal) + d for pt in bb_pts]
+
+            # Check if there is an overlap of the projections along the plane's normal axis
+            if np.min(projections) <= 0 <= np.max(projections):
+                return i  # Found an intersection with this plane
+        
+        return None  # No intersection with any plane
     
-    def sort_placement_areas_by_distance(self, placement_areas, base_pose_map):
+    def sort_placement_areas_by_distance(self, placement_areas, goal_pose, reverse=True):
         '''
-        Sort the placement areas by distance to the robot base.
+        Sort the placement areas by distance to the passed pose.
         
         Parameters
         ----------
         placement_areas: list of vision_msgs/BoundingBox3D
             The placement areas which should be sorted
-        base_pose_map: geometry_msgs/PoseStamped
-            The current pose of the robot base
+        goal_pose: geometry_msgs/PoseStamped
+            The goal pose. The placement areas are sorted by distance to this pose.
+        reverse: bool
+            If True, the placement areas are sorted in descending order (farthest first).
+            If False, the placement areas are sorted in ascending order (closest first). 
+            Default is True.
         
         Returns
         -------
@@ -399,7 +402,7 @@ class PlaceObjectServer():
             The sorted placement areas
         '''
         distances = []
-        base_pose_np = np.array([base_pose_map.pose.position.x, base_pose_map.pose.position.y])
+        base_pose_np = np.array([goal_pose.pose.position.x, goal_pose.pose.position.y])
         for placement_area in placement_areas:
             placement_area_np = np.array([
                 placement_area.center.position.x, 
@@ -409,10 +412,61 @@ class PlaceObjectServer():
         sorted_placement_areas = [
             placement_area 
             for _, placement_area 
-            in sorted(zip(distances, placement_areas), key=lambda pair: pair[0], reverse=True)
+            in sorted(zip(distances, placement_areas), key=lambda pair: pair[0], reverse=reverse)
             ]
         return sorted_placement_areas
     
+    def sort_closest_plane(self, table_plane_equations, table_bbs, base_pose_map):
+        """
+        Sort the table planes and table bbs by distance to the robot base. The closest table plane is at the first index.
+
+        Parameters
+        ----------
+        table_plane_equations: List[object_detector_msgs.Plane]
+            The plane equations of the detected tables
+        table_bbs: vision_msgs/BoundingBox3DArray
+            The bounding boxes of the detected tables
+        base_pose_map: geometry_msgs/PoseStamped
+            The current pose of the robot base (base_link) in the map frame
+
+        Returns
+        -------
+        List[object_detector_msgs.Plane]
+            The sorted table planes
+        vision_msgs/BoundingBox3DArray
+            The sorted table bounding boxes
+        """
+
+        base_position = np.array([
+            base_pose_map.pose.position.x,
+            base_pose_map.pose.position.y,
+            base_pose_map.pose.position.z
+        ])
+
+        def distance_to_plane(plane):
+            """
+            Calculate the shortest distance from a point to a plane.
+
+            The plane equation is assumed to be in the form:
+                ax + by + cz + d = 0
+            The formula for the distance from a point (x0, y0, z0) to the plane is:
+                distance = |ax0 + by0 + cz0 + d| / sqrt(a^2 + b^2 + c^2)
+        
+            """
+            a, b, c, d = plane.x, plane.y, plane.z, plane.d
+            plane_normal = np.array([a, b, c])
+            numerator = abs(np.dot(plane_normal, base_position) + d)
+            denominator = np.linalg.norm(plane_normal)
+            return numerator / denominator
+
+        # Sort planes by distance to the base position
+        sorted_planes = sorted(table_plane_equations, key=distance_to_plane)
+        sorted_bbs = [table_bbs.boxes[table_plane_equations.index(plane)] for plane in sorted_planes]
+        sorted_bbs_message = BoundingBox3DArray()
+        sorted_bbs_message.header = table_bbs.header
+        sorted_bbs_message.boxes = sorted_bbs
+        return sorted_planes, sorted_bbs_message
+
     def get_surface_to_wrist_transform(self, object_placement_surface_pose):
         '''
         Get the transformation from the object placement surface to the wrist
@@ -479,34 +533,68 @@ class PlaceObjectServer():
         planning_frame = 'odom'
         placement_area_det_frame = 'map'
 
+        # Get pose of 'base_link' in placement_area_det_frame ('map')
         base_pose_map = self.moveit.get_current_pose(placement_area_det_frame)
         
         placement_area_bb = goal.placement_area_bb
-        table_idx = self.find_intersecting_table_plane(goal.table_plane_equations, ros_bb_to_o3d_bb(placement_area_bb))
-        if table_idx is None:
-            rospy.logwarn("Placement: No table plane intersecting with placement area. Aborting")
+        if placement_area_bb is not None and placement_area_bb.header.frame_id is not '':
+            table_idx = self.find_intersecting_table_plane(goal.table_plane_equations, ros_bb_to_o3d_bb(placement_area_bb))
+            if table_idx is None:
+                rospy.logwarn("Placement: No table plane intersecting with placement area. Aborting")
+                self.server.set_aborted()
+                return
+            table_bb = goal.table_bbs.boxes[table_idx]
+            table_equation = goal.table_plane_equations[table_idx]
+        elif len(goal.table_plane_equations) > 1:
+            sorted_table_planes, sorted_table_bbs = self.sort_closest_plane(goal.table_plane_equations, goal.table_bbs, base_pose_map)
+
+            # Using the first table plane (TODO: Check if this is good practice, maybe even choose biggest)
+            table_bb = sorted_table_bbs.boxes[0]
+            table_equation = sorted_table_planes[0]
+        elif len(goal.table_plane_equations) == 1:
+            # Only one table plane passed, no need to sort
+            table_bb = goal.table_bbs.boxes[0]
+            table_equation = goal.table_plane_equations[0]
+        else:
+            rospy.logwarn("No table planes passed. Aborting")
             self.server.set_aborted()
             return
 
-        table_bb = goal.table_bbs.boxes[table_idx]
+        # Add box to planning scene
         self.moveit.add_box('table', goal.table_bbs.header.frame_id, table_bb.center, vector3_to_list(table_bb.size))
 
-        table_equation = goal.table_plane_equations[table_idx]
+        # Transforming bb to base frame
         table_bb_stamped = bounding_box_to_bounding_box_stamped(table_bb, goal.table_bbs.header.frame_id, rospy.Time.now())
         table_bb_stamped = self.tf2_wrapper.transform_bounding_box(table_bb_stamped, base_frame)
+
+        # Align the table bb with its frame
         aligned_table_bb = align_bounding_box_rotation(ros_bb_to_o3d_bb(table_bb_stamped))
         aligned_table_bb_ros = o3d_bb_to_ros_bb(aligned_table_bb)
-        
+    
+        # Get the orientation of the table
         quat = rot_mat_to_quat(deepcopy(aligned_table_bb.R))
         
         placement_areas = self.detect_placement_areas(goal.placement_surface_to_wrist, base_pose_map.pose, aligned_table_bb_ros, placement_area_det_frame, placement_area_bb)
-        sorted_placement_areas = self.sort_placement_areas_by_distance(placement_areas, base_pose_map)
+        
+        method = rospy.get_param('/grasping_pipeline/placement/method')
+        if method == "waypoint":
+            # Placing in a shelf -> choose furthest placement area
+            # TODO: Instead of furthest away, maybe choose furthest distance into the direction of the shelf 
+            # Problem: Which direction? E.g. choose direction Sasha is Facing
+            sorted_placement_areas = self.sort_placement_areas_by_distance(placement_areas, base_pose_map)
+        elif method == "place":
+            # Placing on table -> choose placement area closest to center
+            bb_center = PoseStamped()
+            bb_center.header = base_pose_map.header
+            bb_center.pose = aligned_table_bb_ros.center
+            sorted_placement_areas = self.sort_placement_areas_by_distance(placement_areas, bb_center, reverse=False)
+        
+         
         surface_to_wrist = self.get_surface_to_wrist_transform(goal.placement_surface_to_wrist)
 
         execution_succesful = False
         max_placement_attempts = rospy.get_param("/grasping_pipeline/placement/max_attempts")
-
-        method = rospy.get_param("/grasping_pipeline/placement/method")
+        
         if method == 'waypoint':
             for i, placement_area in enumerate(sorted_placement_areas):
                 if i >= max_placement_attempts:
@@ -527,6 +615,7 @@ class PlaceObjectServer():
                 safety_distance = np.random.uniform(0.01, 0.05)
                 waypoints = []
 
+                # Calculate placement point for the hand palm
                 placement_point_rot_mat = quat_to_rot_mat(placement_point.pose.orientation)
                 placement_point_transl = np.array([placement_point.pose.position.x, placement_point.pose.position.y, placement_point.pose.position.z])
                 placement_point_transform = np.eye(4)
@@ -538,6 +627,7 @@ class PlaceObjectServer():
                 placement_point = hand_palm_point_ros
                 self.add_marker(placement_point, 5000002, 0, 1, 0)
                 
+                # Add safety by calculating the plane normal
                 plane_normal_eef_frame = self.transform_plane_normal(table_equation, eef_frame, rospy.Time.now())
                 placement_point.pose.position.x = placement_point.pose.position.x + \
                     safety_distance * plane_normal_eef_frame[0]
@@ -548,6 +638,7 @@ class PlaceObjectServer():
                 waypoints.append(deepcopy(placement_point))
                 self.add_marker(placement_point, 5000001, 1, 0, 0)
 
+                # Transform waypoints and add marker (TODO: isnt waypoint always size 1?)
                 waypoints_tr = [self.tf2_wrapper.transform_pose(planning_frame, waypoint) for waypoint in reversed(waypoints)]
                 for i, waypoint in enumerate(waypoints_tr):
                     r = 1
@@ -556,19 +647,23 @@ class PlaceObjectServer():
                     self.add_marker(waypoint, i+7000, r, g, b)           
                     rospy.sleep(0.02)
 
+                # Calculate plan to waypoint and move there
                 plan_found = self.moveit.whole_body_plan_and_go(waypoints_tr[0])
                 if not plan_found:
                     rospy.loginfo("Placement: No plan found. Trying next pose")
                     continue
 
-                execution_succesful = self.moveit.current_pose_close_to_target(waypoints_tr[0])
+                # Check if movement was successful by checking how close the robot is
+                execution_succesful = self.moveit.current_pose_close_to_target(waypoints_tr[0], pos_tolerance=0.06)
                 if not execution_succesful:
                     rospy.loginfo("Placement: Execution failed, Trying next pose")
                     continue
 
+                # Move in negative plane normal (=downwards motion)
                 plane_normal_eef_frame = self.transform_plane_normal(table_equation, eef_frame, rospy.Time.now())
                 self.hsr_wrapper.move_eef_by_line((-plane_normal_eef_frame[0], -plane_normal_eef_frame[1], -plane_normal_eef_frame[2]), safety_distance)
 
+                # Open gripper
                 self.hsr_wrapper.gripper_open_hsr()
                 break
         elif method == 'place':

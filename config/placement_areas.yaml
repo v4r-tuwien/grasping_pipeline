@@ -1,34 +1,54 @@
-placement_planes:
-  metadata:
-    frame_id: 'map'
-  planes:
-    shelf_compartment1:
-      waypoint: [0.95, 1.05, 90] # [x, y, yaw in degrees]
-      placement_area:
-        center: [0.965, 2.051, 0.45]
-        size: [0.7, 0.25, 0.15]
-    shelf_compartment2:
-      waypoint: [0.449, 0.93, 55] # [x, y, yaw in degrees]
-      placement_area:
-        center: [0.965, 2.051, 0.72]
-        size: [0.7, 0.25, 0.15]
+# Add your new placement areas here
+# eg.:
+# shelf:        Name of the waypoint. Use this name in the config file to use this placement area
+#   frame_id:   frame_id of the waypoint
+#   waypoint:   your waypoint defined as x, y and phi, where phi is the rotation around the z-axis. The waypoint is defined in the frame of the parameter "frame_id".
+#   method:     placement method ('waypoint' or 'place'). Use place if placing on a table, waypoint if placing in a shelf
+#   center:     optional, define the center of the placement area (x, y, z). The center is defined in the frame of the parameter "frame_id".
+#   size:       optional, define the size of the placement area (x, y, z). It is wise to make the a size a bit smaller than the actual size of the plane. The size is defined according to the frame of the parameter "frame_id".
 
-#TODO add fallback plane and fallback handling
+placement_areas:
+  table:
+    frame_id: 'map'
+    waypoint: [0.58, 0.4, 0] 
+    method: 'place'
+    center: [1.2, 0.39, 0.45]
+    size: [0.55, 0.55, 0.15] 
+  shelf_compartment1: # First from bottom
+    frame_id: 'map'
+    waypoint: [1.1, 1.1, 90]
+    method: 'waypoint'
+    center: [0.6, 1.97, 0.10] 
+    size: [0.65, 0.25, 0.15]
+  shelf_compartment2: # Second from bottom
+    frame_id: 'map'
+    waypoint: [1.0, 1.1, 90]
+    method: 'waypoint'
+    center: [0.6, 1.97, 0.45] 
+    size: [0.65, 0.25, 0.15] 
+  shelf_compartment3: # Third from bottom
+    frame_id: 'map'
+    waypoint: [1.0, 1.1, 90]
+    method: 'waypoint'
+    center: [0.6, 1.97, 0.72] 
+    size: [0.65, 0.25, 0.15] 
+
+# Default placements for all objects, if not specified in the config file
 placement_objects:
   ycb_bop:
-    002_master_chef_can: 'shelf_compartment1'
-    003_cracker_box: 'shelf_compartment1'
-    005_tomato_soup_can: 'shelf_compartment1'
-    006_mustard_bottle: 'shelf_compartment1'
-    009_gelatin_box: 'shelf_compartment1'
-    010_potted_meat_can: 'shelf_compartment1'
-    011_banana: 'shelf_compartment1'
-    021_bleach_cleanser: 'shelf_compartment1'
-    024_bowl: 'shelf_compartment1'
-    025_mug: 'shelf_compartment1'
-    035_power_drill: 'shelf_compartment1'
-    061_foam_brick: 'shelf_compartment1'
-    Unknown: 'shelf_compartment1'
+    002_master_chef_can: 'shelf_compartment2'
+    003_cracker_box: 'shelf_compartment2'
+    005_tomato_soup_can: 'shelf_compartment2'
+    006_mustard_bottle: 'shelf_compartment2'
+    009_gelatin_box: 'shelf_compartment2'
+    010_potted_meat_can: 'shelf_compartment2'
+    011_banana: 'shelf_compartment2'
+    021_bleach_cleanser: 'shelf_compartment2'
+    024_bowl: 'shelf_compartment2'
+    025_mug: 'shelf_compartment2'
+    035_power_drill: 'shelf_compartment2'
+    061_foam_brick: 'shelf_compartment2'
+    Unknown: 'shelf_compartment2'
   ycb_ichores:
-    obj_000003: 'shelf_compartment1'
-    obj_000006: 'shelf_compartment1'
+    obj_000003: 'shelf_compartment2'
+    obj_000006: 'shelf_compartment2'

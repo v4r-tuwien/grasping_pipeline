@@ -1,4 +1,5 @@
 from math import pi
+import numpy as np
 from tf.transformations import quaternion_about_axis 
 import rospy
 import actionlib
@@ -284,37 +285,85 @@ class GoToAndLookAtPlacementArea(smach.State):
         '''
         Moves the robot to the waypoint of the placement area and makes it look at the placement area.
         
-        Loads the placement planes and objects from the parameter server. The placement area of the
-        object is determined by the object name. The robot moves to the waypoint of the placement area
-        and looks at the placement area based on the data loaded from the parameter server.
+        Loads the placement areas and objects from the parameter server. The placement area of the
+        object can be set in the config file. Otherwise it is determined by the object name. The robot 
+        moves to the waypoint of the placement area and looks at the placement area based on the data
+        loaded from the parameter server.
         '''
-        placement_planes = rospy.get_param('/placement_planes')
-        placement_objects = rospy.get_param('/placement_objects')
         dataset = rospy.get_param('/grasping_pipeline/dataset')
-        grasp_object_name = userdata.grasp_object_name
 
-        if grasp_object_name not in placement_objects[dataset]:
-            rospy.logerr(f"Object {grasp_object_name} not found in placement_objects!")
+        if rospy.has_param("/grasping_pipeline/placement/placement_area"):
+            placement_area_name = rospy.get_param("/grasping_pipeline/placement/placement_area")
+        else:
+            placement_area_name = 'predefined'
+
+        if placement_area_name == 'predefined':
+            rospy.loginfo("Loading predefined placement areas.")
+
+            placement_objects = rospy.get_param('/placement_objects')
+            grasp_object_name = userdata.grasp_object_name
+
+            if grasp_object_name not in placement_objects[dataset]:
+                rospy.logerr(f"Object {grasp_object_name} not found in placement_objects!")
+                return 'aborted'
+            
+            placement_area_name = placement_objects[dataset][grasp_object_name]
+
+        # Checking if placement_area_name is valid
+        if placement_area_name not in rospy.get_param('/placement_areas'):
+            rospy.logerr(f"Placement area {placement_area_name} not found!")
             return 'aborted'
-        
-        placement_plane_name = placement_objects[dataset][grasp_object_name]
-        placement_plane_config = placement_planes['planes'][placement_plane_name]
-        frame_id = placement_planes['metadata']['frame_id']
-        waypoint = placement_plane_config['waypoint']
-        placement_area = placement_plane_config['placement_area']
+            
+        rospy.loginfo(f"Placing object on waypoint: {placement_area_name}")
+
+        placement_area = rospy.get_param('/placement_areas')[placement_area_name]
+        frame_id = placement_area["frame_id"]
+        waypoint = placement_area["waypoint"]
+
+        # Setting method to be able to call it later during the placement
+        rospy.set_param('/grasping_pipeline/placement/method', placement_area["method"])
+
+        # Check if the placement area has a defined center and size
         placement_area_bb = BoundingBox3DStamped()
-        placement_area_bb.center.position.x = placement_area['center'][0]
-        placement_area_bb.center.position.y = placement_area['center'][1]
-        placement_area_bb.center.position.z = placement_area['center'][2]
-        placement_area_bb.center.orientation.w = 1.0
-        placement_area_bb.size.x = placement_area['size'][0]
-        placement_area_bb.size.y = placement_area['size'][1]
-        placement_area_bb.size.z = placement_area['size'][2]
-        placement_area_bb.header.frame_id = frame_id
+        if "center" in placement_area.keys() and "size" in placement_area.keys() and \
+            type(placement_area["center"]) == list and type(placement_area["size"]) == list:
+                
+            placement_area_bb.center.position.x = placement_area['center'][0]
+            placement_area_bb.center.position.y = placement_area['center'][1]
+            placement_area_bb.center.position.z = placement_area['center'][2]
+            placement_area_bb.center.orientation.w = 1.0
+            placement_area_bb.size.x = placement_area['size'][0]
+            placement_area_bb.size.y = placement_area['size'][1]
+            placement_area_bb.size.z = placement_area['size'][2]
+            placement_area_bb.header.frame_id = frame_id
+
+            # arm_lift moves by ~ 10 cm for each 0.2 increase and has to be between 0 and 0.6
+            arm_lift_joint = max(0.0, (placement_area['center'][2] - 0.45)*2.0)
+            arm_lift_joint = min(arm_lift_joint, 0.6)
+
+            arm_flex_joint = -2.6 if arm_lift_joint > 0.1 else -0.1
+
+            hsr_center_dist_x = np.abs(placement_area['center'][0] - waypoint[0])
+            hsr_center_dist_y = np.abs(placement_area['center'][1] - waypoint[1])
+            hsr_center_dist_xy = np.sqrt(hsr_center_dist_x**2 + hsr_center_dist_y**2)
+            # e.g. arm_lift_joint = 0.2 -> should increase by 10cm -> 0.2*0.5 = 0.1; 0.75 is approx. the normal height of the camera
+            hsr_center_dist_z = 0.75 + arm_lift_joint * 0.5 - placement_area['center'][2]
+            head_tilt_angle = pi/2 - np.arctan2(hsr_center_dist_xy, hsr_center_dist_z)
+
+            # head_tilt_joint: 0.0 is looking straight, -1.1 is about -70 degrees and the most Sasha can look down before mostly seeing his hand
+            head_tilt_joint = -head_tilt_angle * 1.1 / 70 * 180 / pi - 0.15
+            head_tilt_joint = max(-1.1, head_tilt_joint)
+            head_tilt_joint = min(head_tilt_joint, 0.0)
+
+        else:
+            rospy.logwarn("No center and/or size specified in placement area. Placement will be done on the closest plane.")
+
+            arm_flex_joint = -0.1
+            arm_lift_joint = 0.0
+            head_tilt_joint = -0.7
         userdata.placement_area_bb = placement_area_bb
         
         move_goal = MoveBaseGoal()
-        
         move_goal.target_pose.header.frame_id = frame_id
         move_goal.target_pose.pose.position.x = waypoint[0]
         move_goal.target_pose.pose.position.y = waypoint[1]
@@ -324,15 +373,6 @@ class GoToAndLookAtPlacementArea(smach.State):
         move_goal.target_pose.pose.orientation.z = quat[2]
         move_goal.target_pose.pose.orientation.w = quat[3]
 
-        # arm_lift moves by ~ 10 cm for each 0.2 increase and has to be between 0 and 0.6
-        arm_lift_joint = max(0.0, (placement_area['center'][2] - 0.45)*2.0)
-        arm_lift_joint = min(arm_lift_joint, 0.6)
-
-        # move that pesky arm out of the way
-        arm_flex_joint = -2.6 if arm_lift_joint > 0.1 else -0.1
-        self.whole_body.move_to_joint_positions({'arm_flex_joint': arm_flex_joint, 'arm_lift_joint': arm_lift_joint})
-        rospy.sleep(1.0)
-        
         rospy.loginfo("Waiting for move client server!")
         finished = self.move_client.wait_for_server(rospy.Duration(self.timeout))
         
@@ -343,6 +383,7 @@ class GoToAndLookAtPlacementArea(smach.State):
             if finished:
                 # wait for robot to settle down
                 rospy.sleep(1.0)
+                self.whole_body.move_to_joint_positions({'arm_flex_joint': arm_flex_joint, 'arm_lift_joint': arm_lift_joint, "head_tilt_joint": head_tilt_joint})
                 return 'succeeded'
             else:
                 rospy.logerr("Move server execution timed out!")

@@ -127,19 +127,27 @@ class FindGrasppointServer:
                 goal.depth, 
                 self.cam_info, 
                 project_valid_depth_only=False)
-
+            
             if goal.object_to_grasp != None and goal.object_to_grasp != '':
-                if goal.object_to_grasp in goal.class_names:
-                    rospy.loginfo(f'Object to grasp specified. Will grasp specified object {goal.object_to_grasp}')
-                    object_idxs = [goal.class_names.index(goal.object_to_grasp)]     # changed           
-                else:
-                    rospy.logwarn(f'Object to grasp {goal.object_to_grasp} not detected. Aborting')
-                    self.server.set_aborted()
-                    return
+                param_object_to_grasp = goal.object_to_grasp
+                rospy.loginfo(f'Object to grasp passed and specified. Will grasp specified object {param_object_to_grasp}')
+            elif rospy.has_param('/grasping_pipeline/object_to_grasp'):
+                # Getting object to grasp from config file
+                param_object_to_grasp = rospy.get_param('/grasping_pipeline/object_to_grasp')
+                rospy.loginfo(f'Object to grasp passed from config file. Will grasp specified object {param_object_to_grasp}')
             else:
+                param_object_to_grasp = None
                 rospy.loginfo('No object to grasp specified. Will grasp closest object')
-                object_idxs = self.get_closest_objects(goal.object_poses)    # changed to return a list of object indices sorted by distance
 
+            # Check if object to grasp is specified and detected
+            if param_object_to_grasp != None and param_object_to_grasp != '' and param_object_to_grasp != 'None':
+                if param_object_to_grasp in goal.class_names:
+                    object_idxs = [goal.class_names.index(param_object_to_grasp)]     # changed           
+                else:
+                    rospy.logwarn(f'Object to grasp ({param_object_to_grasp}) not detected. Grasping closest object.')
+                    object_idxs = self.get_closest_objects(goal.object_poses)             
+            else:
+                object_idxs = self.get_closest_objects(goal.object_poses)    # changed to return a list of object indices sorted by distance
 
             for object_idx in object_idxs:
 

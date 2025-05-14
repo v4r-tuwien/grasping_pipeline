@@ -7,12 +7,19 @@ point_cloud_topic: '/hsrb/head_rgbd_sensor/depth_registered/rectified_points'
 global_frame: '/map'
 
 grasping_pipeline:
-  dataset: 'ycb_ichores'                                                  # dataset to use for pose estimation. Should be the name of 
+  # 'hope', 'ycb_bop', 'ycb_ichores', 'ycb_scope'
+  dataset: 'ycb_bop'                                                # dataset to use for pose estimation. Should be the name of 
                                                                       # one of the sub-folders in the models and grasps directory
+  
+  # /object_detector/grounded_sam2, yolov8
   object_detector_topic: /object_detector/yolov8                      # object detector for known OR unknown objects
                                                                       # decides whether a pose estimator or a grasp point 
                                                                       # estimator is used afterwards
-  pose_estimator_topic: /pose_estimator/gdrnet                        # pose estimator for known objects
+
+  # /pose_estimator/gdrnet, /estimate_poses_scope                        
+  pose_estimator_topic: /pose_estimator/gdrnet                         # pose estimator for known objects
+
+  # /pose_estimator/find_grasppose_haf, /pose_estimator/find_grasppose_cg
   grasppoint_estimator_topic: /pose_estimator/find_grasppose_haf      # grasppoint estimator for unknown objects
   
   result_visualization_service_name: '/pose_estimator/result_visualization_service'
@@ -20,4 +27,11 @@ grasping_pipeline:
   timeout_duration: 40.0
   placement:
     max_attempts: 25
-    method: 'place' # 'place' or 'waypoint'. Use place if placing on a table, waypoint if placing in a shelf
+    placement_area: 'table'               # Name of your waypoint. The pose of the waypoint should be defined in placement_areas.yaml. 
+                                          # Choosing a not defined waypoint or not setting this parameter at all will lead to default placement
+
+  # Object to grasp, must be from the dataset. If 'None' or object not in scene, closest object is grasped
+  object_to_grasp: 'None'
+
+handover:
+  use_fancy_handover: False         # True: Default handover, False: Handover without any movement (faster)
