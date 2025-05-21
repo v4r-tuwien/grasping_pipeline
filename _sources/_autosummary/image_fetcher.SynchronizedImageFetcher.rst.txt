@@ -1,0 +1,27 @@
+image\_fetcher.SynchronizedImageFetcher
+=======================================
+
+.. currentmodule:: image_fetcher
+
+.. autoclass:: SynchronizedImageFetcher
+   :members:                                    
+   :show-inheritance:                           
+   :inherited-members:                          
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~SynchronizedImageFetcher.__init__
+      ~SynchronizedImageFetcher.callback
+      ~SynchronizedImageFetcher.fetch
+   
+   
+
+   
+   
+   

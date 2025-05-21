@@ -1,0 +1,35 @@
+﻿statemachine\_components
+========================
+
+.. automodule:: statemachine_components
+  
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:                                          
+   
+      get_execute_grasp_sm
+      get_find_grasp_sm
+      get_object_detector_sm
+      get_placement_sm
+      get_pose_estimator_sm
+      get_robot_setup_sm
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
