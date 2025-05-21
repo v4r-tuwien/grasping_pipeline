@@ -4,7 +4,7 @@ from sensor_msgs.msg import PointCloud2
 from table_plane_extractor.srv import TablePlaneExtractor
 from v4r_util.tf2 import TF2Wrapper
 from v4r_util.conversions import bounding_box_to_bounding_box_stamped
-from v4r_util.util import align_bounding_box_rotation, ros_bb_to_o3d_bb, o3d_bb_to_ros_bb
+from v4r_util.bb import align_bounding_box_rotation, ros_bb_to_o3d_bb, o3d_bb_to_ros_bb
 
 class FindTablePlanes(smach.State):
     '''

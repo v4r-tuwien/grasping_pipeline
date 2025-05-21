@@ -21,7 +21,7 @@ from visualization_msgs.msg import Marker
 
 from grasp_annotator import GraspAnnotator
 
-from v4r_util.util import create_ros_bb_stamped
+from v4r_util.bb import create_ros_bb_stamped
 
 import time
 
@@ -130,23 +130,22 @@ class FindGrasppointServer:
             
             if goal.object_to_grasp != None and goal.object_to_grasp != '':
                 param_object_to_grasp = goal.object_to_grasp
-                rospy.loginfo(f'Object to grasp passed and specified. Will grasp specified object {param_object_to_grasp}')
             elif rospy.has_param('/grasping_pipeline/object_to_grasp'):
                 # Getting object to grasp from config file
                 param_object_to_grasp = rospy.get_param('/grasping_pipeline/object_to_grasp')
-                rospy.loginfo(f'Object to grasp passed from config file. Will grasp specified object {param_object_to_grasp}')
             else:
                 param_object_to_grasp = None
-                rospy.loginfo('No object to grasp specified. Will grasp closest object')
-
+                
             # Check if object to grasp is specified and detected
             if param_object_to_grasp != None and param_object_to_grasp != '' and param_object_to_grasp != 'None':
+                rospy.loginfo(f'Object to grasp specified. Will grasp specified object {param_object_to_grasp}')
                 if param_object_to_grasp in goal.class_names:
                     object_idxs = [goal.class_names.index(param_object_to_grasp)]     # changed           
                 else:
                     rospy.logwarn(f'Object to grasp ({param_object_to_grasp}) not detected. Grasping closest object.')
                     object_idxs = self.get_closest_objects(goal.object_poses)             
             else:
+                rospy.loginfo('No object to grasp specified. Will grasp closest object')
                 object_idxs = self.get_closest_objects(goal.object_poses)    # changed to return a list of object indices sorted by distance
 
             for object_idx in object_idxs:

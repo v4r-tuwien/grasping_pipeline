@@ -26,7 +26,8 @@ from collections import Counter
 
 # V4R
 from v4r_util.tf2 import TF2Wrapper
-
+from v4r_util.conversions import trans_to_transmat
+from v4r_util.depth_pcd import filter_pcd
 
 REACHABLE_TOLERANCE = 0.1  # 0.05
 TABLE_DISTANCE_THRESHOLD = 0.01
@@ -68,24 +69,6 @@ class GraspAnnotator:
         except FileNotFoundError:
             rospy.logerr("Gripper cloud file not found. Cannot check for collisions.")
             self.gripper_cloud = None
-
-
-    def filter_pcd(self, center_point, o3d_pcd):
-        """
-        Filters the point cloud around a center point with a given threshold. The idea is to reduce the computational time of the collision check,
-        by filtering the pointcloud so that only points close to the grasping point are considered, thus reducing the computational time of the kd-tree search.
-
-        Args:
-            center_point (np.array): x, y, z coordinates of the current grasping points
-            o3d_pcd (open3d.geometry.PointCloud): Pointcloud of the current scene
-        
-        Returns:
-            open3d.geometry.PointCloud: Filtered point cloud
-        """
-        distances = np.linalg.norm(np.asarray(o3d_pcd.points) - center_point, axis=1)
-        within_threshold_mask = distances < self.filter_distance
-        filtered_point_cloud = o3d_pcd.select_by_index(np.where(within_threshold_mask)[0])
-        return filtered_point_cloud
 
     def is_grasp_reachable(self, grasp_pose, cam_to_base):
         """
@@ -147,7 +130,7 @@ class GraspAnnotator:
             rospy.logerr("Gripper cloud not loaded. Cannot check for collisions.")
             return False
 
-        filtered_o3d_pcd = self.filter_pcd(grasp_pose[:3, 3], o3d_pcd)
+        filtered_o3d_pcd = filter_pcd(grasp_pose[:3, 3], o3d_pcd, self.filter_distance)
 
         if self.filter_pcd_flag:
             scene_tree = o3d.geometry.KDTreeFlann(filtered_o3d_pcd)
@@ -239,11 +222,11 @@ class GraspAnnotator:
 
         # Get the transformation from the camera to the base
         trans = self.tf2_wrapper.get_transform_between_frames(source_frame="head_rgbd_sensor_rgb_frame", target_frame="map")
-        cam_to_base = self.tf2_wrapper.trans2transmat(trans)
+        cam_to_base = trans_to_transmat(trans)
 
         # Get the transformation from the head to the wrist
         head_to_wrist_trans = self.tf2_wrapper.get_transform_between_frames("wrist_flex_link", "head_rgbd_sensor_rgb_frame", timeout=5)
-        head_to_wrist_mat = self.tf2_wrapper.trans2transmat(head_to_wrist_trans)
+        head_to_wrist_mat = trans_to_transmat(head_to_wrist_trans)
 
         # Get the object pose in a 4x4 transformation matrix
         rot = tf3d.quaternions.quat2mat([object_pose_stamped.pose.orientation.w, object_pose_stamped.pose.orientation.x,

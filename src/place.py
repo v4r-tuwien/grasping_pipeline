@@ -21,7 +21,8 @@ from moveit_wrapper import MoveitWrapper
 from hsr_wrapper import HSR_wrapper
 from v4r_util.tf2 import TF2Wrapper
 from v4r_util.conversions import bounding_box_to_bounding_box_stamped, list_to_vector3, vector3_to_list, rot_mat_to_quat, quat_to_rot_mat, np_transform_to_ros_transform, np_transform_to_ros_pose
-from v4r_util.util import transform_bounding_box_w_transform, transform_pose, align_bounding_box_rotation, ros_bb_to_o3d_bb, o3d_bb_to_ros_bb
+from v4r_util.bb import transform_bounding_box_w_transform, ros_bb_to_o3d_bb, o3d_bb_to_ros_bb
+from v4r_util.alignment import align_bounding_box_rotation
 from v4r_util.rviz_visualization.rviz_visualizer import RvizVisualizer
 from grasping_pipeline_msgs.msg import PlaceAction, PlaceActionResult 
 

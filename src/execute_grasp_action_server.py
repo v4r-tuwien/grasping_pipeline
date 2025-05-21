@@ -9,7 +9,8 @@ import actionlib
 import tf.transformations
 import tf
 from v4r_util.tf2 import TF2Wrapper
-from v4r_util.util import align_pose_rotation, get_best_aligning_axis, Axis, rotmat_around_axis
+from v4r_util.alignment import align_pose_rotation, get_best_aligning_axis, Axis
+from v4r_util.util import rotmat_around_axis
 from v4r_util.conversions import ros_pose_to_np_transform, np_transform_to_ros_pose
 from moveit_wrapper import MoveitWrapper
 from hsr_wrapper import HSR_wrapper
