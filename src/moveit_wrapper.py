@@ -38,7 +38,7 @@ from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 import moveit_msgs
 import trajectory_msgs
 from moveit_msgs.msg import Constraints, OrientationConstraint
-from v4r_util.conversions import euler2quaternion
+from v4r_util.conversions import euler_to_quaternion
 
 
 class MoveitWrapper:
@@ -302,7 +302,7 @@ class MoveitWrapper:
                             continue
                         
                         for form in geometry:
-                            q = euler2quaternion((
+                            q = euler_to_quaternion((
                                 float(parts_pose[3]),
                                 float(parts_pose[4]),
                                 float(parts_pose[5])))
@@ -312,7 +312,7 @@ class MoveitWrapper:
                                     frame + "_rot_" + str(frame_rot_cnt),
                                     frame,
                                     Pose(Point(0, 0, 0),
-                                         euler2quaternion(euler)))
+                                         euler_to_quaternion(euler)))
                                 frame = frame + "_rot_" + str(frame_rot_cnt)
                                 frame_rot_cnt += 1
                                 rospy.sleep(0.1)

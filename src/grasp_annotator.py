@@ -26,7 +26,7 @@ from collections import Counter
 
 # V4R
 from v4r_util.tf2 import TF2Wrapper
-from v4r_util.conversions import trans2transmat
+from v4r_util.conversions import trans_to_transmat
 from v4r_util.depth_pcd import filter_pcd
 
 REACHABLE_TOLERANCE = 0.1  # 0.05
@@ -222,11 +222,11 @@ class GraspAnnotator:
 
         # Get the transformation from the camera to the base
         trans = self.tf2_wrapper.get_transform_between_frames(source_frame="head_rgbd_sensor_rgb_frame", target_frame="map")
-        cam_to_base = trans2transmat(trans)
+        cam_to_base = trans_to_transmat(trans)
 
         # Get the transformation from the head to the wrist
         head_to_wrist_trans = self.tf2_wrapper.get_transform_between_frames("wrist_flex_link", "head_rgbd_sensor_rgb_frame", timeout=5)
-        head_to_wrist_mat = trans2transmat(head_to_wrist_trans)
+        head_to_wrist_mat = trans_to_transmat(head_to_wrist_trans)
 
         # Get the object pose in a 4x4 transformation matrix
         rot = tf3d.quaternions.quat2mat([object_pose_stamped.pose.orientation.w, object_pose_stamped.pose.orientation.x,
