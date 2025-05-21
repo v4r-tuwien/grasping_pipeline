@@ -12,7 +12,7 @@ from sensor_msgs.msg import CameraInfo
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import Marker
 from v4r_util.depth_pcd import convert_np_depth_img_to_o3d_pcd
-from v4r_util.util import get_minimum_oriented_bounding_box, o3d_bb_to_ros_bb_stamped
+from v4r_util.bb import get_minimum_oriented_bounding_box, o3d_bb_to_ros_bb_stamped
 from tf.transformations import (quaternion_about_axis, quaternion_multiply)
 
 class DirectGraspposeEstimatorCaller:
