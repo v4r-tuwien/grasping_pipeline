@@ -15,6 +15,8 @@ from visualization_msgs.msg import Marker
 from geometry_msgs.msg import PoseStamped, Vector3Stamped, Transform, Point, Quaternion, PointStamped, Vector3, Pose
 from std_msgs.msg import Header
 from vision_msgs.msg import BoundingBox3D, BoundingBox3DArray
+from moveit_msgs.msg import PlaceLocation
+from trajectory_msgs.msg import JointTrajectoryPoint
 
 # V4R
 from moveit_wrapper import MoveitWrapper
@@ -178,7 +180,7 @@ class PlaceObjectServer():
             bounding_box_to_bounding_box_stamped(target_bb, 'base_link', rospy.Time.now()), 
             placement_area_det_frame)
         
-        if placement_area_bb is not None and placement_area_bb.header.frame_id is not '':
+        if placement_area_bb != None and placement_area_bb.header.frame_id != '':
             if placement_area_bb.header.frame_id != placement_area_det_frame:
                 rospy.logerr("Wrong frame for placement area bb. Should probably do a transform here at some point. Expected: %s, got: %s" % (placement_area_det_frame, placement_area_bb.header.frame_id))
                 raise NotImplementedError
@@ -538,7 +540,7 @@ class PlaceObjectServer():
         base_pose_map = self.moveit.get_current_pose(placement_area_det_frame)
         
         placement_area_bb = goal.placement_area_bb
-        if placement_area_bb is not None and placement_area_bb.header.frame_id is not '':
+        if placement_area_bb != None and placement_area_bb.header.frame_id != '':
             table_idx = self.find_intersecting_table_plane(goal.table_plane_equations, ros_bb_to_o3d_bb(placement_area_bb))
             if table_idx is None:
                 rospy.logwarn("Placement: No table plane intersecting with placement area. Aborting")
@@ -585,11 +587,14 @@ class PlaceObjectServer():
             sorted_placement_areas = self.sort_placement_areas_by_distance(placement_areas, base_pose_map)
         elif method == "place":
             # Placing on table -> choose placement area closest to center
+            # TODO: This only makes sense for the table but any unknown placement area we should 
+            # probably just use the closest placement point (or furthest in some use cases)
             bb_center = PoseStamped()
-            bb_center.header = base_pose_map.header
+            bb_center.header.frame_id = base_frame
             bb_center.pose = aligned_table_bb_ros.center
+            bb_center = self.tf2_wrapper.transform_pose(placement_area_det_frame, bb_center)
             sorted_placement_areas = self.sort_placement_areas_by_distance(placement_areas, bb_center, reverse=False)
-        
+
          
         surface_to_wrist = self.get_surface_to_wrist_transform(goal.placement_surface_to_wrist)
 
@@ -697,8 +702,25 @@ class PlaceObjectServer():
                 obj_center_pose = hand_palm_point @ hand_palm_to_obj_center
                 obj_center_pose_ros = PoseStamped(header=placement_point.header, pose=np_transform_to_ros_pose(obj_center_pose))
                 
-                placement_point = obj_center_pose_ros
-                self.add_marker(placement_point, 5000002, 0, 1, 0)
+                # Using move_it PlaceLocation
+                # (see https://github.com/moveit/moveit_tutorials/blob/kinetic-devel/doc/pick_place/src/pick_place_tutorial.cpp)
+                placement_point = PlaceLocation()
+                placement_point.place_pose = obj_center_pose_ros
+
+                # Pre-place Approach
+                placement_point.pre_place_approach.direction.header.frame_id = base_frame
+                placement_point.pre_place_approach.direction.vector.z = -1.0
+                placement_point.pre_place_approach.min_distance = 0.095
+                placement_point.pre_place_approach.desired_distance = 0.115
+
+                # No Post-place Retreat since statemachine goes into state "GO_BACK" after placing
+
+                # Posture of eef after placing the object
+                placement_point.post_place_posture.joint_names = ['hand_motor_joint']
+                placement_point.post_place_posture.points = [JointTrajectoryPoint(positions=[1.0], time_from_start=rospy.Duration(1.0))]
+
+                self.add_marker(obj_center_pose_ros, 5000002, 0, 1, 0)
+
 
                 # dunno why but moveit always thinks it failed the execution even though it looks like it worked in real life
                 # so we just ignore the return value and check whether the wrist is close to the target
@@ -709,7 +731,6 @@ class PlaceObjectServer():
                     rospy.loginfo("Placement: Execution failed, Trying next pose")
                     continue
 
-                self.hsr_wrapper.gripper_open_hsr()
                 break
         else:
             rospy.logerr(f"Placement: Invalid placement method '{method}'. Aborting. Fix the parameter /grasping_pipeline/placement/method.")

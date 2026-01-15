@@ -130,9 +130,9 @@ class FindGrasppointServer:
             
             if goal.object_to_grasp != None and goal.object_to_grasp != '':
                 param_object_to_grasp = goal.object_to_grasp
-            elif rospy.has_param('/grasping_pipeline/object_to_grasp'):
+            elif rospy.has_param('/grasping_pipeline/grasping/object_name'):
                 # Getting object to grasp from config file
-                param_object_to_grasp = rospy.get_param('/grasping_pipeline/object_to_grasp')
+                param_object_to_grasp = rospy.get_param('/grasping_pipeline/grasping/object_name')
             else:
                 param_object_to_grasp = None
                 

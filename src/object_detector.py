@@ -145,6 +145,8 @@ class CallObjectDetectorService:
         res.bb_detections = detection_result.bounding_boxes
         res.class_names = detection_result.class_names
         res.class_confidences = detection_result.class_confidences
+
+        rospy.set_param('/grasping_pipeline/object_detection/class_names', res.class_names)
         
         return res
     
