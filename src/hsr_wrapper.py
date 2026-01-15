@@ -7,6 +7,7 @@ class HSR_wrapper:
     def __init__(self):
         self.robot = Robot()
         self.whole_body = self.robot.try_get('whole_body')
+        self.omni_base = self.robot.try_get('omni_base')
         self.gripper = self.robot.try_get('gripper')
         self.tts = self.robot.try_get('default_tts')
         self.tts.language = self.tts.ENGLISH

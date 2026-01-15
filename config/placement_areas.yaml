@@ -7,6 +7,17 @@
 #   center:     optional, define the center of the placement area (x, y, z). The center is defined in the frame of the parameter "frame_id".
 #   size:       optional, define the size of the placement area (x, y, z). It is wise to make the a size a bit smaller than the actual size of the plane. The size is defined according to the frame of the parameter "frame_id".
 
+# Explaination between 'waypoint' and 'place':
+# 'waypoint': We calculate the placement point by using the plane normal and the center of the placement area. 
+# The robot will first move to the defined waypoint and perform a downward placement from there. 
+# Generally speaking, does this method perform worse than 'place', but sometimes it is necessary when placing in shelves.
+# 'place': We use the PlaceLocation from moveit, which is gernerally more robust. 
+# The placement location is defined as the center of the placement area, but can be changed in the code if necessary.
+
+# Rule of thumb: Generally, use 'place'. If your placement fails in shelves, try 'waypoint'.
+
+# Note: The placement has only been tested in few scenarios - contributions are welcome!
+
 placement_areas:
   table:
     frame_id: 'map'
@@ -17,19 +28,19 @@ placement_areas:
   shelf_compartment1: # First from bottom
     frame_id: 'map'
     waypoint: [1.1, 1.1, 90]
-    method: 'waypoint'
+    method: 'place'
     center: [0.6, 1.97, 0.10] 
     size: [0.65, 0.25, 0.15]
   shelf_compartment2: # Second from bottom
     frame_id: 'map'
     waypoint: [1.0, 1.1, 90]
-    method: 'waypoint'
+    method: 'place'
     center: [0.6, 1.97, 0.45] 
     size: [0.65, 0.25, 0.15] 
   shelf_compartment3: # Third from bottom
     frame_id: 'map'
     waypoint: [1.0, 1.1, 90]
-    method: 'waypoint'
+    method: 'place'
     center: [0.6, 1.97, 0.72] 
     size: [0.65, 0.25, 0.15] 
 

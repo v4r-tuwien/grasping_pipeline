@@ -23,7 +23,7 @@ class CollisionEnvironment(smach.State):
 
     Parameters
     ----------
-    grasp_object_bb: BoundingBox3D
+    grasp_object_bb: BoundingBox3DStamped
         The bounding box of the object to grasp.
     table_bbs: BoundingBox3DArray
         The bounding boxes of the detected planes. The first one is considered the actual table.
