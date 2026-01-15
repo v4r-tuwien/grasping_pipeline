@@ -5,7 +5,7 @@ import smach_ros
 from statemachine_components import get_robot_setup_sm, get_execute_grasp_sm, get_placement_sm, get_find_grasp_sm, get_object_detector_sm, get_pose_estimator_sm
 from userinput import UserInput
 from robot_control import GoToWaypoint, GoBack, GoToNeutral, CheckTopGrasp
-from handover.msg import HandoverAction
+from grasping_pipeline_msgs.msg import HandoverAction
 from check_table_clean import CheckTableClean, RemoveNonTableObjects
 from find_table_planes import FindTablePlanes
 

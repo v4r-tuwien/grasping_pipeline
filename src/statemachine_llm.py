@@ -6,7 +6,7 @@ import smach_ros
 import json
 from grasping_pipeline_msgs.msg import FindGrasppointAction
 from robot_control import GoToWaypoint
-from handover.msg import HandoverAction
+from grasping_pipeline_msgs.msg import HandoverAction
 from robot_llm.msg import RobotLLMAction, RobotLLMResult
 from statemachine_components import get_robot_setup_sm, get_execute_grasp_sm, get_placement_sm, get_find_grasp_sm
 from grasping_pipeline_msgs.srv import FetchImages, CallObjectDetector, CallPoseEstimator, CallDirectGraspPoseEstimator

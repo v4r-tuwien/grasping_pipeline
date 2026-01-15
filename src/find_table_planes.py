@@ -1,7 +1,8 @@
 import rospy
 import smach
+import numpy as np
 from sensor_msgs.msg import PointCloud2
-from table_plane_extractor.srv import TablePlaneExtractor
+from grasping_pipeline_msgs.srv import TablePlaneExtractor
 from v4r_util.tf2 import TF2Wrapper
 from v4r_util.conversions import bounding_box_to_bounding_box_stamped
 from v4r_util.bb import align_bounding_box_rotation, ros_bb_to_o3d_bb, o3d_bb_to_ros_bb
@@ -83,5 +84,35 @@ class FindTablePlanes(smach.State):
 
         userdata.table_bbs = response.plane_bounding_boxes
         userdata.table_plane_equations = response.planes
+
+        if rospy.get_param('/grasping_pipeline/dataset') == 'tracebotcanister':
+            
+            # Extract plane equation
+            a = response.planes[0].x
+            b = response.planes[0].y
+            c = response.planes[0].z
+            d = response.planes[0].d 
+
+            normal = [a, b, c]
+
+            table_params = rospy.get_param("table_plane_extractor")
+            normal_camera = self.tf_wrapper.transform_3d_array(table_params['base_frame'],  cloud.header.frame_id, normal)
+            rospy.set_param('/grasping_pipeline/plane_normal', [float(n) for n in normal_camera])
+            
+            # Picking center point of bbox
+            bb = response.plane_bounding_boxes.boxes[0]
+            x_min, y_min, z_min = bb.center.position.x - bb.size.x/2, bb.center.position.y - bb.size.y/2, bb.center.position.z - bb.size.z/2
+            x_max, y_max, z_max = bb.center.position.x + bb.size.x/2, bb.center.position.y + bb.size.y/2, bb.center.position.z + bb.size.z/2
+            x0, y0 = (x_min + x_max) / 2, (y_min + y_max) / 2
+
+            # Calculate corresponding z0 using the plane equation and check if it's within the bounding box
+            z0 = (-d - a*x0 - b*y0) / c
+            if z_min <= z0 <= z_max:
+                plane_pt = np.array([x0, y0, z0], dtype=np.float32)
+                plane_pt_camera = self.tf_wrapper.transform_3d_array(table_params['base_frame'],  cloud.header.frame_id, plane_pt)
+                rospy.set_param('/grasping_pipeline/plane_point', plane_pt_camera.tolist())
+            else:
+                rospy.logwarn('Calculated z0 is outside the bounding box. Using center of bounding box instead.')
+
         rospy.loginfo('Table planes extracted. Returning succeeded.')
         return 'succeeded'
