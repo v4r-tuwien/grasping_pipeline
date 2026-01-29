@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="robot_control_srv" pkg="grasping_pipeline" type="robot_control_srv.py" output="screen"/>
+    <node name="grasp_method_selector_srv" pkg="grasping_pipeline" type="grasp_method_selector_srv.py" output="screen"/>
+    <node name="collision_environment_srv" pkg="grasping_pipeline" type="collision_environment_srv.py" output="screen"/>
+    <node name="table_srv" pkg="grasping_pipeline" type="table_srv.py" output="screen"/>
+    <node name="tts_srv" pkg="grasping_pipeline" type="tts_srv.py" output="screen"/>
+</node>
+
+</launch>
