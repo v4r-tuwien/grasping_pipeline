@@ -6,6 +6,7 @@
 #   method:     placement method ('waypoint' or 'place'). Use place if placing on a table, waypoint if placing in a shelf
 #   center:     optional, define the center of the placement area (x, y, z). The center is defined in the frame of the parameter "frame_id".
 #   size:       optional, define the size of the placement area (x, y, z). It is wise to make the a size a bit smaller than the actual size of the plane. The size is defined according to the frame of the parameter "frame_id".
+#   allow_top_grasps: defines if top grasps are allowed to be placed there (e.g. for the shelf the space it too small for top grasps to be placeable)
 
 # Explaination between 'waypoint' and 'place':
 # 'waypoint': We calculate the placement point by using the plane normal and the center of the placement area. 
@@ -25,24 +26,28 @@ placement_areas:
     method: 'place'
     center: [1.2, 0.39, 0.45]
     size: [0.55, 0.55, 0.15] 
+    allow_top_grasps: true
   shelf_compartment1: # First from bottom
     frame_id: 'map'
     waypoint: [1.1, 1.1, 90]
     method: 'place'
     center: [0.6, 1.97, 0.10] 
     size: [0.65, 0.25, 0.15]
+    allow_top_grasps: false
   shelf_compartment2: # Second from bottom
     frame_id: 'map'
     waypoint: [1.0, 1.1, 90]
     method: 'place'
     center: [0.6, 1.97, 0.45] 
     size: [0.65, 0.25, 0.15] 
+    allow_top_grasps: false
   shelf_compartment3: # Third from bottom
     frame_id: 'map'
     waypoint: [1.0, 1.1, 90]
     method: 'place'
     center: [0.6, 1.97, 0.72] 
     size: [0.65, 0.25, 0.15] 
+    allow_top_grasps: false
 
 # Default placements for all objects, if not specified in the config file
 placement_objects:

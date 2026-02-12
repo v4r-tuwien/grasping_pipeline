@@ -316,6 +316,8 @@ class GoToAndLookAtPlacementArea(smach.State):
             
         rospy.loginfo(f"Placing object on waypoint: {placement_area_name}")
 
+        rospy.set_param("/grasping_pipeline/placement/placement_area", placement_area_name)
+
         placement_area = rospy.get_param('/placement_areas')[placement_area_name]
         frame_id = placement_area["frame_id"]
         waypoint = placement_area["waypoint"]
@@ -395,13 +397,29 @@ class GoToAndLookAtPlacementArea(smach.State):
         
 
 class CheckTopGrasp(smach.State):
+    '''
+    Checks if the grasp was a top grasp and if top grasps are allowed for the desired placement location
+    
+    Parameters
+    ----------
+    top_grasp: Is true if the object was grasped from above, false otherwise.
+
+    Returns
+    -------
+    smach-result
+        'top grasp': If the object was grasped from above and the desired placement location does not allow top grasps to be placed there (e.g. in the shelf because of the shallow space)
+        'not_top_grasp': otherwise
+    '''
     def __init__(self):
         smach.State.__init__(self, 
                              outcomes=['top_grasp', 'not_top_grasp'],
                              input_keys=['top_grasp'])
     
     def execute(self, userdata):
-        if userdata.top_grasp:
+        placement_area_name = rospy.get_param("/grasping_pipeline/placement/placement_area")
+        placement_area = rospy.get_param('/placement_areas')[placement_area_name]
+
+        if userdata.top_grasp and not placement_area["allow_top_grasps"]:
             return 'top_grasp'
         else:
             return 'not_top_grasp'
