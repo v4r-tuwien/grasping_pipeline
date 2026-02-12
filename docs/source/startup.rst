@@ -8,6 +8,9 @@ Turning on the robot
 ********************
 Before starting the grasping pipeline, you should turn on the robot.
 
+.. note:: 
+   When you start the grasping pipeline, a window will open displaying the commands listed in this section. You don't need to run these commands manually beforehand. However, they are explained here because they are necessary if a user wishes to use the HSR without the grasping pipeline. For more details, see `our repository <https://github.com/v4r-tuwien/hsr_startup>`_. 
+
 After the robot is turned on, you have to manually start the startup procedure of the robot which aligns the robot with the pre-recorded map of the environment. 
 This is necessary so that the waypoints work as expected. 
 
@@ -62,14 +65,26 @@ This should open up a tmux session.
         $ ssh-copy-id -i ~/.ssh/NAME_OF_THE_KEY.pub v4r@hsrb.local
     
     This creates a key pair and copies the public key to sasha. You should now be able to connect to sasha without entering a password.
+    Both command should be run **inside** the container. After creating the ssh key, **restart** the tmux session.
+
+.. note:: 
+    Tmux is a terminal multiplexer, allowing to view different terminals side by side (as explained in the next session). Here are some important shortscuts and commands needed for tmux:
+    - `CTRL+b` and then `n` switches between different tmux windows (as explained in the next section)
+    - `CTRL+b` and then `d` detaches you from the session. You combine this with the command `tmux kill-session -t [session name]` to stop the session or `pkill tmux*` to stop all sessions.
+    - `tmux attach -t [session name]` attaches you to a running session
+    There are many more shortcuts for e.g. creating, switching, closing or renaming windows. For more information please refer to the `offical documentation <https://wiki.ubuntuusers.de/tmux/>`_. 
 
 ===================
 Tmux session layout
 ===================
 When starting the grasping pipeline, a tmux session is created. The tmux session is divided into two windows and multiple panes. 
 
-The first window you will see is the window for the grasping pipeline. It is divided into three panes. 
-The first pane is for the statemachine, the second pane is for the rviz visualization and the third pane is for running all grasping-pipeline nodes.
+The first window is split into five panes:
+- **Grasping Pipeline: Statemachine**: The state machine. This is where the current state will be printed and user input must be given.
+- **Grasping Pipeline: Locally running nodes**: All nodes which communicate with the grasping pipeline or outside servers (e.g. severs/clients for requesting grasp poses, object detection) are started here.
+- **Grasping Pipeline: RViz**: RViz visualization
+- **Grasping Pipeline: Parameter launch**: Here a launch file is used to publish all ROS parameters
+- **Startup**: This is where the startup script (from the previous section) can be used. This terminal is connected to the HSR, which is why using an SSH key is recommended.
 
 .. note::
     Generally, most nodes are running locally because the development computer is much more powerful than sasha. 
@@ -80,12 +95,15 @@ The first pane is for the statemachine, the second pane is for the rviz visualiz
     :align: center
 
 None of the panes are running when the tmux session is started. You can start them by navigating to the corresponding window and pressing enter.
+
 You should start the nodes in the following order:
 
-1. Start the pose estimator and wait until it is running (optional). By default the table plane extractor is used to estimate the pose of the object. If this is sufficient for your use case, you don't have to do anything. However, if you want to use another pose estimator, you should start it before starting the grasping pipeline. Additionally you need to update the ```config/config.yaml``` file to use the new pose estimator.
-2. Start the locally running nodes by navigating to the lower-right pane and pressing enter. 
-3. Wait for a couple of seconds and then start the statemachine by navigating to the left pane and pressing enter.
-4. Open rviz if needed.
+1. Start the startup script in the bottom right terminal. As explained earlier, this has only to be done **once**, whenever the HSR is restarted.
+2. Start the pose estimator and wait until it is running (optional). By default the table plane extractor is used to estimate the pose of the object. If this is sufficient for your use case, you don't have to do anything. However, if you want to use another pose estimator, you should start it before starting the grasping pipeline. Additionally you need to update the ```config/config.yaml``` file to use the new pose estimator. For a collection of pose estimators (and others) please take a look at `PODGE <https://github.com/v4r-tuwien/PODGE>`_.
+3. Launch the parameters in the bottom middle terminal to set the ROS parameters. If you modify any parameter in ```config/config.yaml``` you do **not** need to restart the grasping pipeline or the servers and client. Simply re-launch the parameters using this terminal.
+4. Start the locally running nodes by navigating to the top middle terminal. You’ll know the servers started correctly if you don’t see any error messages and the```execute grasp``` node started (`Execute grasp: Init`), as this node usually takes the longest to initialize.
+5. Wait for a couple of seconds and then start the statemachine by navigating to the left pane and pressing enter.
+6. Open rviz if needed.
 
 Additionally, there is a second window in the tmux session. This window only has one pane which is used to automatically start MoveIt. MoveIt is running on sasha because of the high bandwith requirements.
 
@@ -95,13 +113,14 @@ Additionally, there is a second window in the tmux session. This window only has
 
 You can swap between the windows by pressing `Ctrl+b` and then `n`.
 
+.. warning::
+    MoveIt will only start automatically if an SSH key is saved. Otherwise, you'll need to start MoveIt **manually** each time.
+
 The grasping pipeline succesfully started if you see the following output in the tmux session:
 
 .. image:: images/tmux_succesful_start.png
     :width: 80%
     :align: center
-
-You should see the user input prompt in the left pane and the messages "Init Placement" and "Execute grasp: Init" in the lower-right pane.
 
 The MoveIt window should show the message "You can start planning now!":
 

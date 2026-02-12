@@ -23,6 +23,8 @@ It currently consists of 5 main components:
 
 Each of these components is implemented as a state machine (and therefore consists of multiple states), and the components are all combined into a single, big state machine that controls the behavior of the robot.
 
+After the setup, you can choose between _SINGLE_GRASP_ an _CLEAR_TABLE_. Both sub state machine use the aforementioned components. _SINGLE_GRASP_ performs, as the name suggests, a single grasp with user inputs in between to choose between placement and handover. _CLEAR_TABLE_ switches between grasping an object and handing it over until the table is cleared without any user inputs needed.
+
 =========
 FindGrasp
 =========

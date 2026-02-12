@@ -41,6 +41,8 @@ You can clone the `robokudo_msgs` repository with the following command:
     $ git clone https://gitlab.informatik.uni-bremen.de/robokudo/robokudo_msgs.git
 
 
+Our repository `PODGE <https://github.com/v4r-tuwien/PODGE>`_ offers a collection of different pose estimators, object detectors and grasppose estimators. You can take a look at the reposity for some guidance on the code creation. If you write a new pose estimator/object detector/grasppose estimators, we are very thankful if you afterwards add them to PODGE.
+
 ============================
 Adding a new object detector
 ============================
