@@ -1,0 +1,103 @@
+# Config file for impedance control (stolen from the HSR)
+# This file is used in the package found under
+# /opt/ros/noetic/lib/python3/dist-packages/hsr_rqt_joint_impedance
+
+available_joints:
+  - "arm_flex_joint"
+  - "base_roll_joint"
+  - "arm_lift_joint"
+
+preset_configs:
+  - level: low
+    arm_flex_joint:
+      const_ic_inertia: 0.005
+      const_ic_damping: 0.05006
+      const_ic_spring_coefficient: 0.3084
+      const_spring_torque_limit: 0.3
+      const_damping_torque_deadband: 3.0e-05
+      const_ic_kinematic_friction: 1.5e-05
+      const_ic_viscous_friction: 0.0001
+      const_friction_torque_deadband: 0.0006
+      const_external_torque_deadband: 0.025
+      const_ic_joint_stiffness: 6.343292
+      ref_feedforward_torque: 0.0
+      const_ic_switch_external_torque: 1.0
+    base_roll_joint:
+      const_ic_inertia: 0.001
+      const_ic_damping: 0.001506
+      const_ic_spring_coefficient: 0.01084
+      const_spring_torque_limit: 0.01
+      const_damping_torque_deadband: 1.0e-05
+      const_ic_kinematic_friction: 1.5e-05
+      const_ic_viscous_friction: 5.0e-05
+      const_friction_torque_deadband: 6.0e-05
+      const_external_torque_deadband: 0.001
+      const_ic_joint_stiffness: 2.343292
+      ref_feedforward_torque: 0.0
+      const_ic_switch_external_torque: 1.0
+    arm_lift_joint:
+      const_ic_inertia: 0.005
+      const_ic_damping: 0.05006
+      const_ic_spring_coefficient: 0.3084
+      const_spring_torque_limit: 0.3
+      const_damping_torque_deadband: 3.0e-05
+      const_ic_kinematic_friction: 1.5e-05
+      const_ic_viscous_friction: 0.0001
+      const_friction_torque_deadband: 0.0006
+      const_external_torque_deadband: 0.025
+      const_ic_joint_stiffness: 6.343292
+      ref_feedforward_torque: 0.0
+      const_ic_switch_external_torque: 1.0
+  - level: high
+    arm_flex_joint:
+      const_ic_inertia: 0.005
+      const_ic_damping: 0.03006
+      const_ic_spring_coefficient: 0.2084
+      const_spring_torque_limit: 0.3
+      const_damping_torque_deadband: 3.0e-05
+      const_ic_kinematic_friction: 1.5e-05
+      const_ic_viscous_friction: 0.005
+      const_friction_torque_deadband: 0.0006
+      const_external_torque_deadband: 0.025
+      const_ic_joint_stiffness: 6.343292
+      ref_feedforward_torque: 0.0
+      const_ic_switch_external_torque: 1.0
+    base_roll_joint:
+      const_ic_inertia: 0.001
+      const_ic_damping: 0.001006
+      const_ic_spring_coefficient: 0.00884
+      const_spring_torque_limit: 0.01
+      const_damping_torque_deadband: 1.0e-05
+      const_ic_kinematic_friction: 1.5e-05
+      const_ic_viscous_friction: 5.0e-05
+      const_friction_torque_deadband: 6.0e-05
+      const_external_torque_deadband: 0.001
+      const_ic_joint_stiffness: 2.343292
+      ref_feedforward_torque: 0.0
+      const_ic_switch_external_torque: 1.0
+    arm_lift_joint:
+      const_ic_inertia: 0.005
+      const_ic_damping: 0.03006
+      const_ic_spring_coefficient: 0.2084
+      const_spring_torque_limit: 0.3
+      const_damping_torque_deadband: 3.0e-05
+      const_ic_kinematic_friction: 1.5e-05
+      const_ic_viscous_friction: 0.005
+      const_friction_torque_deadband: 0.0006
+      const_external_torque_deadband: 0.025
+      const_ic_joint_stiffness: 6.343292
+      ref_feedforward_torque: 0.0
+      const_ic_switch_external_torque: 1.0
+    arm_roll_joint:
+      const_ic_inertia: 0.005
+      const_ic_damping: 0.03006
+      const_ic_spring_coefficient: 0.2084
+      const_spring_torque_limit: 0.3
+      const_damping_torque_deadband: 3.0e-05
+      const_ic_kinematic_friction: 1.5e-05
+      const_ic_viscous_friction: 0.005
+      const_friction_torque_deadband: 0.0006
+      const_external_torque_deadband: 0.025
+      const_ic_joint_stiffness: 6.343292
+      ref_feedforward_torque: 0.0
+      const_ic_switch_external_torque: 1.0

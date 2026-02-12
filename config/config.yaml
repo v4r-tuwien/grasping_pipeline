@@ -7,20 +7,20 @@ point_cloud_topic: '/hsrb/head_rgbd_sensor/depth_registered/rectified_points'
 global_frame: '/map'
 
 grasping_pipeline:
-  # 'hope', 'ycb_bop', 'ycb_ichores', 'ycb_scope'
-  dataset: 'ycb_bop'                                                # dataset to use for pose estimation. Should be the name of 
+  # 'hope', 'ycb_bop', 'ycb_ichores', 'ycb_scope', 'tracebotcanister'
+  dataset: 'ycb_bop'                                         # dataset to use for pose estimation. Should be the name of 
                                                                       # one of the sub-folders in the models and grasps directory
   
-  # /object_detector/grounded_sam2, yolov8
+  # /object_detector/grounded_sam2, /object_detector/yolov8
   object_detector_topic: /object_detector/yolov8                      # object detector for known OR unknown objects
                                                                       # decides whether a pose estimator or a grasp point 
                                                                       # estimator is used afterwards
 
   # /pose_estimator/gdrnet, /estimate_poses_scope                        
-  pose_estimator_topic: /pose_estimator/gdrnet                         # pose estimator for known objects
+  pose_estimator_topic: /pose_estimator/gdrnet                        # pose estimator for known objects
 
   # /pose_estimator/find_grasppose_haf, /pose_estimator/find_grasppose_cg
-  grasppoint_estimator_topic: /pose_estimator/find_grasppose_haf      # grasppoint estimator for unknown objects
+  grasppoint_estimator_topic: /pose_estimator/find_grasppose_haf       # grasppoint estimator for unknown objects
   
   result_visualization_service_name: '/pose_estimator/result_visualization_service'
   result_visualization_topic: /pose_estimator/result_visualization
@@ -31,7 +31,8 @@ grasping_pipeline:
                                           # Choosing a not defined waypoint or not setting this parameter at all will lead to default placement
 
   # Object to grasp, must be from the dataset. If 'None' or object not in scene, closest object is grasped
-  object_to_grasp: 'None'
+  grasping:
+    object_name: 'None'                
 
 handover:
-  use_fancy_handover: False         # True: Default handover, False: Handover without any movement (faster)
+  use_fancy_handover: True         # True: Default handover, False: Handover without any movement (faster)

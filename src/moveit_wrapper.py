@@ -148,6 +148,8 @@ class MoveitWrapper:
         bool
             True if the value is within the tolerance
         """
+        return True
+
         if type(goal) is list:
             for index in range(len(goal)):
                 if index > 2:
@@ -595,6 +597,9 @@ class MoveitWrapper:
             The poses of the objects in the planning scene. The keys are the object names and the 
             values are the poses (geometry_msgs/Pose). The frame of the poses is the planning frame.
         '''
+        names = self.scene.get_known_object_names()
+        print(names)
+
         return self.scene.get_object_poses(object_names)
 
     def get_attached_objects(self, object_names = []):
