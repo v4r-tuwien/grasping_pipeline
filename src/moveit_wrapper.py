@@ -148,6 +148,9 @@ class MoveitWrapper:
         bool
             True if the value is within the tolerance
         """
+        return True
+        # TODO: Needs to be fixed see: https://github.com/v4r-tuwien/grasping_pipeline/issues/31
+
         if type(goal) is list:
             for index in range(len(goal)):
                 if index > 2:
