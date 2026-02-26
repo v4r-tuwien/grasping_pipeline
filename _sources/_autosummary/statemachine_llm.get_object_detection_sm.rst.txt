@@ -1,0 +1,6 @@
+statemachine\_llm.get\_object\_detection\_sm
+============================================
+
+.. currentmodule:: statemachine_llm
+
+.. autofunction:: get_object_detection_sm

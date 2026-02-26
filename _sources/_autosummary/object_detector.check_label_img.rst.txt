@@ -1,0 +1,6 @@
+object\_detector.check\_label\_img
+==================================
+
+.. currentmodule:: object_detector
+
+.. autofunction:: check_label_img

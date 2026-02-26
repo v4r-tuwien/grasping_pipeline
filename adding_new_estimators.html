@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3. Adding a new estimator or detector to the grasping pipeline &mdash; Grasping Pipeline 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=10e673fd" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=e031e9a9"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=35a8b989"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="4. Adding new objects to the grasping pipeline" href="adding_new_objects.html" />
+    <link rel="prev" title="2. Starting the grasping pipeline" href="startup.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Grasping Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">1. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="startup.html">2. Starting the grasping pipeline</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">3. Adding a new estimator or detector to the grasping pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#adding-a-new-object-detector">3.1. Adding a new object detector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-a-new-pose-estimator">3.2. Adding a new pose estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-a-new-grasp-pose-estimator">3.3. Adding a new grasp pose estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#updating-the-grasping-pipeline-config">3.4. Updating the grasping pipeline config</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="adding_new_objects.html">4. Adding new objects to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview_state_machine.html">5. Overview of the statemachine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="details_state_machine.html">6. Detailed Description of the state machine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">7. API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Grasping Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">3. </span>Adding a new estimator or detector to the grasping pipeline</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/adding_new_estimators.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="adding-a-new-estimator-or-detector-to-the-grasping-pipeline">
+<h1><span class="section-number">3. </span>Adding a new estimator or detector to the grasping pipeline<a class="headerlink" href="#adding-a-new-estimator-or-detector-to-the-grasping-pipeline" title="Permalink to this heading"></a></h1>
+<p>The grasping pipeline is designed to be modular and can be extended with new object detection, pose estimation or grasp pose estimation models.
+This document describes how to add new models to the grasping pipeline.</p>
+<p>The model should be ROS compatible and should expose an action server that uses the <cite>robokudo_msgs/GenericImgProcAnnotatorAction</cite> action message.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">GenericImgProcAnnotatorAction</span><span class="p">:</span>
+<span class="c1">#goal</span>
+<span class="l l-Scalar l-Scalar-Plain">sensor_msgs/Image rgb</span>
+<span class="l l-Scalar l-Scalar-Plain">sensor_msgs/Image depth</span>
+<span class="l l-Scalar l-Scalar-Plain">sensor_msgs/RegionOfInterest[] bb_detections</span>
+<span class="l l-Scalar l-Scalar-Plain">sensor_msgs/Image[] mask_detections</span>
+<span class="l l-Scalar l-Scalar-Plain">string[] class_names</span>
+<span class="l l-Scalar l-Scalar-Plain">string description</span>
+<span class="nn">---</span>
+<span class="c1">#result</span>
+<span class="l l-Scalar l-Scalar-Plain">bool success</span>
+<span class="l l-Scalar l-Scalar-Plain">string result_feedback</span>
+<span class="l l-Scalar l-Scalar-Plain">sensor_msgs/RegionOfInterest[] bounding_boxes</span>
+<span class="l l-Scalar l-Scalar-Plain">int32[] class_ids</span>
+<span class="l l-Scalar l-Scalar-Plain">string[] class_names</span>
+<span class="l l-Scalar l-Scalar-Plain">float32[] class_confidences</span>
+<span class="l l-Scalar l-Scalar-Plain">sensor_msgs/Image image</span>
+<span class="l l-Scalar l-Scalar-Plain">geometry_msgs/Pose[] pose_results</span>
+<span class="l l-Scalar l-Scalar-Plain">string[] descriptions</span>
+<span class="nn">---</span>
+<span class="c1">#feedback</span>
+<span class="l l-Scalar l-Scalar-Plain">string feedback</span>
+</pre></div>
+</div>
+<p>Depending on the type of model you want to add, you will get different goals and are expected to return different results.</p>
+<p>You can clone the <cite>robokudo_msgs</cite> repository with the following command:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>git<span class="w"> </span>clone<span class="w"> </span>https://gitlab.informatik.uni-bremen.de/robokudo/robokudo_msgs.git
+</pre></div>
+</div>
+<p>Our repository <a class="reference external" href="https://github.com/v4r-tuwien/PODGE">PODGE</a> offers a collection of different pose estimators, object detectors and grasppose estimators. You can take a look at the reposity for some guidance on the code creation. If you write a new pose estimator/object detector/grasppose estimators, we are very thankful if you afterwards add them to PODGE.</p>
+<section id="adding-a-new-object-detector">
+<h2><span class="section-number">3.1. </span>Adding a new object detector<a class="headerlink" href="#adding-a-new-object-detector" title="Permalink to this heading"></a></h2>
+<p>To make a new object detection model compatible with the grasping pipeline you will need to create a ROS Wrapper for the model.</p>
+<p>The ROS Wrapper should expose an action server that uses the <cite>robokudo_msgs/GenericImgProcAnnotatorAction</cite> mentioned above.</p>
+<p>The object detector will only get the <strong>rgb</strong> and <strong>depth</strong> images as input.</p>
+<p>The object detector is expected to return the following fields:</p>
+<ul class="simple">
+<li><p><strong>bounding_boxes(optional)</strong>: The bounding boxes of the detected objects in the image.</p></li>
+<li><p><strong>class_names</strong>: The name of the detected objects. In the case of known objects, the name is used to look up the grasp annotations. Therefore, the names have to be identical to the names used in the <cite>grasping_pipeline/models</cite> and <cite>grasping_pipeline/grasps</cite> directories. In the case of unknown objects, the name should be set to “Unknown” (Uppercase U!).</p></li>
+<li><p><strong>class_confidences (optional)</strong>: The confidence of the detection.</p></li>
+<li><p><strong>image (optional)</strong>: This should be an image with the same dimensions as the input rgb image. The image should be a label image (with dtype=int) where each object pixel is labeled with a unique id (eg. pixels of object A == 1, pixels of object B == 2). “No Object” pixels MUST be encoded with -1. So basically, the image shows the segmentation masks of the detected objects.</p></li>
+</ul>
+<p>The object detector should return either the bounding boxes or the image. If only the image is returned, the grasping pipeline will calculate the bounding boxes from the label image.</p>
+<p>To get the camera intrinsics, your wrapper should listen to the topic specified by the <cite>cam_info_topic</cite> rosparam parameter.</p>
+</section>
+<section id="adding-a-new-pose-estimator">
+<h2><span class="section-number">3.2. </span>Adding a new pose estimator<a class="headerlink" href="#adding-a-new-pose-estimator" title="Permalink to this heading"></a></h2>
+<p>To make a new pose estimation model compatible with the grasping pipeline you will need to create a ROS Wrapper for the model.</p>
+<p>The ROS Wrapper should expose an action server that uses the <cite>robokudo_msgs/GenericImgProcAnnotatorAction</cite> mentioned above.</p>
+<p>The pose estimator will get the following fields as input:</p>
+<ul class="simple">
+<li><p><strong>rgb</strong>: The rgb image of the scene.</p></li>
+<li><p><strong>depth</strong>: The depth image of the scene.</p></li>
+<li><p><strong>bb_detections</strong>: The bounding boxes of the detected objects in the image.</p></li>
+<li><p><strong>mask_detections (optional)</strong>: The segmentation masks of the detected objects in the image.</p></li>
+<li><p><strong>class_names</strong>: The name of the detected objects. In the case of unknown objects, the name is set to “Unknown” (Uppercase U!).</p></li>
+<li><p><strong>description</strong>: A string in json format, which is used to pass the confidence scores from the object detector. The format is as follows: “{obj_name: confidence, obj_name2: confidence}”. You can simply use the json library to parse the string and get a python dictionary that you can index with the object names to get the confidence scores.</p></li>
+</ul>
+<p>The pose estimator is expected to return the following fields:</p>
+<ul class="simple">
+<li><p><strong>pose_results</strong>: The pose of each object relative to the rgb/depth camera frame.</p></li>
+<li><p><strong>class_names</strong>: The name of the objects whose pose was estimated. The name is used to look up the grasp annotations. Therefore, the names have to be identical to the names used in the <cite>grasping_pipeline/models</cite> and <cite>grasping_pipeline/grasps</cite> directories.</p></li>
+<li><p><strong>class_confidences (optional)</strong>: The confidence of the objects whose pose was estimated. If your pose estimator does not return confidences, you can set the confidence to 1.0 for each object or you can pass the confidences from the object detector (but make sure that you only return the confidences from the object who actually got a pose estimation).</p></li>
+</ul>
+<p>To get the camera intrinsics, your wrapper should listen to the topic specified by the <cite>cam_info_topic</cite> rosparam parameter.</p>
+</section>
+<section id="adding-a-new-grasp-pose-estimator">
+<h2><span class="section-number">3.3. </span>Adding a new grasp pose estimator<a class="headerlink" href="#adding-a-new-grasp-pose-estimator" title="Permalink to this heading"></a></h2>
+<p>To make a new grasp pose estimation model compatible with the grasping pipeline you will need to create a ROS Wrapper for the model.</p>
+<p>The ROS Wrapper should expose an action server that uses the <cite>robokudo_msgs/GenericImgProcAnnotatorAction</cite> mentioned above.</p>
+<p>The grasp pose estimator will get the following fields as input:</p>
+<ul class="simple">
+<li><p><strong>rgb</strong>: The rgb image of the scene.</p></li>
+<li><p><strong>depth</strong>: The depth image of the scene.</p></li>
+<li><p><strong>bb_detections</strong>: The bounding boxes of the detected objects in the image.</p></li>
+<li><p><strong>mask_detections (optional)</strong>: The segmentation masks of the detected objects in the image.</p></li>
+<li><p><strong>class_names</strong>: The name of the detected objects. In the case of unknown objects, the name is set to “Unknown” (Uppercase U!).</p></li>
+</ul>
+<p>The grasp pose estimator is expected to return the following fields:</p>
+<ul class="simple">
+<li><p><strong>pose_results</strong>: The grasp pose of each object relative to the rgb/depth camera frame.</p></li>
+<li><p><strong>class_names</strong>: The name of the objects whose grasp pose was estimated.</p></li>
+<li><p><strong>class_confidences (optional)</strong>: The confidence of the objects whose grasp pose was estimated. If your grasp pose estimator does not return confidences, you can set the confidence to 1.0 for each object or you can pass the confidences from the object detector (but make sure that you only return the confidences from the object who actually got a grasp pose estimation).</p></li>
+</ul>
+<p>To get the camera intrinsics, your wrapper should listen to the topic specified by the <cite>cam_info_topic</cite> rosparam parameter.</p>
+</section>
+<section id="updating-the-grasping-pipeline-config">
+<h2><span class="section-number">3.4. </span>Updating the grasping pipeline config<a class="headerlink" href="#updating-the-grasping-pipeline-config" title="Permalink to this heading"></a></h2>
+<p>To actually use the new pose estimator, you will need to update the <cite>grasping_pipeline/config/config.yaml</cite> file and restart the grasping pipeline.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">grasping_pipeline</span><span class="p">:</span>
+<span class="w">   </span><span class="nt">object_detector_topic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/object_detector/yolov5</span><span class="w">                      </span><span class="c1"># object detector for known OR unknown objects</span>
+<span class="w">                                                                       </span><span class="c1"># decides whether a pose estimator or a grasp point</span>
+<span class="w">                                                                       </span><span class="c1"># estimator is used afterwards</span>
+<span class="w">   </span><span class="nt">pose_estimator_topic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/pose_estimator/gdrnet</span><span class="w">                        </span><span class="c1"># pose estimator for known objects</span>
+<span class="w">   </span><span class="nt">grasppoint_estimator_topic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/pose_estimator/find_grasppose_haf</span><span class="w">      </span><span class="c1"># grasppoint estimator for unknown objects</span>
+</pre></div>
+</div>
+<p>The object_detector_topic should be set to the topic of the new object detector.</p>
+<p>The pose_estimator_topic should be set to the topic of the new pose estimator.</p>
+<p>The grasppoint_estimator_topic should be set to the topic of the new grasp pose estimator.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="startup.html" class="btn btn-neutral float-left" title="2. Starting the grasping pipeline" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="adding_new_objects.html" class="btn btn-neutral float-right" title="4. Adding new objects to the grasping pipeline" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Alexander Haberl.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

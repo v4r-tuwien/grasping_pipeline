@@ -1,0 +1,32 @@
+﻿check\_table\_clean
+===================
+
+.. automodule:: check_table_clean
+  
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:                                          
+      :template: custom-class-template.rst              
+   
+      CheckTableClean
+      RemoveNonTableObjects
+   
+   
+
+   
+   
+   
+
+
+

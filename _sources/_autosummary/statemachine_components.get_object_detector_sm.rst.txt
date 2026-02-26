@@ -1,0 +1,6 @@
+statemachine\_components.get\_object\_detector\_sm
+==================================================
+
+.. currentmodule:: statemachine_components
+
+.. autofunction:: get_object_detector_sm

@@ -1,0 +1,6 @@
+statemachine\_components.get\_pose\_estimator\_sm
+=================================================
+
+.. currentmodule:: statemachine_components
+
+.. autofunction:: get_pose_estimator_sm

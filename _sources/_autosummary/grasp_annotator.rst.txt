@@ -1,0 +1,32 @@
+﻿grasp\_annotator
+================
+
+.. automodule:: grasp_annotator
+  
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:                                          
+      :template: custom-class-template.rst              
+   
+      FailList
+      GraspAnnotator
+   
+   
+
+   
+   
+   
+
+
+

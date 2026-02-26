@@ -1,0 +1,32 @@
+﻿statemachine
+============
+
+.. automodule:: statemachine
+  
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:                                          
+   
+      create_statemachine
+      get_clear_table_sm
+      get_single_grasp_sm
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

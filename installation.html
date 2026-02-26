@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1. Installation &mdash; Grasping Pipeline 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=10e673fd" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=e031e9a9"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=35a8b989"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="2. Starting the grasping pipeline" href="startup.html" />
+    <link rel="prev" title="Welcome to Grasping Pipeline’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Grasping Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">1. Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#using-the-grasping-pipeline-docker-image">1.1. Using the grasping pipeline docker image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#manually-installing-the-grasping-pipeline-and-all-its-dependencies">1.2. Manually installing the grasping pipeline and all its dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#creating-a-catkin-workspace">1.2.1. Creating a catkin workspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cloning-all-grasping-pipeline-repositories">1.2.2. Cloning all grasping pipeline repositories</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#installing-the-python-dependencies">1.2.3. Installing the python dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helpful-aliases">1.2.4. Helpful aliases</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#add-an-alias-for-starting-the-grasping-pipeline">1.2.4.1. Add an alias for starting the grasping pipeline:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#add-alias-for-starting-rviz-with-a-configuration-file-customized-for-the-grasping-pipeline">1.2.4.2. Add alias for starting rviz with a configuration file customized for the grasping pipeline</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#building-the-ros-workspace">1.2.5. Building the ROS workspace</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="startup.html">2. Starting the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adding_new_estimators.html">3. Adding a new estimator or detector to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adding_new_objects.html">4. Adding new objects to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview_state_machine.html">5. Overview of the statemachine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="details_state_machine.html">6. Detailed Description of the state machine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">7. API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Grasping Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">1. </span>Installation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/installation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="installation">
+<h1><span class="section-number">1. </span>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h1>
+<p>You can install the grasping pipeline in two ways:</p>
+<ol class="arabic simple">
+<li><p>Using the grasping pipeline docker image</p></li>
+<li><p>Manually installing the grasping pipeline and all its dependencies</p></li>
+</ol>
+<section id="using-the-grasping-pipeline-docker-image">
+<h2><span class="section-number">1.1. </span>Using the grasping pipeline docker image<a class="headerlink" href="#using-the-grasping-pipeline-docker-image" title="Permalink to this heading"></a></h2>
+<p>This is the easiest way to get started with the grasping pipeline, but comes with the drawback that it does not run natively on the host. This especially means that you are more likely to experience issues regarding the network setup with ROS.</p>
+<p>The instructions can be found in the <a class="reference external" href="https://github.com/v4r-tuwien/HSRB-ROS-Docker-Image">HSRB_ROS_Docker_Image repository</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>After installation you might want to add the following alias to your .bashrc file to make it easier to start the docker container:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;alias hsr=&#39;cd ~/HSR/ &amp;&amp; bash ./RUN-DOCKER-CONTAINER.bash&#39;&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
+</pre></div>
+</div>
+<p>This allows you to start the docker container by simply typing <cite>hsr</cite> in the terminal.</p>
+<p>After adding the alias, source the new .bashrc file:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">source</span><span class="w"> </span>~/.bashrc
+</pre></div>
+</div>
+</div>
+</section>
+<section id="manually-installing-the-grasping-pipeline-and-all-its-dependencies">
+<h2><span class="section-number">1.2. </span>Manually installing the grasping pipeline and all its dependencies<a class="headerlink" href="#manually-installing-the-grasping-pipeline-and-all-its-dependencies" title="Permalink to this heading"></a></h2>
+<p>This option assumes that you already have installed:</p>
+<ul class="simple">
+<li><p>ROS noetic and the most common ROS packages (ros-noetic-desktop-full)</p></li>
+<li><p>The toyota HSR packages (ros-noetic-tmc-desktop-full)</p></li>
+<li><p>moveit (ros-noetic-moveit)</p></li>
+<li><p>vision-msgs (ros-noetic-vision-msgs)</p></li>
+<li><p>tf2-sensor-msgs (ros-noetic-tf2-sensor-msgs)</p></li>
+<li><p>ros-numpy (ros-noetic-ros-numpy)</p></li>
+</ul>
+<p>If you have not installed these packages yet, please refer to the commands in the <strong>Dockerfile of the HSRB_ROS_Docker_Image repository</strong> (<a class="reference external" href="https://github.com/v4r-tuwien/HSRB-ROS-Docker-Image/blob/main/docker/hsr-devel/Dockerfile">Link</a>) on how to install ROS, the toyota HSR packages and moveit. If possible, use the versions specified in the Dockerfile.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>You will need access to the private v4r github repositories, because some of the repositories include confidential data from toyota. This means that you have to setup your github ssh-key (<a class="reference external" href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh">Link for instructions</a>)</p>
+</div>
+<section id="creating-a-catkin-workspace">
+<h3><span class="section-number">1.2.1. </span>Creating a catkin workspace<a class="headerlink" href="#creating-a-catkin-workspace" title="Permalink to this heading"></a></h3>
+<p>We recommend to create a new catkin workspace for the grasping pipeline. You can do so with the following commands:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/catkin_ws/src
+<span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>~/catkin_ws
+<span class="gp">$ </span>catkin<span class="w"> </span>build
+</pre></div>
+</div>
+</section>
+<section id="cloning-all-grasping-pipeline-repositories">
+<h3><span class="section-number">1.2.2. </span>Cloning all grasping pipeline repositories<a class="headerlink" href="#cloning-all-grasping-pipeline-repositories" title="Permalink to this heading"></a></h3>
+<p>After installing the ROS dependencies and setting up the ssh key, you can finally clone all necessary grasping pipeline repositories into your catkin workspace:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>~/catkin_ws/src
+<span class="gp">$ </span>curl<span class="w"> </span>-s<span class="w"> </span>https://raw.githubusercontent.com/v4r-tuwien/grasping_pipeline/main/scripts/clone_grasping_pipeline.bash<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
+</pre></div>
+</div>
+</section>
+<section id="installing-the-python-dependencies">
+<h3><span class="section-number">1.2.3. </span>Installing the python dependencies<a class="headerlink" href="#installing-the-python-dependencies" title="Permalink to this heading"></a></h3>
+<p>The grasping pipeline is written in python3 and uses several python packages. The dependenciesare listed in the <em>requirements.txt</em> file.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you want to install the dependencies in a virtual environment, you have to modify the launch files found in <em>./grasping_pipeline/launch</em>:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">&lt;arg name=&quot;venv&quot; value=&quot;/path/to/venv/bin/python3&quot; /&gt;</span>
+<span class="go">&lt;node&gt; pkg=&quot;pkg&quot; type=&quot;node.py&quot; name=&quot;node&quot; launch-prefix = &quot;$(arg venv)&quot; /&gt;</span>
+</pre></div>
+</div>
+</div>
+<p>To install the dependencies (either in the virtual environment or system-wide):</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>~/catkin_ws/src/grasping_pipeline
+<span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you encounter an error while installing the dependencies, you might need to update your pip
+version:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span><span class="nv">pip</span><span class="o">==</span><span class="m">22</span>.3.1<span class="w"> </span>--user
+</pre></div>
+</div>
+<p>This installs the new pip version in the <code class="docutils literal notranslate"><span class="pre">~/.local/bin</span></code> directory. Make sure to add this directory to your PATH variable in your .bashrc file:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;export PATH=</span><span class="nv">$PATH</span><span class="s2">:/home/INSERT_USERNAME/.local/bin&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
+</pre></div>
+</div>
+<p>Afterwards, source the .bashrc file:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">source</span><span class="w"> </span>~/.bashrc
+</pre></div>
+</div>
+</div>
+</section>
+<section id="helpful-aliases">
+<h3><span class="section-number">1.2.4. </span>Helpful aliases<a class="headerlink" href="#helpful-aliases" title="Permalink to this heading"></a></h3>
+<p>It is recommended to add the following aliases to your .bashrc file to make it easier to use the grasping pipeline.
+The aliases make it possible to start the grasping pipeline and rviz by simply typing <cite>gp</cite> and <cite>rv</cite> in the terminal.</p>
+<section id="add-an-alias-for-starting-the-grasping-pipeline">
+<h4><span class="section-number">1.2.4.1. </span>Add an alias for starting the grasping pipeline:<a class="headerlink" href="#add-an-alias-for-starting-the-grasping-pipeline" title="Permalink to this heading"></a></h4>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;alias gp=&#39;bash ~/catkin_ws/src/grasping_pipeline/src/pipeline_bringup.sh&#39;&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
+</pre></div>
+</div>
+<p>This allows you to start the grasping pipeline by simply typing <cite>gp</cite> in the terminal.</p>
+</section>
+<section id="add-alias-for-starting-rviz-with-a-configuration-file-customized-for-the-grasping-pipeline">
+<h4><span class="section-number">1.2.4.2. </span>Add alias for starting rviz with a configuration file customized for the grasping pipeline<a class="headerlink" href="#add-alias-for-starting-rviz-with-a-configuration-file-customized-for-the-grasping-pipeline" title="Permalink to this heading"></a></h4>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;alias rv=&#39;rviz -d ~/catkin_ws/src/grasping_pipeline/config/grasping_pipeline.rviz&#39;&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
+</pre></div>
+</div>
+<p>This allows you to start rviz with the grasping pipeline configuration by simply typing <cite>rv</cite> in the terminal.</p>
+</section>
+</section>
+<section id="building-the-ros-workspace">
+<h3><span class="section-number">1.2.5. </span>Building the ROS workspace<a class="headerlink" href="#building-the-ros-workspace" title="Permalink to this heading"></a></h3>
+<p>After adding the aliases, source the new .bashrc file:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">source</span><span class="w"> </span>~/.bashrc
+</pre></div>
+</div>
+<p>Finally, build the workspace:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>~/catkin_ws
+<span class="gp">$ </span>catkin<span class="w"> </span>build
+</pre></div>
+</div>
+<p>If you encounter an error while building because some packages are missing, please look at the error messages and try to install the missing packages using apt-get or pip and notify one of the roadies of this issue.</p>
+<p>After building the workspace, you can source the setup.bash file:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>~/catkin_ws
+<span class="gp">$ </span><span class="nb">source</span><span class="w"> </span>devel/setup.bash
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Grasping Pipeline’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="startup.html" class="btn btn-neutral float-right" title="2. Starting the grasping pipeline" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Alexander Haberl.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+object\_detector.CallObjectDetectorService
+==========================================
+
+.. currentmodule:: object_detector
+
+.. autoclass:: CallObjectDetectorService
+   :members:                                    
+   :show-inheritance:                           
+   :inherited-members:                          
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~CallObjectDetectorService.__init__
+      ~CallObjectDetectorService.convert_label_img_to_2D_BB
+      ~CallObjectDetectorService.execute
+      ~CallObjectDetectorService.split_label_image_into_masks_np
+      ~CallObjectDetectorService.split_label_image_into_masks_ros
+   
+   
+
+   
+   
+   

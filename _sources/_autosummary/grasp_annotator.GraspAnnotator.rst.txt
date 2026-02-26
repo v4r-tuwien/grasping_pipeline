@@ -1,0 +1,30 @@
+grasp\_annotator.GraspAnnotator
+===============================
+
+.. currentmodule:: grasp_annotator
+
+.. autoclass:: GraspAnnotator
+   :members:                                    
+   :show-inheritance:                           
+   :inherited-members:                          
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~GraspAnnotator.__init__
+      ~GraspAnnotator.annotate
+      ~GraspAnnotator.is_grasp_reachable
+      ~GraspAnnotator.is_grasp_valid
+      ~GraspAnnotator.is_gripper_collision_free
+      ~GraspAnnotator.point_to_plane_distance
+   
+   
+
+   
+   
+   

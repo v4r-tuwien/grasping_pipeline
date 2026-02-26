@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5. Overview of the statemachine &mdash; Grasping Pipeline 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=10e673fd" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=e031e9a9"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=35a8b989"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="6. Detailed Description of the state machine" href="details_state_machine.html" />
+    <link rel="prev" title="4. Adding new objects to the grasping pipeline" href="adding_new_objects.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Grasping Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">1. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="startup.html">2. Starting the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adding_new_estimators.html">3. Adding a new estimator or detector to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adding_new_objects.html">4. Adding new objects to the grasping pipeline</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">5. Overview of the statemachine</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#findgrasp">5.1. FindGrasp</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#outcomes">5.1.1. Outcomes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inputs">5.1.2. Inputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#outputs">5.1.3. Outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#executegrasp">5.2. ExecuteGrasp</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">5.2.1. Outcomes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">5.2.2. Inputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">5.2.3. Outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#robotsetup">5.3. RobotSetup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id4">5.3.1. Outcomes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">5.3.2. Inputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">5.3.3. Outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#placement">5.4. Placement</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id7">5.4.1. Outcomes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">5.4.2. Inputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">5.4.3. Outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#handover">5.5. Handover</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id10">5.5.1. Outcomes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11">5.5.2. Inputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id12">5.5.3. Outputs</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="details_state_machine.html">6. Detailed Description of the state machine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">7. API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Grasping Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5. </span>Overview of the statemachine</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/overview_state_machine.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="overview-of-the-statemachine">
+<h1><span class="section-number">5. </span>Overview of the statemachine<a class="headerlink" href="#overview-of-the-statemachine" title="Permalink to this heading"></a></h1>
+<p>This page gives an overview of the statemachine and its components. It is intended to give a high-level understanding of the statemachine.
+For a more detailed description of the statemachine, see <a class="reference internal" href="details_state_machine.html"><span class="doc">Detailed Description of the state machine</span></a>.</p>
+<p>The statemachine is a finite state machine that is used to control the behavior of the robot. It is implemented in python with the <a class="reference external" href="http://wiki.ros.org/smach">smach</a> library.</p>
+<p>The following diagram shows the structure of the statemachine:</p>
+<a class="reference internal image-reference" href="_images/statemachine_easy.svg"><img alt="_images/statemachine_easy.svg" class="align-center" src="_images/statemachine_easy.svg" width="100%" /></a>
+<p>It currently consists of 5 main components:</p>
+<ul class="simple">
+<li><p>FindGrasp: This component is responsible for calling the object detector, pose estimator and grasp pose estimator to find graspable objects and return the grasp pose(s) for these objects.</p></li>
+<li><p>ExecuteGrasp: This component is responsible for executing the grasp(s) that was found by the FindGrasp component. It also updates the collision environment.</p></li>
+<li><p>RobotSetup: This component is responsible for moving the robot and all of its joints into a predefined position.</p></li>
+<li><p>Placement: This component is responsible for placing the grasped, known object to its appointed location.</p></li>
+<li><p>Handover: This component is responsible for handing over the grasped object to a human.</p></li>
+<li><p>UserInput states: These states are used to get user input from the operator. The prompts are displayed on the terminal that started the local grasping pipeline nodes.</p></li>
+</ul>
+<p>Each of these components is implemented as a state machine (and therefore consists of multiple states), and the components are all combined into a single, big state machine that controls the behavior of the robot.</p>
+<p>After the setup, you can choose between _SINGLE_GRASP_ an _CLEAR_TABLE_. Both sub state machine use the aforementioned components. _SINGLE_GRASP_ performs, as the name suggests, a single grasp with user inputs in between to choose between placement and handover. _CLEAR_TABLE_ switches between grasping an object and handing it over until the table is cleared without any user inputs needed.</p>
+<section id="findgrasp">
+<h2><span class="section-number">5.1. </span>FindGrasp<a class="headerlink" href="#findgrasp" title="Permalink to this heading"></a></h2>
+<p>The FindGrasp component fetches the newest RGB and depth images from the camera and passes those to an object detector. If the detected objects are known objects the component calls a pose_estimator and uses the name of the object to look up the grasp annotations for that object.
+If the detected objects are unknown objects the component calls an unknown object grasp pose estimator to get the grasp pose without calling a pose estimator.</p>
+<section id="outcomes">
+<h3><span class="section-number">5.1.1. </span>Outcomes<a class="headerlink" href="#outcomes" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>end_find_grasp</strong>: The grasp was found successfully.</p></li>
+<li><p><strong>failed</strong>: No object or grasp was found. This is also returned if the object detector/pose estimator/grasp pose estimator raise an exception.</p></li>
+</ul>
+</section>
+<section id="inputs">
+<h3><span class="section-number">5.1.2. </span>Inputs<a class="headerlink" href="#inputs" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>object_to_grasp (string)</strong>: The name of the object to grasp. If no name is given (=empty string), the closest object is grasped instead.</p></li>
+</ul>
+</section>
+<section id="outputs">
+<h3><span class="section-number">5.1.3. </span>Outputs<a class="headerlink" href="#outputs" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>grasp_poses (list of geometry_msgs/PoseStamped)</strong>: A list of grasp poses for the object that should be grasped.</p></li>
+<li><p><strong>grasp_object_bb (grasping_pipeline_msgs/BoundingBox3DStamped)</strong>: The bounding box of the grasped object. This is used for collision checking when placing the object.</p></li>
+<li><p><strong>grasp_object_name (string)</strong>: The name of the grasped object. This name is needed for placement to know where to place the object, as each object has a predefined placement area.</p></li>
+</ul>
+</section>
+</section>
+<section id="executegrasp">
+<h2><span class="section-number">5.2. </span>ExecuteGrasp<a class="headerlink" href="#executegrasp" title="Permalink to this heading"></a></h2>
+<p>The ExecuteGrasp component is responsible for executing the grasp that was found by the FindGrasp component.</p>
+<p>First, the table plane that the object is resting on is detected. Then, the collision environment is updated with the <cite>grasp_object_bb</cite> and the detected table. The <cite>grasp_object_bb</cite> is needed if placement should be done after the grasping. The table is needed to prevent the robot from colliding with the table.</p>
+<p>The grasp poses are sorted by their orientation and distance. Top grasps are executed last. This means that the closest grasp pose that is not a top grasp is executed first. After trying all non-top grasps, the top grasps are executed in the same order (closest first). This is done because it is much harder for the robot to place top-grasped objects into a shelve.</p>
+<p>Afterwards, the robot moves to the grasp pose and executes the grasp. Simultaneously, it records the transformation between the robot’s end-effector and the object’s bottom plane. This transformation is needed for placement to ensure that the object is placed in a manner that maintains the objects original orientation (i.e. the bottom side of the object when it was grasped, will also be the bottom side of the object after it is placed).</p>
+<p>If the grasp failed, the component returns a ‘failed_to_grasp’ outcome.</p>
+<p>If the grasp was succesful, the robot retreats from the table, moves the joints into a neutral position and drives to a predefined position in a way that should prevent the robot and its arm from coliding with any object (especially the table). Afterwards, ‘execute_grasp_success’ is returned.</p>
+<section id="id1">
+<h3><span class="section-number">5.2.1. </span>Outcomes<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>failed_to_grasp</strong>: Execution of all provided grasp poses failed.</p></li>
+<li><p><strong>execute_grasp_success</strong>: The grasp was executed successfully.</p></li>
+</ul>
+</section>
+<section id="id2">
+<h3><span class="section-number">5.2.2. </span>Inputs<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>grasp_poses (list of PoseStamped)</strong>: A list of grasp poses for the object that should be grasped. The grasp_poses are processed iteratively until the grasp was succesful or no further grasp pose remains.</p></li>
+<li><p><strong>grasp_object_bb (BoundingBox3DStamped)</strong>: The bounding box of the grasped object. This is used for collision checking when placing the object.</p></li>
+</ul>
+</section>
+<section id="id3">
+<h3><span class="section-number">5.2.3. </span>Outputs<a class="headerlink" href="#id3" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>placement_surface_to_wrist (geometry_msgs/Transform)</strong>: The transformation between the robot’s end-effector and the object’s bottom plane. This transformation is needed for placement to ensure that the object is placed in a manner that maintains the objects original orientation.</p></li>
+<li><p><strong>top_grasp</strong> (bool): True if the grasp pose is a top grasp, False otherwise.</p></li>
+</ul>
+</section>
+</section>
+<section id="robotsetup">
+<h2><span class="section-number">5.3. </span>RobotSetup<a class="headerlink" href="#robotsetup" title="Permalink to this heading"></a></h2>
+<p>This component is responsible for moving the robot and all of its joints into a predefined position. This is needed to ensure that the robot is in a known state before any other state is executed.</p>
+<p>More specifically, the robot moves in front of the table, the arm is moved in a way so that it does not cover parts of the camera, the gripper is opened and the head is moved so that it gazes at the table plane.</p>
+<section id="id4">
+<h3><span class="section-number">5.3.1. </span>Outcomes<a class="headerlink" href="#id4" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>setup_succeeded</strong>: The robot and its joints were moved into the predefined position successfully.</p></li>
+</ul>
+</section>
+<section id="id5">
+<h3><span class="section-number">5.3.2. </span>Inputs<a class="headerlink" href="#id5" title="Permalink to this heading"></a></h3>
+<p>None</p>
+</section>
+<section id="id6">
+<h3><span class="section-number">5.3.3. </span>Outputs<a class="headerlink" href="#id6" title="Permalink to this heading"></a></h3>
+<p>None</p>
+</section>
+</section>
+<section id="placement">
+<h2><span class="section-number">5.4. </span>Placement<a class="headerlink" href="#placement" title="Permalink to this heading"></a></h2>
+<p>This component is responsible for placing the grasped object to its appointed location. This also works for unknown objects with the caveat that you can only specify one placement area for all unknown objects.</p>
+<p>It first looks up the name of the object to know where to place it. Then, it moves the robot to the placement area and adjusts the joint angles, so that the target plane is visible to the robot’s camera.
+Then the target plane is detected and the collision environment is updated to prevent the robot from colliding with this plane.
+Afterwards, suitable placement areas are detected on the target plane (i.e. areas where the object can be placed without colliding with other objects).
+Finally, the object is placed on the target plane by trying to place it on each of the detected placement areas (sorted by distance, so that the farthest area is tried first) until the object is either placed successfully or no further placement area remains.</p>
+<p>When placing the object you also have to decide on the orientation of the object (i.e. not only which side of the object should be placed on the table, but also the orientation of the object in the plane).
+We don’t know which sides of the object are good for placing (this would require some intelligence or annotations). Therefore, the object is simply placed on the same side as it was standing on when it was grasped.
+This is done by using the transformation between the robot’s end-effector and the object’s bottom plane that was recorded during grasping.
+Additionally, the object is rotated so that the robots arm is coming from the front of the shelf. This basically means that, if the robot grasped the object from the (left/right) side, the object is rotated by 90 degrees so that the robot can place the object from the front.
+This is done to make it easier for the robot to place the object, by significantly reducing the risk of colliding with the shelf.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>MoveIt (the motion planning framework that we use to plan the motion of the robot) performs very inconsistently when it comes to placing objects. Therefore placement often fails and sometimes needs to be retried multiple times.</p>
+<p>If you, however, have a lot of failed placements, you might want to check whether the robot is physically able to place the object without colliding with the shelf (e.g. the robot is not able to place a tall object on the shelf if it performed a top-grasp because the arm would collide with the shelf).</p>
+<p>Otherwise you can try moving sashas table further away from the shelf because that increases the robots workspace and makes it easier to find a good, collision-free path.</p>
+</div>
+<section id="id7">
+<h3><span class="section-number">5.4.1. </span>Outcomes<a class="headerlink" href="#id7" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>end_placement</strong>: The object was placed successfully.</p></li>
+<li><p><strong>failed_to_place</strong>: The object could not be placed successfully.</p></li>
+</ul>
+</section>
+<section id="id8">
+<h3><span class="section-number">5.4.2. </span>Inputs<a class="headerlink" href="#id8" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>grasp_object_name (string)</strong>: The name of the grasped object. This name is needed to know where to place the object, as each object has a predefined placement area.</p></li>
+<li><p><strong>placement_surface_to_wrist (geometry_msgs/Transform)</strong>: The transformation between the robot’s end-effector and the object’s bottom plane. This transformation is needed to ensure that the object is placed on the same side as it was grasped.</p></li>
+</ul>
+</section>
+<section id="id9">
+<h3><span class="section-number">5.4.3. </span>Outputs<a class="headerlink" href="#id9" title="Permalink to this heading"></a></h3>
+<p>None</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The placement areas are defined in <code class="docutils literal notranslate"><span class="pre">config/placement_areas.yaml</span></code>. To add new placemet areas, adapt this file. If you want to change what placement area the HSR should currently use, take a look at <code class="docutils literal notranslate"><span class="pre">config/config.yaml</span></code>.</p>
+</div>
+</section>
+</section>
+<section id="handover">
+<h2><span class="section-number">5.5. </span>Handover<a class="headerlink" href="#handover" title="Permalink to this heading"></a></h2>
+<p>The Handover component is responsible for handing over the grasped object to a human. The robot’s arm is stretched out to make it as comfortable as possible for adults to take the object. The torque sensor in the robot’s wrist is used to detect when the object is taken by the human. When the torque sensor detects a force above a certain threshold, the robot releases the object and returns ‘succeeded’.</p>
+<section id="id10">
+<h3><span class="section-number">5.5.1. </span>Outcomes<a class="headerlink" href="#id10" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>succeeded</strong>: The object was handed over successfully.</p></li>
+<li><p><strong>aborted</strong>: This outcome is currently not used.</p></li>
+<li><p><strong>preempted</strong>: This outcome is currently not used.</p></li>
+</ul>
+</section>
+<section id="id11">
+<h3><span class="section-number">5.5.2. </span>Inputs<a class="headerlink" href="#id11" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>force_thresh (float), optional</strong>: The threshold for the torque sensor to detect when the object is taken by the human. A default value is used if no threshold is passed or the passed threshold is &lt;0.</p></li>
+</ul>
+</section>
+<section id="id12">
+<h3><span class="section-number">5.5.3. </span>Outputs<a class="headerlink" href="#id12" title="Permalink to this heading"></a></h3>
+<p>None</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="adding_new_objects.html" class="btn btn-neutral float-left" title="4. Adding new objects to the grasping pipeline" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="details_state_machine.html" class="btn btn-neutral float-right" title="6. Detailed Description of the state machine" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Alexander Haberl.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+statemachine\_components.get\_find\_grasp\_sm
+=============================================
+
+.. currentmodule:: statemachine_components
+
+.. autofunction:: get_find_grasp_sm
