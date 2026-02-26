@@ -5,6 +5,9 @@
     <node name="collision_environment_srv" pkg="grasping_pipeline" type="collision_environment_srv.py" output="screen"/>
     <node name="table_srv" pkg="grasping_pipeline" type="table_srv.py" output="screen"/>
     <node name="tts_srv" pkg="grasping_pipeline" type="tts_srv.py" output="screen"/>
+    <node name="find_multiple_grasppoint_server" pkg="grasping_pipeline" type="grasppose_estimator_multiple.py"
+        args= "$(find grasping_pipeline)/models/" output="screen"/>
+    <node name="multiple_direct_grasppose_estimator" pkg="grasping_pipeline" type="direct_grasppose_estimator_multiple.py" output="screen"/>
 
     <node name="execute_grasp_server_remap" pkg="grasping_pipeline" type="execute_grasp_action_server.py" output="screen"> 
     <remap from="execute_grasp" to="execute_grasp_gpt"/>
