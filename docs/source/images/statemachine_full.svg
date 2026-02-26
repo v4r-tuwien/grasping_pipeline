@@ -20,13 +20,59 @@
   <defs
      id="defs2">
     <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker2642"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="TriangleOutM">
+      <path
+         transform="scale(0.4)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path2640"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker2242"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="TriangleOutM">
+      <path
+         transform="scale(0.4)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path2240"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker1848"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="TriangleOutM">
+      <path
+         transform="scale(0.4)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path1846"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
        inkscape:stockid="TriangleOutM"
        orient="auto"
        refY="0"
        refX="0"
        id="marker22839"
        style="overflow:visible"
-       inkscape:isstock="true">
+       inkscape:isstock="true"
+       inkscape:collect="always">
       <path
          inkscape:connector-curvature="0"
          id="path22837"
@@ -249,22 +295,6 @@
          d="M 5.77,0 -2.88,5 V -5 Z"
          id="path16033"
          inkscape:connector-curvature="0" />
-    </marker>
-    <marker
-       inkscape:stockid="TriangleOutM"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="marker15672"
-       style="overflow:visible"
-       inkscape:isstock="true"
-       inkscape:collect="always">
-      <path
-         inkscape:connector-curvature="0"
-         id="path15670"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
-         transform="scale(0.4)" />
     </marker>
     <marker
        inkscape:isstock="true"
@@ -918,6 +948,81 @@
          id="path16977-0"
          inkscape:connector-curvature="0" />
     </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker20229-3"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="TriangleOutM">
+      <path
+         transform="scale(0.4)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path20227-6"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker16687-7"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="TriangleOutM">
+      <path
+         transform="scale(0.4)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path16685-5"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker16401-3"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="TriangleOutM">
+      <path
+         transform="scale(0.4)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path16399-5"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker15847-6"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="TriangleOutM">
+      <path
+         transform="scale(0.4)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path15845-2"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker16979-9"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="TriangleOutM">
+      <path
+         transform="scale(0.4)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path16977-1"
+         inkscape:connector-curvature="0" />
+    </marker>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -926,9 +1031,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.12374369"
-     inkscape:cx="-459.15996"
-     inkscape:cy="1765.383"
+     inkscape:zoom="0.24748738"
+     inkscape:cx="23.021757"
+     inkscape:cy="1441.6261"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -949,7 +1054,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -1759,120 +1864,11 @@
         </a>
       </g>
     </g>
-    <g
-       transform="matrix(0.35277777,0,0,0.35277777,-918.48668,396.19071)"
-       id="node11-7-4"
-       class="node">
-      <title
-         id="title860-7-9">/SM_ROOT/RETREAT_AFTER_PLACEMENT</title>
-      <g
-         id="a_node11-5-1">
-        <a
-           xlink:href="/SM_ROOT/RETREAT_AFTER_PLACEMENT"
-           xlink:title="RETREAT_AFTER_PLACEMENT"
-           id="a866-4-0">
-          <ellipse
-             style="fill:#ffffff;stroke:#000000;stroke-width:2"
-             cx="723"
-             cy="-386"
-             rx="159.47"
-             ry="18"
-             id="ellipse862-8-7" />
-          <text
-             style="font-size:14px;font-family:Times, serif;text-anchor:middle"
-             x="723"
-             y="-382.29999"
-             font-size="14.00"
-             id="text864-1-5">RETREAT_AFTER_PLACEMENT</text>
-        </a>
-      </g>
-    </g>
-    <g
-       transform="matrix(0.35277777,0,0,0.35277777,-920.09034,337.92595)"
-       id="node11-7-0"
-       class="node">
-      <title
-         id="title860-7-4">/SM_ROOT/RETREAT_AFTER_PLACEMENT</title>
-      <g
-         id="a_node11-5-8">
-        <a
-           xlink:href="/SM_ROOT/RETREAT_AFTER_PLACEMENT"
-           xlink:title="RETREAT_AFTER_PLACEMENT"
-           id="a866-4-04">
-          <ellipse
-             style="fill:#ffffff;stroke:#000000;stroke-width:1.62046611"
-             cx="723.75757"
-             cy="-386.75763"
-             rx="103.59631"
-             ry="18.189766"
-             id="ellipse862-8-2" />
-          <text
-             style="font-size:14px;font-family:Times, serif;text-anchor:middle"
-             x="723"
-             y="-382.29999"
-             font-size="14.00"
-             id="text864-1-9">GO_BACK_TO_TABLE</text>
-        </a>
-      </g>
-    </g>
-    <g
-       transform="matrix(0.35277777,0,0,0.35277777,-919.9143,370.39111)"
-       id="node11-7-4-5"
-       class="node">
-      <title
-         id="title860-7-9-5">/SM_ROOT/RETREAT_AFTER_PLACEMENT</title>
-      <g
-         id="a_node11-5-1-2">
-        <a
-           xlink:href="/SM_ROOT/RETREAT_AFTER_PLACEMENT"
-           xlink:title="RETREAT_AFTER_PLACEMENT"
-           id="a866-4-0-9">
-          <ellipse
-             style="fill:#ffffff;stroke:#000000;stroke-width:2"
-             cx="723"
-             cy="-386"
-             rx="159.47"
-             ry="18"
-             id="ellipse862-8-7-0" />
-          <text
-             style="font-size:14px;font-family:Times, serif;text-anchor:middle"
-             x="723"
-             y="-382.29999"
-             font-size="14.00"
-             id="text864-1-5-2">GO_TO_NEUTRAL_AFTER_PLACEMENT</text>
-        </a>
-      </g>
-    </g>
     <path
        inkscape:connector-curvature="0"
        id="path9436"
-       d="M -664.7647,282.7364 V 269.04097"
+       d="M -707.28702,282.92539 V 269.22996"
        style="fill:none;stroke:#000000;stroke-width:1.01925778;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker16979)" />
-    <path
-       inkscape:connector-curvature="0"
-       id="path9444"
-       d="m -667.34421,253.34931 -0.15698,-9.89551"
-       style="fill:none;stroke:#000000;stroke-width:1.06473482;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker16401)" />
-    <path
-       inkscape:connector-curvature="0"
-       id="path9446"
-       d="m -664.29664,227.46612 -0.31348,-16.64313"
-       style="fill:none;stroke:#000000;stroke-width:1.08836424;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker16121)" />
-    <path
-       inkscape:connector-curvature="0"
-       id="path9444-4"
-       d="m -661.30345,253.00405 -0.16169,-9.37116"
-       style="fill:none;stroke:#000000;stroke-width:1.05154967;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker16687)" />
-    <path
-       inkscape:connector-curvature="0"
-       id="path9463"
-       d="m -671.35382,195.03639 c 0.78538,-18.50591 9.62002,-2.35921 9.62002,-2.35921"
-       style="fill:none;stroke:#000000;stroke-width:0.96512544;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker20229)" />
-    <path
-       inkscape:connector-curvature="0"
-       id="path9465"
-       d="m -628.47189,200.76176 c 32.31608,-5.05469 32.31608,-5.05469 32.31608,-5.05469"
-       style="fill:none;stroke:#000000;stroke-width:1.09157729;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker15579)" />
     <path
        inkscape:connector-curvature="0"
        id="path9475"
@@ -1896,51 +1892,9 @@
        transform="scale(1.007996,0.99206743)"
        id="text588-4-3-1-4-9-4-2-4-2-8-8"
        font-size="12.00"
-       y="279.11694"
-       x="-645.46149"
-       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">end_placement</text>
-    <text
-       transform="scale(1.007996,0.99206743)"
-       id="text588-4-3-1-4-9-4-2-4-2-8-8-9"
-       font-size="12.00"
-       y="239.89946"
-       x="-759.24182"
+       y="277.02145"
+       x="-718.01971"
        style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">failed_to_place</text>
-    <text
-       transform="scale(1.007996,0.99206743)"
-       id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2"
-       font-size="12.00"
-       y="251.48396"
-       x="-673.80951"
-       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">succeeded</text>
-    <text
-       transform="scale(1.007996,0.99206743)"
-       id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2-8"
-       font-size="12.00"
-       y="251.51109"
-       x="-647.24951"
-       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">aborted</text>
-    <text
-       transform="scale(1.007996,0.99206743)"
-       id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2-86"
-       font-size="12.00"
-       y="221.60698"
-       x="-648.84039"
-       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">succeeded</text>
-    <text
-       transform="scale(1.007996,0.99206743)"
-       id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2-86-8"
-       font-size="12.00"
-       y="206.52019"
-       x="-607.87482"
-       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">succeeded</text>
-    <text
-       transform="scale(1.007996,0.99206743)"
-       id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2-8-3"
-       font-size="12.00"
-       y="185.03702"
-       x="-662.33386"
-       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">aborted</text>
     <text
        transform="scale(1.007996,0.99206743)"
        id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2-86-8-8"
@@ -2696,11 +2650,6 @@
        y="520.99402"
        x="-313.94397"
        style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722826">succeeded</text>
-    <path
-       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker15672)"
-       d="m -708.40698,281.88365 c -97.01884,-57.46294 6.1472,-80.44812 6.1472,-80.44812"
-       id="path15662"
-       inkscape:connector-curvature="0" />
     <g
        transform="matrix(0.35277777,0,0,0.35277777,-663.08123,363.22616)"
        id="node8-8-2-0"
@@ -2978,5 +2927,166 @@
        y="65.700859"
        x="-182.70171"
        style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">succeeded</text>
+    <g
+       transform="matrix(0.35277777,0,0,0.35277777,-942.00142,361.99068)"
+       id="node11-7-4-2"
+       class="node">
+      <title
+         id="title860-7-9-7">/SM_ROOT/RETREAT_AFTER_PLACEMENT</title>
+      <g
+         id="a_node11-5-1-0">
+        <a
+           xlink:href="/SM_ROOT/RETREAT_AFTER_PLACEMENT"
+           xlink:title="RETREAT_AFTER_PLACEMENT"
+           id="a866-4-0-93">
+          <ellipse
+             style="fill:#ffffff;stroke:#000000;stroke-width:2"
+             cx="723"
+             cy="-386"
+             rx="159.47"
+             ry="18"
+             id="ellipse862-8-7-6" />
+          <text
+             style="font-size:14px;font-family:Times, serif;text-anchor:middle"
+             x="723"
+             y="-382.29999"
+             font-size="14.00"
+             id="text864-1-5-0">RETREAT_AFTER_PLACEMENT</text>
+        </a>
+      </g>
+    </g>
+    <g
+       transform="matrix(0.35277777,0,0,0.35277777,-963.67582,396.37674)"
+       id="node11-7-0-6"
+       class="node">
+      <title
+         id="title860-7-4-2">/SM_ROOT/RETREAT_AFTER_PLACEMENT</title>
+      <g
+         id="a_node11-5-8-6">
+        <a
+           xlink:href="/SM_ROOT/RETREAT_AFTER_PLACEMENT"
+           xlink:title="RETREAT_AFTER_PLACEMENT"
+           id="a866-4-04-1">
+          <ellipse
+             style="fill:#ffffff;stroke:#000000;stroke-width:1.62046611"
+             cx="723.75757"
+             cy="-386.75763"
+             rx="103.59631"
+             ry="18.189766"
+             id="ellipse862-8-2-8" />
+          <text
+             style="font-size:14px;font-family:Times, serif;text-anchor:middle"
+             x="723"
+             y="-382.29999"
+             font-size="14.00"
+             id="text864-1-9-7">GO_BACK_TO_TABLE</text>
+        </a>
+      </g>
+    </g>
+    <g
+       transform="matrix(0.35277777,0,0,0.35277777,-943.42912,336.19109)"
+       id="node11-7-4-5-9"
+       class="node">
+      <title
+         id="title860-7-9-5-2">/SM_ROOT/RETREAT_AFTER_PLACEMENT</title>
+      <g
+         id="a_node11-5-1-2-0">
+        <a
+           xlink:href="/SM_ROOT/RETREAT_AFTER_PLACEMENT"
+           xlink:title="RETREAT_AFTER_PLACEMENT"
+           id="a866-4-0-9-2">
+          <ellipse
+             style="fill:#ffffff;stroke:#000000;stroke-width:2"
+             cx="723"
+             cy="-386"
+             rx="159.47"
+             ry="18"
+             id="ellipse862-8-7-0-3" />
+          <text
+             style="font-size:14px;font-family:Times, serif;text-anchor:middle"
+             x="723"
+             y="-382.29999"
+             font-size="14.00"
+             id="text864-1-5-2-7">GO_TO_NEUTRAL_AFTER_PLACEMENT</text>
+        </a>
+      </g>
+    </g>
+    <path
+       inkscape:connector-curvature="0"
+       id="path9444-9"
+       d="m -690.85902,219.14929 -0.157,-9.89551"
+       style="fill:none;stroke:#000000;stroke-width:1.06473482;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker16401-3)" />
+    <path
+       inkscape:connector-curvature="0"
+       id="path9444-4-2"
+       d="m -684.81822,218.80403 -0.1617,-9.37117"
+       style="fill:none;stroke:#000000;stroke-width:1.05154967;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker16687-7)" />
+    <path
+       inkscape:connector-curvature="0"
+       id="path9463-2"
+       d="m -713.20212,253.35354 c 0.7854,-18.50591 9.62014,-2.35921 9.62014,-2.35921"
+       style="fill:none;stroke:#000000;stroke-width:0.96512544;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker20229-3)" />
+    <text
+       transform="scale(1.007996,0.99206743)"
+       id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2-7"
+       font-size="12.00"
+       y="217.01047"
+       x="-697.13782"
+       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">succeeded</text>
+    <text
+       transform="scale(1.007996,0.99206743)"
+       id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2-8-36"
+       font-size="12.00"
+       y="217.0376"
+       x="-670.5777"
+       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">aborted</text>
+    <text
+       transform="scale(1.007996,0.99206743)"
+       id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2-8-3-1"
+       font-size="12.00"
+       y="243.82047"
+       x="-703.8501"
+       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">aborted</text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.98167807;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1848)"
+       d="m -658.19686,282.7149 c 8.24697,-24.95579 1.50248,-48.94169 1.50248,-48.94169"
+       id="path641"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.9594754;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker2242)"
+       d="m -653.05762,254.21658 c 56.62162,-19.17144 63.82436,-52.54393 63.82436,-52.54393"
+       id="path643"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
+       d="m -670.04063,258.69994 c 9.82738,-1.70087 14.93006,-3.68527 14.93006,-3.68527"
+       id="path647"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.948982;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker2642)"
+       d="m -631.86466,199.20003 51.10077,-22.47872"
+       id="path649"
+       inkscape:connector-curvature="0" />
+    <text
+       transform="scale(1.007996,0.99206743)"
+       id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2-86-8"
+       font-size="12.00"
+       y="186.05396"
+       x="-606.17383"
+       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">succeeded</text>
+    <text
+       transform="scale(1.007996,0.99206743)"
+       id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2-86-8-2"
+       font-size="12.00"
+       y="242.1682"
+       x="-603.50415"
+       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">succeeded</text>
+    <text
+       transform="scale(1.007996,0.99206743)"
+       id="text588-4-3-1-4-9-4-2-4-2-8-8-9-2-86-8-9"
+       font-size="12.00"
+       y="267.69513"
+       x="-634.62726"
+       style="font-size:4.16673899px;font-family:Times, serif;text-anchor:middle;stroke-width:0.34722829">end_placement</text>
   </g>
 </svg>

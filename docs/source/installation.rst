@@ -96,7 +96,7 @@ To install the dependencies (either in the virtual environment or system-wide):
     
         $ pip install --upgrade pip==22.3.1 --user
     
-    This installs the new pip version in the ```~/.local/bin``` directory. Make sure to add this directory to your PATH variable in your .bashrc file:
+    This installs the new pip version in the ``~/.local/bin`` directory. Make sure to add this directory to your PATH variable in your .bashrc file:
 
     .. code-block:: console
 

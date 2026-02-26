@@ -138,6 +138,8 @@ Outputs
 -------
 None
 
+.. note::
+   The placement areas are defined in ``config/placement_areas.yaml``. To add new placemet areas, adapt this file. If you want to change what placement area the HSR should currently use, take a look at ``config/config.yaml``.
 
 ========
 Handover
