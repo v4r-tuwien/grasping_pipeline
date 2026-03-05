@@ -35,3 +35,4 @@ grasping_pipeline:
 
 handover:
   use_fancy_handover: False         # True: Default handover, False: Handover without any movement (faster)
+  force_thresh: 1.0                 # Force threshold. If the force measured by the robot exceeds this threshold, the robot will let go of the object.

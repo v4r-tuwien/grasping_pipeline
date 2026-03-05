@@ -155,7 +155,7 @@ Outcomes
 
 Inputs
 ------
-* **force_thresh (float), optional**: The threshold for the torque sensor to detect when the object is taken by the human. A default value is used if no threshold is passed or the passed threshold is <0.
+* **force_thresh (float), optional**: The threshold for the torque sensor to detect when the object is taken by the human. If no value is passed, the parameter value of ``/handover/force_thresh`` is used. If the parameter is also not set, a default value of 1.0 is used.
 
 Outputs
 -------
