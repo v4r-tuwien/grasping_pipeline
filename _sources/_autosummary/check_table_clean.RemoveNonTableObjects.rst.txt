@@ -1,0 +1,32 @@
+check\_table\_clean.RemoveNonTableObjects
+=========================================
+
+.. currentmodule:: check_table_clean
+
+.. autoclass:: RemoveNonTableObjects
+   :members:                                    
+   :show-inheritance:                           
+   :inherited-members:                          
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~RemoveNonTableObjects.__init__
+      ~RemoveNonTableObjects.bb_to_mask
+      ~RemoveNonTableObjects.calculate_overlap
+      ~RemoveNonTableObjects.execute
+      ~RemoveNonTableObjects.filter_bb_on_table
+      ~RemoveNonTableObjects.filter_masks_on_table
+      ~RemoveNonTableObjects.filter_table_detection
+      ~RemoveNonTableObjects.project_3d_bb_to_2d
+   
+   
+
+   
+   
+   

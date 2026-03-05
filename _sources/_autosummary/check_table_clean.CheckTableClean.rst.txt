@@ -1,0 +1,26 @@
+check\_table\_clean.CheckTableClean
+===================================
+
+.. currentmodule:: check_table_clean
+
+.. autoclass:: CheckTableClean
+   :members:                                    
+   :show-inheritance:                           
+   :inherited-members:                          
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~CheckTableClean.__init__
+      ~CheckTableClean.execute
+   
+   
+
+   
+   
+   

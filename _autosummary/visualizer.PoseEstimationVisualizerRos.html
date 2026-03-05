@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>7.20.1. visualizer.PoseEstimationVisualizerRos &mdash; Grasping Pipeline 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=10e673fd" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=e031e9a9"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="7.20. visualizer" href="visualizer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Grasping Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">1. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../startup.html">2. Starting the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../adding_new_estimators.html">3. Adding a new estimator or detector to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../adding_new_objects.html">4. Adding new objects to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview_state_machine.html">5. Overview of the statemachine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../details_state_machine.html">6. Detailed Description of the state machine</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">7. API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="check_table_clean.html">7.1. check_table_clean</a></li>
+<li class="toctree-l2"><a class="reference internal" href="collision_environment.html">7.2. collision_environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="direct_grasppose_estimator.html">7.3. direct_grasppose_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="execute_grasp_action_server.html">7.4. execute_grasp_action_server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="find_table_planes.html">7.5. find_table_planes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasp_annotator.html">7.6. grasp_annotator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasp_method_selector.html">7.7. grasp_method_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasppose_estimator.html">7.8. grasppose_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hsr_wrapper.html">7.9. hsr_wrapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_fetcher.html">7.10. image_fetcher</a></li>
+<li class="toctree-l2"><a class="reference internal" href="moveit_wrapper.html">7.11. moveit_wrapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="object_detector.html">7.12. object_detector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="place.html">7.13. place</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pose_estimator.html">7.14. pose_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="robot_control.html">7.15. robot_control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine_components.html">7.16. statemachine_components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine_llm.html">7.17. statemachine_llm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine.html">7.18. statemachine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userinput.html">7.19. userinput</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="visualizer.html">7.20. visualizer</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">7.20.1. visualizer.PoseEstimationVisualizerRos</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#visualizer.PoseEstimationVisualizerRos"><code class="docutils literal notranslate"><span class="pre">PoseEstimationVisualizerRos</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Grasping Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html"><span class="section-number">7. </span>API</a></li>
+          <li class="breadcrumb-item"><a href="visualizer.html"><span class="section-number">7.20. </span>visualizer</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">7.20.1. </span>visualizer.PoseEstimationVisualizerRos</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/visualizer.PoseEstimationVisualizerRos.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="visualizer-poseestimationvisualizerros">
+<h1><span class="section-number">7.20.1. </span>visualizer.PoseEstimationVisualizerRos<a class="headerlink" href="#visualizer-poseestimationvisualizerros" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="visualizer.PoseEstimationVisualizerRos">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">visualizer.</span></span><span class="sig-name descname"><span class="pre">PoseEstimationVisualizerRos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#visualizer.PoseEstimationVisualizerRos" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PoseEstimationVisualizer</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="visualizer.PoseEstimationVisualizerRos.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intrinsics_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expose_service</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#visualizer.PoseEstimationVisualizerRos.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Renders the pose estimation results of the object detector into an image and publishes it</p>
+<p>Renders model-contours and the corresponding modelnames of the detected objects
+into the given image and publishes the result</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topic</strong> (<em>str</em>) – ROS Topic to publish the rendered image to</p></li>
+<li><p><strong>image_width</strong> (<em>int</em>) – width of input image and rendered image</p></li>
+<li><p><strong>image_height</strong> (<em>int</em>) – height of input image and rendered image</p></li>
+<li><p><strong>intrinsics_matrix</strong> (<em>list</em><em> or </em><em>numpy array</em>) – flattened [9x1] camera matrix, e.g. [fx, 0, cx, 0, fy, cy, 0, 0, 1]</p></li>
+<li><p><strong>expose_service</strong> (<em>bool</em>) – whether to expose a service which can be used to trigger the visualization</p></li>
+<li><p><strong>service_name</strong> (<em>str</em>) – name of the service that should be exposed, only needed if expose_service is True</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#visualizer.PoseEstimationVisualizerRos.__init__" title="visualizer.PoseEstimationVisualizerRos.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(topic, image_width, image_height, ...)</p></td>
+<td><p>Renders the pose estimation results of the object detector into an image and publishes it</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#visualizer.PoseEstimationVisualizerRos.load_meshes" title="visualizer.PoseEstimationVisualizerRos.load_meshes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_meshes</span></code></a>(model_dir)</p></td>
+<td><p>Load .stl meshes from the given directory and return them as a dictionary</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#visualizer.PoseEstimationVisualizerRos.publish_pose_estimation_result" title="visualizer.PoseEstimationVisualizerRos.publish_pose_estimation_result"><code class="xref py py-obj docutils literal notranslate"><span class="pre">publish_pose_estimation_result</span></code></a>(ros_image, ...)</p></td>
+<td><p>Renders contours of models and modelnames into an image and publishes the result</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#visualizer.PoseEstimationVisualizerRos.service_callback" title="visualizer.PoseEstimationVisualizerRos.service_callback"><code class="xref py py-obj docutils literal notranslate"><span class="pre">service_callback</span></code></a>(req)</p></td>
+<td><p>Service callback for the pose estimation visualization service.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="visualizer.PoseEstimationVisualizerRos.load_meshes">
+<span class="sig-name descname"><span class="pre">load_meshes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#visualizer.PoseEstimationVisualizerRos.load_meshes" title="Permalink to this definition"></a></dt>
+<dd><p>Load .stl meshes from the given directory and return them as a dictionary</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_dir</strong> (<em>str</em>) – The directory containing the .stl meshes that should be loaded</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the loaded meshes with the model name as the key.
+The models are scaled to meters. The names are the filenames without the .stl extension.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="visualizer.PoseEstimationVisualizerRos.publish_pose_estimation_result">
+<span class="sig-name descname"><span class="pre">publish_pose_estimation_result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ros_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ros_model_poses</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_meshes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_names</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#visualizer.PoseEstimationVisualizerRos.publish_pose_estimation_result" title="Permalink to this definition"></a></dt>
+<dd><p>Renders contours of models and modelnames into an image and publishes the result</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ros_image</strong> (<em>sensor_msgs.msg.Image</em>) – The input image to render the model contours into</p></li>
+<li><p><strong>ros_model_poses</strong> (<em>list</em><em> of </em><em>geometry_msgs.msg.Pose</em>) – The poses of the models in the camera frame</p></li>
+<li><p><strong>model_meshes</strong> (<em>list</em><em> of </em><em>open3d.geometry.TriangleMesh</em>) – The meshes of the models to render, scaled to meters</p></li>
+<li><p><strong>model_name</strong> (<em>list</em><em> of </em><em>str</em>) – names of the models</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="visualizer.PoseEstimationVisualizerRos.service_callback">
+<span class="sig-name descname"><span class="pre">service_callback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">req</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#visualizer.PoseEstimationVisualizerRos.service_callback" title="Permalink to this definition"></a></dt>
+<dd><p>Service callback for the pose estimation visualization service.</p>
+<p>Renders the contours of the objects based on the given poses into the passed image.
+Additionally, the model names are rendered next to the contours.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>req</strong> (<em>object_detector_msgs.srv.VisualizePoseEstimationRequest</em>) – The request containing: the rgb_image, a list of model_poses and a list of model_names</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Empty response</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>object_detector_msgs.srv.VisualizePoseEstimationResponse</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="visualizer.html" class="btn btn-neutral float-left" title="7.20. visualizer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Alexander Haberl.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

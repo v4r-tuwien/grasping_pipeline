@@ -1,0 +1,26 @@
+robot\_control.GoToNeutralMoveIt
+================================
+
+.. currentmodule:: robot_control
+
+.. autoclass:: GoToNeutralMoveIt
+   :members:                                    
+   :show-inheritance:                           
+   :inherited-members:                          
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~GoToNeutralMoveIt.__init__
+      ~GoToNeutralMoveIt.execute
+   
+   
+
+   
+   
+   
