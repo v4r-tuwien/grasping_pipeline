@@ -3,6 +3,12 @@ Starting the grasping pipeline
 
 This page will tell you how to start the grasping pipeline. It will also explain how to use the tmux session that is created when starting the grasping pipeline. It will also explain how to start the grasping-pipeline rviz visualization and which visualization topics exist.
 
+.. note:: 
+   Some of the upcoming commands need to be run locally, while others need to be run on the robot (via ssh). You can check the location of your terminal by looking at the command prompt. 
+   - If the command prompt starts with ``user@host`` (with host being most likely `robbie` or `raufbold`) you are running the command locally **outside** the container.
+   - If the command prompt starts with ``<hsrb>`` you are running the command locally **inside** the container.
+   - If the command prompt starts with ``v4r@hsrb`` you are running the command on the robot (via ssh).
+
 ********************
 Turning on the robot
 ********************
@@ -38,7 +44,7 @@ Afterwards you can let the robot drive to the table by running the following com
 ******************************
 Starting the grasping pipeline
 ******************************
-If you set up the grasping pipeline according to the installation instructions, you should be able to start the grasping pipeline tmux session by running the following command in the terminal:
+If you set up the grasping pipeline according to the installation instructions, you should be able to start the grasping pipeline tmux session by running the following command in the terminal **locally**:
 
 .. code-block:: console
 
@@ -57,15 +63,19 @@ This should open up a tmux session.
 .. note:: 
     The tmux session also runs code on sasha by starting it via ssh. Make sure that sasha is turned on and that the network connection is established. 
     
-    Additionally, you should setup keys for the ssh connection to sasha (if you haven't done so yet). This way you don't have to enter the password every time you connect to sasha (= every time you start the tmux session). You can do this with the following commands:
+    Additionally, you should setup keys for the ssh connection to sasha (if you haven't done so yet). This way you don't have to enter the password every time you connect to sasha (= every time you start the tmux session). Both command should be run **inside** the container. After creating the ssh key, **restart** the tmux session.
     
+    First you will need to create a new ssh key pair via:
     .. code-block:: console
 
         $ ssh-keygen
-        $ ssh-copy-id -i ~/.ssh/NAME_OF_THE_KEY.pub v4r@hsrb.local
+    
+    The default location for the key will be ``~/.ssh/id_rsa``. It is advised to change the name of key to something like ``~/.ssh/<user>_hsr_rsa`` to avoid confusion with other keys. After creating the key pair, you need to copy the public key to sasha:
+    .. code-block:: console
+
+        $ ssh-copy-id -i ~/.ssh/<user>_hsr_rsa.pub v4r@hsrb.local
     
     This creates a key pair and copies the public key to sasha. You should now be able to connect to sasha without entering a password.
-    Both command should be run **inside** the container. After creating the ssh key, **restart** the tmux session.
 
 .. note:: 
     Tmux is a terminal multiplexer, allowing to view different terminals side by side (as explained in the next session). Here are some important shortscuts and commands needed for tmux:
