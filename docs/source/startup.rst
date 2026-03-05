@@ -109,7 +109,7 @@ None of the panes are running when the tmux session is started. You can start th
 You should start the nodes in the following order:
 
 1. Start the startup script in the bottom right terminal. As explained earlier, this has only to be done **once**, whenever the HSR is restarted.
-2. Start the pose estimator and wait until it is running (optional). By default the table plane extractor is used to estimate the pose of the object. If this is sufficient for your use case, you don't have to do anything. However, if you want to use another pose estimator, you should start it before starting the grasping pipeline. Additionally you need to update the ``config/config.yaml`` file to use the new pose estimator. For a collection of pose estimators (and others) please take a look at `PODGE <https://github.com/v4r-tuwien/PODGE>`_.
+2. Start the object detector and pose estimator and wait until it is running. For a collection of pose estimators (and others) please take a look at `PODGE <https://github.com/v4r-tuwien/PODGE>`_. You may need to update the ``config/config.yaml`` file to use a new object detector and pose estimator. 
 3. Launch the parameters in the bottom middle terminal to set the ROS parameters. If you modify any parameter in ``config/config.yaml`` you do **not** need to restart the grasping pipeline or the servers and client. Simply re-launch the parameters using this terminal.
 4. Start the locally running nodes by navigating to the top middle terminal. You’ll know the servers started correctly if you don’t see any error messages and the ``execute grasp`` node started (`Execute grasp: Init`), as this node usually takes the longest to initialize.
 5. Wait for a couple of seconds and then start the statemachine by navigating to the left pane and pressing enter.
@@ -139,6 +139,8 @@ The MoveIt window should show the message "You can start planning now!":
     :align: center
 
 Note that MoveIt prints warnings very often (Thanks Toyota!). This means that you might have to scroll up quite a bit to see the "You can start planning now!" message.
+
+Once everything started correctly you can start using the grasping pipeline by following the instructions in the statemachine pane (=left pane). You can either choose between performing a single grasp (*g*) with placement or handover afterwards, or continous grasping (*t*) with handover after each grasp, until the table is clean. A detailed explanation of the statemachine can be found in the later sections.
 
 ==================
 Rviz visualization
