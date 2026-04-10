@@ -312,7 +312,9 @@ class PlaceObjectServer():
         surface_range = 1.0
 
         rospy.wait_for_service('detect_placement_area')
-        while True:
+        # try a maixmum of five times
+        # while True:
+        for _ in range(5):
             try:
                 # Toyota Detect Placement Area Service:
                 # frame: everything (points and x,y,z axis) are relative to this frame
@@ -350,6 +352,7 @@ class PlaceObjectServer():
                 print("ErrorCode: NON_POSITIVE")
             elif response.error_code.val == -1:
                 print("ErrorCode: ZERO_VECTOR")
+        return None
                 
     def find_intersecting_table_plane(self, table_planes, bb):
         '''
@@ -578,7 +581,12 @@ class PlaceObjectServer():
         quat = rot_mat_to_quat(deepcopy(aligned_table_bb.R))
         
         placement_areas = self.detect_placement_areas(goal.placement_surface_to_wrist, base_pose_map.pose, aligned_table_bb_ros, placement_area_det_frame, placement_area_bb)
-        
+        if placement_areas is None:
+            rospy.logwarn("Could not find any placement areas")
+            self.server.set_aborted()
+            return
+
+
         method = rospy.get_param('/grasping_pipeline/placement/method')
         if method == "waypoint":
             # Placing in a shelf -> choose furthest placement area
