@@ -22,6 +22,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from grasp_annotator import GraspAnnotator
 
 from v4r_util.bb import create_ros_bb_stamped
+from v4r_util.tf2 import TF2Wrapper
 
 import time
 
@@ -92,6 +93,9 @@ class FindMultipleGrasppointServer:
         
         self.timeout = rospy.get_param('/grasping_pipeline/timeout_duration')
         self.grasp_annotator = GraspAnnotator()
+
+        self.tf_wrapper = TF2Wrapper()
+
       
         rospy.loginfo('Initializing FindGrasppointServer done')
 
@@ -146,6 +150,10 @@ class FindMultipleGrasppointServer:
                     rospy.logerr(f"No grasp pose found for object {object_name}")
                     continue
                 
+                # transform into map frame, so positions stay valid even if the robot moves
+                grasp_poses = [self.tf_wrapper.transform_pose("map",pose) for pose in grasp_poses]
+                object_bb_stamped = self.tf_wrapper.transform_bounding_box(object_bb_stamped, "map")
+
                 result.grasp_poses.append(grasp_poses[0]) # TODO: For now we only save one (easier with the current message definition)
                 result.grasp_object_bbs.append(object_bb_stamped)
                 result.grasp_object_names.append(object_name) # So avoid errors due to the order changing

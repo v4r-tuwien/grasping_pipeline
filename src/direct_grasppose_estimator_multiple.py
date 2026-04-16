@@ -14,6 +14,8 @@ from visualization_msgs.msg import Marker, MarkerArray
 from v4r_util.depth_pcd import convert_np_depth_img_to_o3d_pcd
 from v4r_util.bb import get_minimum_oriented_bounding_box, o3d_bb_to_ros_bb_stamped
 from tf.transformations import (quaternion_about_axis, quaternion_multiply)
+from v4r_util.tf2 import TF2Wrapper
+
 
 class MultipleDirectGraspposeEstimatorCaller:
     '''Calls a service that directly estimates the grasppose.
@@ -69,6 +71,8 @@ class MultipleDirectGraspposeEstimatorCaller:
         self.cam_info = rospy.wait_for_message(rospy.get_param('/cam_info_topic'), CameraInfo)
         self.marker_pub = rospy.Publisher('/grasping_pipeline/grasp_marker_array', MarkerArray, queue_size=10)
         self.marker_array = MarkerArray()
+        self.tf_wrapper = TF2Wrapper()
+
     
     def execute(self, req):
         '''
@@ -144,11 +148,18 @@ class MultipleDirectGraspposeEstimatorCaller:
 
             assert len(graspposes.pose_results) == 1, 'Expected only one grasppose result, but got more than one!'
 
+            object_bb_stamped = bbs_3D[i]
+            grasp_pose = PoseStamped(header=req.depth.header, pose=graspposes.pose_results[0])
+
+            # transform into map frame, so positions stay valid even if the robot moves
+            grasp_pose = self.tf_wrapper.transform_pose("map",grasp_pose) 
+            object_bb_stamped = self.tf_wrapper.transform_bounding_box(object_bb_stamped, "map")
+
             res.grasp_object_names.append(req.class_names[i])
-            res.grasp_object_bbs.append(bbs_3D[i])
-            res.grasp_poses.append(PoseStamped(header=req.depth.header, pose=graspposes.pose_results[0])) # TODO: For now we only save one (easier with the current message definition)
-            self.add_bb_marker(res.grasp_object_bbs[-1], id=i)
-            self.add_marker(res.grasp_poses[-1], id=i)
+            res.grasp_object_bbs.append(object_bb_stamped)
+            res.grasp_poses.append(grasp_pose) # TODO: For now we only save one (easier with the current message definition)
+            self.add_bb_marker(object_bb_stamped, id=i)
+            self.add_marker(grasp_pose, id=i)
 
         self.marker_pub.publish(self.marker_array)
 

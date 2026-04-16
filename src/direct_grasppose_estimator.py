@@ -14,6 +14,8 @@ from visualization_msgs.msg import Marker
 from v4r_util.depth_pcd import convert_np_depth_img_to_o3d_pcd
 from v4r_util.bb import get_minimum_oriented_bounding_box, o3d_bb_to_ros_bb_stamped
 from tf.transformations import (quaternion_about_axis, quaternion_multiply)
+from v4r_util.tf2 import TF2Wrapper
+
 
 class DirectGraspposeEstimatorCaller:
     '''Calls a service that directly estimates the grasppose.
@@ -74,6 +76,8 @@ class DirectGraspposeEstimatorCaller:
         self.srv = rospy.Service('call_direct_grasppose_estimator', CallDirectGraspPoseEstimator , self.execute)
         self.cam_info = rospy.wait_for_message(rospy.get_param('/cam_info_topic'), CameraInfo)
         self.marker_pub = rospy.Publisher('/grasping_pipeline/grasp_marker', Marker, queue_size=10)
+        self.tf_wrapper = TF2Wrapper()
+
     
     def execute(self, req):
         '''
@@ -164,12 +168,19 @@ class DirectGraspposeEstimatorCaller:
 
         assert len(graspposes.pose_results) == 1, 'Expected only one grasppose result, but got more than one!'
 
+        object_bb_stamped = bbs_3D[object_idx]
+        grasp_pose = PoseStamped(header=req.depth.header, pose=graspposes.pose_results[0])
+
+        # transform into map frame, so positions stay valid even if the robot moves
+        grasp_pose = self.tf_wrapper.transform_pose("map",grasp_pose) 
+        object_bb_stamped = self.tf_wrapper.transform_bounding_box(object_bb_stamped, "map")
+        
         res = CallDirectGraspPoseEstimatorResponse()
+        res.grasp_object_bb = object_bb_stamped
         res.grasp_object_name = req.class_names[object_idx]
-        res.grasp_object_bb = bbs_3D[object_idx]
-        res.grasp_poses = [PoseStamped(header=req.depth.header, pose=graspposes.pose_results[0])]
+        res.grasp_poses = [grasp_pose]
         self.add_bb_marker(res.grasp_object_bb)
-        self.add_marker(res.grasp_poses[0])
+        self.add_marker(grasp_pose)
 
         return res
 

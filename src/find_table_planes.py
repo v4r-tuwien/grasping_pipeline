@@ -77,11 +77,16 @@ class FindTablePlanes(smach.State):
                 size.x = size.x + 0.04
                 size.y = size.y + 0.04
                 size.z = old_center_z + size.z/2 - 0.02
+                
+                if transform_to_base:
+                    # transform boxes back into original frame
+                    ros_bb = bounding_box_to_bounding_box_stamped(ros_bb, 'base_link' , rospy.Time.now())
+                    ros_bb = self.tf_wrapper.transform_bounding_box(ros_bb, boxes.header.frame_id)
                 new_boxes.append(ros_bb)
 
             response.plane_bounding_boxes.boxes = new_boxes
-            response.plane_bounding_boxes.header.frame_id = 'base_link'
 
+        # transform bunding boxes to map frame
         userdata.table_bbs = response.plane_bounding_boxes
         userdata.table_plane_equations = response.planes
 
