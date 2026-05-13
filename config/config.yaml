@@ -8,7 +8,7 @@ global_frame: '/map'
 
 grasping_pipeline:
   # 'hope', 'ycb_bop', 'ycb_ichores', 'ycb_scope'
-  dataset: 'ycb_bop'                                                # dataset to use for pose estimation. Should be the name of 
+  dataset: 'tracebotcanister'                                                # dataset to use for pose estimation. Should be the name of 
                                                                       # one of the sub-folders in the models and grasps directory
   
   # /object_detector/grounded_sam2, yolov8

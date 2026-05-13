@@ -7,6 +7,11 @@ from v4r_util.tf2 import TF2Wrapper
 from v4r_util.conversions import bounding_box_to_bounding_box_stamped
 from v4r_util.bb import align_bounding_box_rotation, ros_bb_to_o3d_bb, o3d_bb_to_ros_bb
 
+from std_msgs.msg import Header
+from geometry_msgs.msg import Point, PointStamped
+
+
+
 class FindTablePlanes(smach.State):
     '''
     Finds the table planes in the point cloud using the TablePlaneExtractor service.
@@ -109,10 +114,16 @@ class FindTablePlanes(smach.State):
             z0 = (-d - a*x0 - b*y0) / c
             if z_min <= z0 <= z_max:
                 plane_pt = np.array([x0, y0, z0], dtype=np.float32)
-                plane_pt_camera = self.tf_wrapper.transform_3d_array(table_params['base_frame'],  cloud.header.frame_id, plane_pt)
-                rospy.set_param('/grasping_pipeline/plane_point', plane_pt_camera.tolist())
+                
+                header = Header(frame_id = response.plane_bounding_boxes.header.frame_id, stamp = rospy.Time(0))
+                plane_pt_s = PointStamped(header=header, point=Point(x=plane_pt[0], y=plane_pt[1], z=plane_pt[2]))
+                plane_pt_s_camera = self.tf_wrapper.transform_point(cloud.header.frame_id,plane_pt_s)
+                plane_pt_camera = [plane_pt_s_camera.point.x,plane_pt_s_camera.point.y,plane_pt_s_camera.point.z]
+                
+                rospy.set_param('/grasping_pipeline/plane_point', plane_pt_camera)
             else:
                 rospy.logwarn('Calculated z0 is outside the bounding box. Using center of bounding box instead.')
 
         rospy.loginfo('Table planes extracted. Returning succeeded.')
         return 'succeeded'
+    

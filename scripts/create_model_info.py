@@ -4,7 +4,7 @@ import yaml
 import open3d as o3d
 import numpy as np
 
-dataset_name = "ycb_bop"
+dataset_name = "tracebotcanister"
 models_directory = '../models/'
 model_files_directory = os.path.join(models_directory, dataset_name)
 result_file_path = '../models/models_metadata.yml'
