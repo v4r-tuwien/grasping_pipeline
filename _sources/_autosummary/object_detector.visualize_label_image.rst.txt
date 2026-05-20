@@ -1,0 +1,6 @@
+object\_detector.visualize\_label\_image
+========================================
+
+.. currentmodule:: object_detector
+
+.. autofunction:: visualize_label_image

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>7.13.1. place.PlaceObjectServer &mdash; Grasping Pipeline 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=10e673fd" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=e031e9a9"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="7.14. pose_estimator" href="pose_estimator.html" />
+    <link rel="prev" title="7.13. place" href="place.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Grasping Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">1. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../startup.html">2. Starting the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../adding_new_estimators.html">3. Adding a new estimator or detector to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../adding_new_objects.html">4. Adding new objects to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview_state_machine.html">5. Overview of the statemachine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../details_state_machine.html">6. Detailed Description of the state machine</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">7. API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="check_table_clean.html">7.1. check_table_clean</a></li>
+<li class="toctree-l2"><a class="reference internal" href="collision_environment.html">7.2. collision_environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="direct_grasppose_estimator.html">7.3. direct_grasppose_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="execute_grasp_action_server.html">7.4. execute_grasp_action_server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="find_table_planes.html">7.5. find_table_planes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasp_annotator.html">7.6. grasp_annotator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasp_method_selector.html">7.7. grasp_method_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasppose_estimator.html">7.8. grasppose_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hsr_wrapper.html">7.9. hsr_wrapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_fetcher.html">7.10. image_fetcher</a></li>
+<li class="toctree-l2"><a class="reference internal" href="moveit_wrapper.html">7.11. moveit_wrapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="object_detector.html">7.12. object_detector</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="place.html">7.13. place</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">7.13.1. place.PlaceObjectServer</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#place.PlaceObjectServer"><code class="docutils literal notranslate"><span class="pre">PlaceObjectServer</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pose_estimator.html">7.14. pose_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="robot_control.html">7.15. robot_control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine_components.html">7.16. statemachine_components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine_llm.html">7.17. statemachine_llm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine.html">7.18. statemachine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userinput.html">7.19. userinput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizer.html">7.20. visualizer</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Grasping Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html"><span class="section-number">7. </span>API</a></li>
+          <li class="breadcrumb-item"><a href="place.html"><span class="section-number">7.13. </span>place</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">7.13.1. </span>place.PlaceObjectServer</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/place.PlaceObjectServer.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="place-placeobjectserver">
+<h1><span class="section-number">7.13.1. </span>place.PlaceObjectServer<a class="headerlink" href="#place-placeobjectserver" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="place.PlaceObjectServer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">place.</span></span><span class="sig-name descname"><span class="pre">PlaceObjectServer</span></span><a class="headerlink" href="#place.PlaceObjectServer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Server for placing an object on a plane</p>
+<p>The server assumes that the object is able to be placed on the same surface that it was standing
+on when it was grasped (i.e. bottom surface).
+The server uses the Toyota placement area detector service to detect valid placement areas for the
+object. The service takes the object dimensions and object rotation after placement into account
+to find a suitable placement area.
+The server also executes the placement action by planning a path which leads to the object being
+placed ‘downwards’ onto the table.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.tf2_wrapper">
+<span class="sig-name descname"><span class="pre">tf2_wrapper</span></span><a class="headerlink" href="#place.PlaceObjectServer.tf2_wrapper" title="Permalink to this definition"></a></dt>
+<dd><p>Convenience wrapper for tf2_ros</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>TF2Wrapper</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.moveit">
+<span class="sig-name descname"><span class="pre">moveit</span></span><a class="headerlink" href="#place.PlaceObjectServer.moveit" title="Permalink to this definition"></a></dt>
+<dd><p>Convenience wrapper for MoveIt</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="moveit_wrapper.MoveitWrapper.html#moveit_wrapper.MoveitWrapper" title="moveit_wrapper.MoveitWrapper">MoveitWrapper</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.hsr_wrapper">
+<span class="sig-name descname"><span class="pre">hsr_wrapper</span></span><a class="headerlink" href="#place.PlaceObjectServer.hsr_wrapper" title="Permalink to this definition"></a></dt>
+<dd><p>Convenience wrapper for the Toyota HSR</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="hsr_wrapper.HSR_wrapper.html#hsr_wrapper.HSR_wrapper" title="hsr_wrapper.HSR_wrapper">HSR_wrapper</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.server">
+<span class="sig-name descname"><span class="pre">server</span></span><a class="headerlink" href="#place.PlaceObjectServer.server" title="Permalink to this definition"></a></dt>
+<dd><p>Action server for the place_object action</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>actionlib.SimpleActionServer</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.bb_vis">
+<span class="sig-name descname"><span class="pre">bb_vis</span></span><a class="headerlink" href="#place.PlaceObjectServer.bb_vis" title="Permalink to this definition"></a></dt>
+<dd><p>Visualizer for bounding boxes. Used to visualize an (enlarged) bounding box around the
+target placement area and an estimation of the object rotation after placement</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>RvizVisualizer</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>placement_area_bb</strong> (<em>grasping_pipeline_msgs/BoundingBox3DStamped</em>) – The bounding box of the target placement area/plane. If None or a empty message, the server will choose the closest plane instead</p></li>
+<li><p><strong>table_plane_equations</strong> (<em>list</em><em> of </em><em>object_detector_msgs/Plane</em>) – The plane equations of the detected tables. The equations are used to calculate the plane
+normals, which are then used to define ‘upwards/downwards’ for the object placement.</p></li>
+<li><p><strong>table_bbs</strong> (<em>vision_msgs/BoundingBox3DArray</em>) – The bounding boxes of the detected tables. Used to find the actual bounding box of the
+target placement area/plane</p></li>
+<li><p><strong>placement_surface_to_wrist</strong> (<em>geometry_msgs/Transform</em>) – Transformation from the object placement surface to the wrist of the robot. This is generally
+the center of the object plane which touched the table plane, but can also be the
+transformation to another surface plane of the object (which would lead to the object being
+placed on that plane). This is needed to calculate the correct object dimensions and
+orientation for the placement area detection and to calculate the correct placement point
+for the robot.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Empty. The server can be set to succeeded or aborted. It is set to succeeded if the object
+was successfully placed and to aborted if the object could not be placed on any of the
+detected placement areas.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>grasping_pipeline_msgs/PlaceActionResult</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#place.PlaceObjectServer.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initialize the PlaceObjectServer class.</p>
+<p>Creates a TF2Wrapper, MoveitWrapper, HSR_wrapper, and an action server for the place_object
+action.</p>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#place.PlaceObjectServer.__init__" title="place.PlaceObjectServer.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>()</p></td>
+<td><p>Initialize the PlaceObjectServer class.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#place.PlaceObjectServer.add_marker" title="place.PlaceObjectServer.add_marker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_marker</span></code></a>(pose_goal[, id, r, g, b])</p></td>
+<td><p>Add a marker to the RViz visualization.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#place.PlaceObjectServer.call_placement_area_detector" title="place.PlaceObjectServer.call_placement_area_detector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_placement_area_detector</span></code></a>(obj_bb_aligned, ...)</p></td>
+<td><p>Call the Toyota placement area detector service to detect valid placement areas for the object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#place.PlaceObjectServer.detect_placement_areas" title="place.PlaceObjectServer.detect_placement_areas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">detect_placement_areas</span></code></a>(wrist_to_table, ...)</p></td>
+<td><p>Detect valid placement areas for the object.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#place.PlaceObjectServer.execute" title="place.PlaceObjectServer.execute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">execute</span></code></a>(goal)</p></td>
+<td><p>Execute the place_object action.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#place.PlaceObjectServer.find_intersecting_table_plane" title="place.PlaceObjectServer.find_intersecting_table_plane"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_intersecting_table_plane</span></code></a>(table_planes, bb)</p></td>
+<td><p>Uses the Separating Axis Theorem to calculate if the bb is intersecting with a table plane.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#place.PlaceObjectServer.get_object_bb_orientation_after_placement" title="place.PlaceObjectServer.get_object_bb_orientation_after_placement"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_object_bb_orientation_after_placement</span></code></a>(...)</p></td>
+<td><p>Calculates the orientation of the object bounding box that it will have after placement.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#place.PlaceObjectServer.get_surface_to_wrist_transform" title="place.PlaceObjectServer.get_surface_to_wrist_transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_surface_to_wrist_transform</span></code></a>(...)</p></td>
+<td><p>Get the transformation from the object placement surface to the wrist</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#place.PlaceObjectServer.sort_closest_plane" title="place.PlaceObjectServer.sort_closest_plane"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sort_closest_plane</span></code></a>(table_plane_equations, ...)</p></td>
+<td><p>Sort the table planes and table bbs by distance to the robot base.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#place.PlaceObjectServer.sort_placement_areas_by_distance" title="place.PlaceObjectServer.sort_placement_areas_by_distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sort_placement_areas_by_distance</span></code></a>(...[, reverse])</p></td>
+<td><p>Sort the placement areas by distance to the passed pose.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#place.PlaceObjectServer.transform_plane_normal" title="place.PlaceObjectServer.transform_plane_normal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transform_plane_normal</span></code></a>(table_equation, ...)</p></td>
+<td><p>Transform the plane normal to the target frame and normalize it</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.add_marker">
+<span class="sig-name descname"><span class="pre">add_marker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_goal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#place.PlaceObjectServer.add_marker" title="Permalink to this definition"></a></dt>
+<dd><p>Add a marker to the RViz visualization. The topic is grasping_pipeline/placement_marker.</p>
+<p>The marker is an arrow that points in the direction of the z-axis of the pose_goal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose_goal</strong> (<em>geometry_msgs/PoseStamped</em>) – The pose to visualize</p></li>
+<li><p><strong>id</strong> (<em>int</em>) – The id of the marker. Creating a new marker with the same id will overwrite the old marker.</p></li>
+<li><p><strong>r</strong> (<em>float</em>) – The red color value of the marker</p></li>
+<li><p><strong>g</strong> (<em>float</em>) – The green color value of the marker</p></li>
+<li><p><strong>b</strong> (<em>float</em>) – The blue color value of the marker</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.call_placement_area_detector">
+<span class="sig-name descname"><span class="pre">call_placement_area_detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj_bb_aligned</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">placement_area_det_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">box_filter_range</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#place.PlaceObjectServer.call_placement_area_detector" title="Permalink to this definition"></a></dt>
+<dd><p>Call the Toyota placement area detector service to detect valid placement areas for the object.</p>
+<p>The placement area detector looks for suitable placement areas on the table
+where the object can be placed. The service takes the object dimensions and object rotation
+after placement into account for finding collision-free placement areas. The service looks
+for areas inside the box_filter_range around the target_point on the table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj_bb_aligned</strong> (<em>vision_msgs/BoundingBox3D</em>) – The bounding box of the object aligned to the base frame</p></li>
+<li><p><strong>placement_area_det_frame</strong> (<em>str</em>) – The frame in which the placement area detection should be done</p></li>
+<li><p><strong>target_point</strong> (<em>geometry_msgs/Point</em>) – A rough estimation of a point on the table (best if its middle point)</p></li>
+<li><p><strong>box_filter_range</strong> (<em>geometry_msgs/Vector3</em>) – Filters pointcloud in x,y,z direction around target point (if x_range = 0.2: filters out
+everything that is not inside target_point +- 0.1)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The detected placement areas. As long as no placement areas are found, the service will
+be called again and again (aka endless loop might happen)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of tmc_placement_area_detector/PlacementArea</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.detect_placement_areas">
+<span class="sig-name descname"><span class="pre">detect_placement_areas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wrist_to_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_pose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aligned_table_bb_base_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">placement_area_det_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">placement_area_bb</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#place.PlaceObjectServer.detect_placement_areas" title="Permalink to this definition"></a></dt>
+<dd><p>Detect valid placement areas for the object.</p>
+<p>Uses the Toyota placement area detector service to detect the placement areas. It takes
+the object dimension and object rotation after placement into account to find a suitable
+placement area.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wrist_to_table</strong> (<em>geometry_msgs/Transform</em>) – Transformation from the wrist to the table</p></li>
+<li><p><strong>base_pose</strong> (<em>geometry_msgs/Pose</em>) – The current pose of the robot base</p></li>
+<li><p><strong>aligned_table_bb_base_frame</strong> (<em>vision_msgs/BoundingBox3D</em>) – The bounding box of the table aligned to the base frame (This means that the BB x-axis
+will be the one that aligns the best with the x-axis of the base frame, and so on for
+the other axes)</p></li>
+<li><p><strong>placemend_area_det_frame</strong> (<em>str</em>) – The frame in which the placement area detection should be done</p></li>
+<li><p><strong>placement_area_bb</strong> (<em>vision_msgs/BoundingBox3D</em>) – The bounding box of the target placement area/plane</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The detected placement areas</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of tmc_placement_area_detector/PlacementArea</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.execute">
+<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">goal</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#place.PlaceObjectServer.execute" title="Permalink to this definition"></a></dt>
+<dd><p>Execute the place_object action.</p>
+<p>In the first step the table plane that intersects with the target placement area is found
+(the target placement area is the bounding box of the table which is read from the config
+file. This is sometimes a couple of centimeters off from the currently detected tables,
+because the map is never identical for each run. Therefore we look for the table that matches
+the closest with the one we expect from the config file)</p>
+<p>Then the placement areas are detected. The placement areas are the areas on the table where
+the object can be placed. The placement areas are detected by the Toyota placement area
+service. The service takes the object dimensions and object rotation after placement into
+account to find a suitable placement area.</p>
+<p>The placement areas are sorted by distance to the robot base (farthest are tried first so
+that the object is placed as far away into the shelf as possible).</p>
+<p>The bounding boxes are all aligned to the base frame (i.e. the coordinate frames are rotated
+in such a way that all axes are aligned with all axes from the base frame). This makes it
+easier to calculate what part of the objects and table are in front/left/right of the robot.</p>
+<p>Afterwards the robot tries all placement areas one by one until it succeeds or all placement
+areas have been tried. The robot plans a path based on two waypoints: the first waypoint is
+the actual placement point and the second waypoint is directly above the placement point.
+This leads to a motion where the object is placed “downwards” onto the table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>goal</strong> (<em>grasping_pipeline_msgs/PlaceActionGoal</em>) – The goal of the place_object action. Contains the bounding box of the target placement
+area, bounding boxes and plane equations of detected tables, and the transformation from
+the object placement surface to the wrist (transformation from the center of the object
+plane which touched the table plane, i.e. the ‘bottom’ surface of the object).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.find_intersecting_table_plane">
+<span class="sig-name descname"><span class="pre">find_intersecting_table_plane</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_planes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bb</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#place.PlaceObjectServer.find_intersecting_table_plane" title="Permalink to this definition"></a></dt>
+<dd><p>Uses the Separating Axis Theorem to calculate if the bb is intersecting with a table plane.
+Returns the index of one of the table planes that the bounding box is intersecting with.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table_planes</strong> (<em>list</em><em> of </em><em>object_detector_msgs/Plane</em>) – The plane equations of the table planes which are checked for intersection with the bb</p></li>
+<li><p><strong>bb</strong> (<em>o3d.geometry.OrientedBoundingBox</em>) – The bounding box which is checked for intersection with the table planes</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The index of the table plane that the bounding box is intersecting with. None if no
+intersection is found</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.get_object_bb_orientation_after_placement">
+<span class="sig-name descname"><span class="pre">get_object_bb_orientation_after_placement</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_pose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attached_object_bb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrist_to_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aligned_table_bb_base_frame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#place.PlaceObjectServer.get_object_bb_orientation_after_placement" title="Permalink to this definition"></a></dt>
+<dd><p>Calculates the orientation of the object bounding box that it will have after placement.
+This is needed so that we can pass the correct object dimensions and orientation for the
+placement area detector service, so that it can find collision-free placement areas.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>base_pose</strong> (<em>geometry_msgs/Pose</em>) – The current pose of the robot base</p></li>
+<li><p><strong>attached_object_bb</strong> (<em>vision_msgs/BoundingBox3D</em>) – The bounding box of the object that is attached to the robot (aka the object to be placed)</p></li>
+<li><p><strong>wrist_to_table</strong> (<em>geometry_msgs/Transform</em>) – Transformation from the wrist to the table</p></li>
+<li><p><strong>aligned_table_bb_base_frame</strong> (<em>vision_msgs/BoundingBox3D</em>) – The bounding box of the table aligned to the base frame</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The bounding box of the object aligned to the map frame (which is the frame that the
+placement area detector service uses for the detection). Only the orientation of the
+bounding box should be used, the translation can not be estimated because it is not
+known on which part of the table the object will be placed. It’s only known how the
+object will be rotated after placement.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>vision_msgs/BoundingBox3D</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.get_surface_to_wrist_transform">
+<span class="sig-name descname"><span class="pre">get_surface_to_wrist_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_placement_surface_pose</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#place.PlaceObjectServer.get_surface_to_wrist_transform" title="Permalink to this definition"></a></dt>
+<dd><p>Get the transformation from the object placement surface to the wrist</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>object_placement_surface_pose</strong> (<em>geometry_msgs/Pose</em>) – The pose of the object placement surface relative to the wrist coordinate frame
+(i.e. the ‘bottom’ surface of the object)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The transformation from the object placement surface to the wrist</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array of shape (4, 4)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.sort_closest_plane">
+<span class="sig-name descname"><span class="pre">sort_closest_plane</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_plane_equations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_bbs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_pose_map</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#place.PlaceObjectServer.sort_closest_plane" title="Permalink to this definition"></a></dt>
+<dd><p>Sort the table planes and table bbs by distance to the robot base. The closest table plane is at the first index.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table_plane_equations</strong> (<em>List</em><em>[</em><em>object_detector_msgs.Plane</em><em>]</em>) – The plane equations of the detected tables</p></li>
+<li><p><strong>table_bbs</strong> (<em>vision_msgs/BoundingBox3DArray</em>) – The bounding boxes of the detected tables</p></li>
+<li><p><strong>base_pose_map</strong> (<em>geometry_msgs/PoseStamped</em>) – The current pose of the robot base (base_link) in the map frame</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>List[object_detector_msgs.Plane]</em> – The sorted table planes</p></li>
+<li><p><em>vision_msgs/BoundingBox3DArray</em> – The sorted table bounding boxes</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.sort_placement_areas_by_distance">
+<span class="sig-name descname"><span class="pre">sort_placement_areas_by_distance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">placement_areas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal_pose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#place.PlaceObjectServer.sort_placement_areas_by_distance" title="Permalink to this definition"></a></dt>
+<dd><p>Sort the placement areas by distance to the passed pose.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>placement_areas</strong> (<em>list</em><em> of </em><em>vision_msgs/BoundingBox3D</em>) – The placement areas which should be sorted</p></li>
+<li><p><strong>goal_pose</strong> (<em>geometry_msgs/PoseStamped</em>) – The goal pose. The placement areas are sorted by distance to this pose.</p></li>
+<li><p><strong>reverse</strong> (<em>bool</em>) – If True, the placement areas are sorted in descending order (farthest first).
+If False, the placement areas are sorted in ascending order (closest first).
+Default is True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The sorted placement areas</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of vision_msgs/BoundingBox3D</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="place.PlaceObjectServer.transform_plane_normal">
+<span class="sig-name descname"><span class="pre">transform_plane_normal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_equation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stamp</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#place.PlaceObjectServer.transform_plane_normal" title="Permalink to this definition"></a></dt>
+<dd><p>Transform the plane normal to the target frame and normalize it</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table_equation</strong> (<em>object_detector_msgs/Plane</em>) – The plane equation</p></li>
+<li><p><strong>target_frame</strong> (<em>str</em>) – The target frame to transform the plane normal to</p></li>
+<li><p><strong>stamp</strong> (<em>rospy.Time</em>) – The timestamp of the transformation</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The normalized plane normal in the target frame</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array of shape (3,)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="place.html" class="btn btn-neutral float-left" title="7.13. place" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pose_estimator.html" class="btn btn-neutral float-right" title="7.14. pose_estimator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Alexander Haberl.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

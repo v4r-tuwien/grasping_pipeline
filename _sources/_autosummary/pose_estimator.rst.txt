@@ -1,0 +1,31 @@
+﻿pose\_estimator
+===============
+
+.. automodule:: pose_estimator
+  
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:                                          
+      :template: custom-class-template.rst              
+   
+      CallPoseEstimatorService
+   
+   
+
+   
+   
+   
+
+
+

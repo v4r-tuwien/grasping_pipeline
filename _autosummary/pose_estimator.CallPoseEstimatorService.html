@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>7.14.1. pose_estimator.CallPoseEstimatorService &mdash; Grasping Pipeline 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=10e673fd" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=e031e9a9"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="7.15. robot_control" href="robot_control.html" />
+    <link rel="prev" title="7.14. pose_estimator" href="pose_estimator.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Grasping Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">1. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../startup.html">2. Starting the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../adding_new_estimators.html">3. Adding a new estimator or detector to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../adding_new_objects.html">4. Adding new objects to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview_state_machine.html">5. Overview of the statemachine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../details_state_machine.html">6. Detailed Description of the state machine</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">7. API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="check_table_clean.html">7.1. check_table_clean</a></li>
+<li class="toctree-l2"><a class="reference internal" href="collision_environment.html">7.2. collision_environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="direct_grasppose_estimator.html">7.3. direct_grasppose_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="execute_grasp_action_server.html">7.4. execute_grasp_action_server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="find_table_planes.html">7.5. find_table_planes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasp_annotator.html">7.6. grasp_annotator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasp_method_selector.html">7.7. grasp_method_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasppose_estimator.html">7.8. grasppose_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hsr_wrapper.html">7.9. hsr_wrapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_fetcher.html">7.10. image_fetcher</a></li>
+<li class="toctree-l2"><a class="reference internal" href="moveit_wrapper.html">7.11. moveit_wrapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="object_detector.html">7.12. object_detector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="place.html">7.13. place</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="pose_estimator.html">7.14. pose_estimator</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">7.14.1. pose_estimator.CallPoseEstimatorService</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#pose_estimator.CallPoseEstimatorService"><code class="docutils literal notranslate"><span class="pre">CallPoseEstimatorService</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="robot_control.html">7.15. robot_control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine_components.html">7.16. statemachine_components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine_llm.html">7.17. statemachine_llm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine.html">7.18. statemachine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userinput.html">7.19. userinput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizer.html">7.20. visualizer</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Grasping Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html"><span class="section-number">7. </span>API</a></li>
+          <li class="breadcrumb-item"><a href="pose_estimator.html"><span class="section-number">7.14. </span>pose_estimator</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">7.14.1. </span>pose_estimator.CallPoseEstimatorService</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/pose_estimator.CallPoseEstimatorService.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="pose-estimator-callposeestimatorservice">
+<h1><span class="section-number">7.14.1. </span>pose_estimator.CallPoseEstimatorService<a class="headerlink" href="#pose-estimator-callposeestimatorservice" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="pose_estimator.CallPoseEstimatorService">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pose_estimator.</span></span><span class="sig-name descname"><span class="pre">CallPoseEstimatorService</span></span><a class="headerlink" href="#pose_estimator.CallPoseEstimatorService" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class provides a service that calls a pose estimator to estimate the pose of objects in an image.</p>
+<p>The service sends an action goal to the pose estimator with the input image, bounding box detections, and
+mask detections. The pose estimator returns the estimated poses of the objects in the image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rgb</strong> (<em>sensor_msgs.msg.Image</em>) – RGB image of the scene</p></li>
+<li><p><strong>depth</strong> (<em>sensor_msgs.msg.Image</em>) – Depth image of the scene</p></li>
+<li><p><strong>bb_detections</strong> (<em>list</em><em> of </em><em>sensor_msgs.msg.RegionOfInterest</em>) – Bounding box detections of the objects in the image</p></li>
+<li><p><strong>mask_detections</strong> (<em>list</em><em> of </em><em>sensor_msgs.msg.Image</em>) – Masks of the objects in the image</p></li>
+<li><p><strong>class_names</strong> (<em>list</em><em> of </em><em>str</em>) – Names of the detected objects</p></li>
+<li><p><strong>class_confidences</strong> (<em>list</em><em> of </em><em>float</em>) – Confidence scores of the detected objects</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pose_estimator.CallPoseEstimatorService.bridge">
+<span class="sig-name descname"><span class="pre">bridge</span></span><a class="headerlink" href="#pose_estimator.CallPoseEstimatorService.bridge" title="Permalink to this definition"></a></dt>
+<dd><p>Converts between ROS Image messages and OpenCV images</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>CvBridge</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pose_estimator.CallPoseEstimatorService.srv">
+<span class="sig-name descname"><span class="pre">srv</span></span><a class="headerlink" href="#pose_estimator.CallPoseEstimatorService.srv" title="Permalink to this definition"></a></dt>
+<dd><p>Service that calls the pose estimator when called</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>rospy.Service</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pose_estimator.CallPoseEstimatorService.res_vis_service">
+<span class="sig-name descname"><span class="pre">res_vis_service</span></span><a class="headerlink" href="#pose_estimator.CallPoseEstimatorService.res_vis_service" title="Permalink to this definition"></a></dt>
+<dd><p>Service that visualizes the pose estimation result</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>rospy.ServiceProxy</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>res_vis_service_name</strong> (<em>str</em>) – Topic of the result visualization service.
+Loaded from the ‘result_visualization_service_name’ parameter</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>class_confidences</strong> (<em>list of float</em>) – Confidence scores of the detected objects</p></li>
+<li><p><strong>class_names</strong> (<em>list of str</em>) – Names of the detected objects</p></li>
+<li><p><strong>pose_results</strong> (<em>list of geometry_msgs.msg.Pose</em>) – Estimated poses of the detected objects in the image frame.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pose_estimator.CallPoseEstimatorService.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pose_estimator.CallPoseEstimatorService.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pose_estimator.CallPoseEstimatorService.__init__" title="pose_estimator.CallPoseEstimatorService.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pose_estimator.CallPoseEstimatorService.execute" title="pose_estimator.CallPoseEstimatorService.execute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">execute</span></code></a>(req)</p></td>
+<td><p>Calls the pose estimator to estimate the pose of objects in the input image.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pose_estimator.CallPoseEstimatorService.visualize_pose_estimation_result" title="pose_estimator.CallPoseEstimatorService.visualize_pose_estimation_result"><code class="xref py py-obj docutils literal notranslate"><span class="pre">visualize_pose_estimation_result</span></code></a>(rgb, ...)</p></td>
+<td><p>Visualizes the pose estimation result using the pose estimator result visualization service.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="pose_estimator.CallPoseEstimatorService.execute">
+<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">req</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pose_estimator.CallPoseEstimatorService.execute" title="Permalink to this definition"></a></dt>
+<dd><p>Calls the pose estimator to estimate the pose of objects in the input image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>req</strong> (<em>grasping_pipeline_msgs.srv.CallPoseEstimatorRequest</em>) – Request containing the input images, bounding box detections, and mask detections,
+class names, and class confidences</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Response containing the estimated poses of the objects in the image, class names
+and class confidences</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>grasping_pipeline_msgs.srv.CallPoseEstimatorResponse</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pose_estimator.CallPoseEstimatorService.visualize_pose_estimation_result">
+<span class="sig-name descname"><span class="pre">visualize_pose_estimation_result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rgb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_poses</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_names</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pose_estimator.CallPoseEstimatorService.visualize_pose_estimation_result" title="Permalink to this definition"></a></dt>
+<dd><p>Visualizes the pose estimation result using the pose estimator result visualization service.</p>
+<p>The service creates and publishes an image with a contour of the detected objects and their
+object names. This is only possible for known objects because the object’s model is used to
+determine the object’s contour.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rgb</strong> (<em>sensor_msgs.msg.Image</em>) – The rgb image.</p></li>
+<li><p><strong>model_poses</strong> (<em>list</em><em> of </em><em>geometry_msgs.msg.Pose</em>) – The poses of the detected objects.</p></li>
+<li><p><strong>model_names</strong> (<em>list</em><em> of </em><em>str</em>) – The names of the detected objects. Used to lookup the object’s model which is used to
+determine the object’s contour.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pose_estimator.html" class="btn btn-neutral float-left" title="7.14. pose_estimator" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="robot_control.html" class="btn btn-neutral float-right" title="7.15. robot_control" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Alexander Haberl.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

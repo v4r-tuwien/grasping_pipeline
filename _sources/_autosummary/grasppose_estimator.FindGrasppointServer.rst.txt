@@ -1,0 +1,31 @@
+grasppose\_estimator.FindGrasppointServer
+=========================================
+
+.. currentmodule:: grasppose_estimator
+
+.. autoclass:: FindGrasppointServer
+   :members:                                    
+   :show-inheritance:                           
+   :inherited-members:                          
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~FindGrasppointServer.__init__
+      ~FindGrasppointServer.add_bb_marker
+      ~FindGrasppointServer.add_marker
+      ~FindGrasppointServer.execute
+      ~FindGrasppointServer.get_bb_for_known_objects
+      ~FindGrasppointServer.get_closest_objects
+      ~FindGrasppointServer.transform_to_kdl
+   
+   
+
+   
+   
+   

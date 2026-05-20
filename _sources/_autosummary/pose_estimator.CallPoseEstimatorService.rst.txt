@@ -1,0 +1,27 @@
+pose\_estimator.CallPoseEstimatorService
+========================================
+
+.. currentmodule:: pose_estimator
+
+.. autoclass:: CallPoseEstimatorService
+   :members:                                    
+   :show-inheritance:                           
+   :inherited-members:                          
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~CallPoseEstimatorService.__init__
+      ~CallPoseEstimatorService.execute
+      ~CallPoseEstimatorService.visualize_pose_estimation_result
+   
+   
+
+   
+   
+   

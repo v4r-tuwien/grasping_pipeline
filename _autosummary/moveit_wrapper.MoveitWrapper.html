@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>7.11.1. moveit_wrapper.MoveitWrapper &mdash; Grasping Pipeline 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=10e673fd" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=e031e9a9"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="7.12. object_detector" href="object_detector.html" />
+    <link rel="prev" title="7.11. moveit_wrapper" href="moveit_wrapper.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Grasping Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">1. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../startup.html">2. Starting the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../adding_new_estimators.html">3. Adding a new estimator or detector to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../adding_new_objects.html">4. Adding new objects to the grasping pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview_state_machine.html">5. Overview of the statemachine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../details_state_machine.html">6. Detailed Description of the state machine</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">7. API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="check_table_clean.html">7.1. check_table_clean</a></li>
+<li class="toctree-l2"><a class="reference internal" href="collision_environment.html">7.2. collision_environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="direct_grasppose_estimator.html">7.3. direct_grasppose_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="execute_grasp_action_server.html">7.4. execute_grasp_action_server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="find_table_planes.html">7.5. find_table_planes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasp_annotator.html">7.6. grasp_annotator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasp_method_selector.html">7.7. grasp_method_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grasppose_estimator.html">7.8. grasppose_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hsr_wrapper.html">7.9. hsr_wrapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_fetcher.html">7.10. image_fetcher</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="moveit_wrapper.html">7.11. moveit_wrapper</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">7.11.1. moveit_wrapper.MoveitWrapper</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#moveit_wrapper.MoveitWrapper"><code class="docutils literal notranslate"><span class="pre">MoveitWrapper</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="object_detector.html">7.12. object_detector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="place.html">7.13. place</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pose_estimator.html">7.14. pose_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="robot_control.html">7.15. robot_control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine_components.html">7.16. statemachine_components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine_llm.html">7.17. statemachine_llm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statemachine.html">7.18. statemachine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userinput.html">7.19. userinput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizer.html">7.20. visualizer</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Grasping Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html"><span class="section-number">7. </span>API</a></li>
+          <li class="breadcrumb-item"><a href="moveit_wrapper.html"><span class="section-number">7.11. </span>moveit_wrapper</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">7.11.1. </span>moveit_wrapper.MoveitWrapper</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/moveit_wrapper.MoveitWrapper.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="moveit-wrapper-moveitwrapper">
+<h1><span class="section-number">7.11.1. </span>moveit_wrapper.MoveitWrapper<a class="headerlink" href="#moveit-wrapper-moveitwrapper" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">moveit_wrapper.</span></span><span class="sig-name descname"><span class="pre">MoveitWrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">libtf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planning_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Convenience Moveit Wrapper for Sasha.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">libtf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planning_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes the MoveitWrapper.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>libtf</strong> (<em>tf_wrapper</em>) – Instance of the tf_wrapper class</p></li>
+<li><p><strong>planning_time</strong> (<em>float</em><em>, </em><em>optional</em>) – The time to plan a trajectory, by default 5.0</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.__init__" title="moveit_wrapper.MoveitWrapper.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(libtf[, planning_time])</p></td>
+<td><p>Initializes the MoveitWrapper.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.add_box" title="moveit_wrapper.MoveitWrapper.add_box"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_box</span></code></a>(name, frame, pose, size)</p></td>
+<td><p>Add a box to the planning scene.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.add_cylinder" title="moveit_wrapper.MoveitWrapper.add_cylinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_cylinder</span></code></a>(name, frame, pose, height, radius)</p></td>
+<td><p>Add a cylinder to the planning scene.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.add_model_from_sdf" title="moveit_wrapper.MoveitWrapper.add_model_from_sdf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_model_from_sdf</span></code></a>(frame, point, euler, sdf)</p></td>
+<td><p>Add a model from a sdf-file to the planning scene.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.add_orientation_constraint" title="moveit_wrapper.MoveitWrapper.add_orientation_constraint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_orientation_constraint</span></code></a>(reference_frame, ...)</p></td>
+<td><p>Adds an orientation constraint to the whole body until it is cleared</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.all_close" title="moveit_wrapper.MoveitWrapper.all_close"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all_close</span></code></a>(goal, actual, pos_tolerance, ...)</p></td>
+<td><p>Judges whether the actual value is within the tolerance for the goal value.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.attach_object" title="moveit_wrapper.MoveitWrapper.attach_object"><code class="xref py py-obj docutils literal notranslate"><span class="pre">attach_object</span></code></a>(object_name[, touch_links])</p></td>
+<td><p>Attaches an object to the robot eef</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.clear_path_constraints" title="moveit_wrapper.MoveitWrapper.clear_path_constraints"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear_path_constraints</span></code></a>()</p></td>
+<td><p>Clears the path constraints of the whole body</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.current_pose_close_to_target" title="moveit_wrapper.MoveitWrapper.current_pose_close_to_target"><code class="xref py py-obj docutils literal notranslate"><span class="pre">current_pose_close_to_target</span></code></a>(target_pose[, ...])</p></td>
+<td><p>Checks if the current pose is close to the target pose</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.detach_all_objects" title="moveit_wrapper.MoveitWrapper.detach_all_objects"><code class="xref py py-obj docutils literal notranslate"><span class="pre">detach_all_objects</span></code></a>()</p></td>
+<td><p>Detaches all objects from the robot eef</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.get_attached_objects" title="moveit_wrapper.MoveitWrapper.get_attached_objects"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_attached_objects</span></code></a>([object_names])</p></td>
+<td><p>Returns the attached objects</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.get_current_eef_pose" title="moveit_wrapper.MoveitWrapper.get_current_eef_pose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_current_eef_pose</span></code></a>([eef_link, reference_frame])</p></td>
+<td><p>Returns the current pose of the end effector link in the specified frame</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.get_current_pose" title="moveit_wrapper.MoveitWrapper.get_current_pose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_current_pose</span></code></a>(frame)</p></td>
+<td><p>Returns the current pose of the robot base in the specified frame</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.get_link_names" title="moveit_wrapper.MoveitWrapper.get_link_names"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_link_names</span></code></a>([group])</p></td>
+<td><p>Returns the link names of the specified group</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.get_object_poses" title="moveit_wrapper.MoveitWrapper.get_object_poses"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_object_poses</span></code></a>(object_names)</p></td>
+<td><p>Returns the poses of the objects in the planning scene</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.get_objects" title="moveit_wrapper.MoveitWrapper.get_objects"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_objects</span></code></a>([object_names])</p></td>
+<td><p>Returns the objects in the planning scene</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.get_planning_frame" title="moveit_wrapper.MoveitWrapper.get_planning_frame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_planning_frame</span></code></a>([group])</p></td>
+<td><p>Returns the planning frame of the specified group</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.gripper_grasp" title="moveit_wrapper.MoveitWrapper.gripper_grasp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gripper_grasp</span></code></a>()</p></td>
+<td><p>Closes the gripper to grasp an object.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.gripper_open" title="moveit_wrapper.MoveitWrapper.gripper_open"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gripper_open</span></code></a>()</p></td>
+<td><p>Opens the gripper.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.init_moveit" title="moveit_wrapper.MoveitWrapper.init_moveit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_moveit</span></code></a>(planning_time)</p></td>
+<td><p>Initializes the moveit commander and returns the whole_body, gripper, scene and robot objects</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.place" title="moveit_wrapper.MoveitWrapper.place"><code class="xref py py-obj docutils literal notranslate"><span class="pre">place</span></code></a>(object, pose)</p></td>
+<td><p>Places an object at the specified pose</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.set_endeffector" title="moveit_wrapper.MoveitWrapper.set_endeffector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_endeffector</span></code></a>(eef)</p></td>
+<td><p>Sets which link should be used as the end effector</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.set_support_surface" title="moveit_wrapper.MoveitWrapper.set_support_surface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_support_surface</span></code></a>(surface_name)</p></td>
+<td><p>Sets the support surface for the whole body</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.set_whole_body_acc" title="moveit_wrapper.MoveitWrapper.set_whole_body_acc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_whole_body_acc</span></code></a>([acc])</p></td>
+<td><p>Set the maximum acceleration of the whole_body.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.set_whole_body_vel" title="moveit_wrapper.MoveitWrapper.set_whole_body_vel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_whole_body_vel</span></code></a>([vel])</p></td>
+<td><p>Set the maximum speed of the whole_body.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.whole_body_IK" title="moveit_wrapper.MoveitWrapper.whole_body_IK"><code class="xref py py-obj docutils literal notranslate"><span class="pre">whole_body_IK</span></code></a>(x, y, z, q[, frame, ...])</p></td>
+<td><p>Plans and executes a motion to the target pose.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian" title="moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">whole_body_IK_cartesian</span></code></a>(x, y, z, q[, ...])</p></td>
+<td><p>Plan and execute a motion to the target pose using inverse kinematics control of the whole body.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian_plan" title="moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian_plan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">whole_body_IK_cartesian_plan</span></code></a>(waypoints, ...)</p></td>
+<td><p>Compute a sequence of waypoints that make the end-effector move in straight line segments that follow the poses specified as waypoints.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian_with_timeout" title="moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian_with_timeout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">whole_body_IK_cartesian_with_timeout</span></code></a>(x, y, z, q)</p></td>
+<td><p>Plans and executes a motion to the target pose for multiple coordinates with a timeout.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#moveit_wrapper.MoveitWrapper.whole_body_plan_and_go" title="moveit_wrapper.MoveitWrapper.whole_body_plan_and_go"><code class="xref py py-obj docutils literal notranslate"><span class="pre">whole_body_plan_and_go</span></code></a>(pose_target)</p></td>
+<td><p>Plans and executes a motion to the target pose</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.add_box">
+<span class="sig-name descname"><span class="pre">add_box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.add_box" title="Permalink to this definition"></a></dt>
+<dd><p>Add a box to the planning scene.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The name of the box</p></li>
+<li><p><strong>frame</strong> (<em>str</em>) – The frame of the passed pose</p></li>
+<li><p><strong>pose</strong> (<em>geometry_msgs/Point</em><em>, </em><em>geometry_msgs/Pose</em>) – Pose of the box relative to the frame. If geometry_msgs/Point is passed, the orientation
+is set to (0, 0, 0, 1), otherwise the orientation is set to the passed value.</p></li>
+<li><p><strong>size</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – The size of the box as (x, y, z)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.add_cylinder">
+<span class="sig-name descname"><span class="pre">add_cylinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.add_cylinder" title="Permalink to this definition"></a></dt>
+<dd><p>Add a cylinder to the planning scene.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The name of the cylinder</p></li>
+<li><p><strong>frame</strong> (<em>str</em>) – The frame of the passed pose</p></li>
+<li><p><strong>pose</strong> (<em>geometry_msgs/Point</em><em>, </em><em>geometry_msgs/Pose</em>) – Pose of the cylinder relative to the frame. If geometry_msgs/Point is passed, the
+orientation is set to (0, 0, 0, 1), otherwise the orientation is set to the passed value</p></li>
+<li><p><strong>height</strong> (<em>float</em>) – The height of the cylinder in meters</p></li>
+<li><p><strong>radius</strong> (<em>float</em>) – The radius of the cylinder in meters</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.add_model_from_sdf">
+<span class="sig-name descname"><span class="pre">add_model_from_sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">euler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sdf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.add_model_from_sdf" title="Permalink to this definition"></a></dt>
+<dd><p>Add a model from a sdf-file to the planning scene.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frame</strong> (<em>str</em>) – The name of the frame</p></li>
+<li><p><strong>point</strong> (<em>geometry_msgs/Point</em>) – The coordinates to add the model</p></li>
+<li><p><strong>euler</strong> (<em>geometry_msgs/Point</em>) – The euler angles of the model to be added</p></li>
+<li><p><strong>sdf</strong> (<em>str</em>) – The path to the sdf file</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.add_orientation_constraint">
+<span class="sig-name descname"><span class="pre">add_orientation_constraint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reference_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_effector_link</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerances_xyz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0.3,</span> <span class="pre">0.3,</span> <span class="pre">0.3]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.add_orientation_constraint" title="Permalink to this definition"></a></dt>
+<dd><p>Adds an orientation constraint to the whole body until it is cleared</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reference_frame</strong> (<em>str</em>) – The name of the reference frame (i.e. the frame in which the orientation constrain is defined in)</p></li>
+<li><p><strong>end_effector_link</strong> (<em>str</em>) – The name of the end effector link which should be constrained</p></li>
+<li><p><strong>orientation</strong> (<em>geometry_msgs/Quaternion</em>) – The target orientation of the end effector link (i.e. the eef should have this orientation during the motion)</p></li>
+<li><p><strong>tolerances_xyz</strong> (<em>list</em><em>[</em><em>float</em><em>]</em><em>, </em><em>optional</em>) – The tolerances for the orientation constraint, by default [0.3, 0.3, 0.3] (radians)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.all_close">
+<span class="sig-name descname"><span class="pre">all_close</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">goal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actual</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_tolerance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ori_tolerance</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.all_close" title="Permalink to this definition"></a></dt>
+<dd><p>Judges whether the actual value is within the tolerance for the goal value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>goal</strong> (<em>list</em><em>[</em><em>float</em><em>]</em><em>, </em><em>geometry_msgs/Pose</em><em>, </em><em>geometry_msgs/PoseStamped</em>) – The goal value</p></li>
+<li><p><strong>actual</strong> (<em>list</em><em>[</em><em>float</em><em>]</em><em>, </em><em>geometry_msgs/Pose</em><em>, </em><em>geometry_msgs/PoseStamped</em>) – The actual value</p></li>
+<li><p><strong>pos_tolerance</strong> (<em>float</em>) – The tolerance for the positions</p></li>
+<li><p><strong>ori_tolerance</strong> (<em>float</em>) – The tolerance for the orientations</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the value is within the tolerance</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.attach_object">
+<span class="sig-name descname"><span class="pre">attach_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">touch_links</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.attach_object" title="Permalink to this definition"></a></dt>
+<dd><p>Attaches an object to the robot eef</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_name</strong> (<em>str</em>) – The name of the object to attach. Must be a known object in the planning scene.</p></li>
+<li><p><strong>touch_links</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – The links that are allowed to touch the object (e.g. parts of the gripper), by default []</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.clear_path_constraints">
+<span class="sig-name descname"><span class="pre">clear_path_constraints</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.clear_path_constraints" title="Permalink to this definition"></a></dt>
+<dd><p>Clears the path constraints of the whole body</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.current_pose_close_to_target">
+<span class="sig-name descname"><span class="pre">current_pose_close_to_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_pose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.04</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ori_tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.17</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.current_pose_close_to_target" title="Permalink to this definition"></a></dt>
+<dd><p>Checks if the current pose is close to the target pose</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_pose</strong> (<em>geometry_msgs/Pose</em>) – The target pose</p></li>
+<li><p><strong>pos_tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – The tolerance for the positions, by default 0.04</p></li>
+<li><p><strong>ori_tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – The tolerance for the orientations, by default 0.17</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the current pose is close to the target pose</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.detach_all_objects">
+<span class="sig-name descname"><span class="pre">detach_all_objects</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.detach_all_objects" title="Permalink to this definition"></a></dt>
+<dd><p>Detaches all objects from the robot eef</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>object_name</strong> (<em>str</em>) – The name of the object to detach. Must be a known object in the planning scene.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.get_attached_objects">
+<span class="sig-name descname"><span class="pre">get_attached_objects</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.get_attached_objects" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the attached objects</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>object_names</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – The names of the objects to return. If empty, all attached objects are returned, by
+default []</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The attached objects. The keys are the object names and the values are the objects
+(moveit_msgs/AttachedCollisionObject)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.get_current_eef_pose">
+<span class="sig-name descname"><span class="pre">get_current_eef_pose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eef_link</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hand_palm_link'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_frame</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'map'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.get_current_eef_pose" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the current pose of the end effector link in the specified frame</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>eef_link</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the end effector link, by default “hand_palm_link”</p></li>
+<li><p><strong>reference_frame</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the reference frame to transform the eef pose to, by default “map”</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.get_current_pose">
+<span class="sig-name descname"><span class="pre">get_current_pose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.get_current_pose" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the current pose of the robot base in the specified frame</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>frame</strong> (<em>str</em>) – The frame to transform the base pose to</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The current pose of the robot base in the specified frame</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>geometry_msgs/PoseStamped</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.get_link_names">
+<span class="sig-name descname"><span class="pre">get_link_names</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.get_link_names" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the link names of the specified group</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>group</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the group, by default None</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>All link names of the specified group.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.get_object_poses">
+<span class="sig-name descname"><span class="pre">get_object_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_names</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.get_object_poses" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the poses of the objects in the planning scene</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>object_names</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – The names of the objects to return</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The poses of the objects in the planning scene. The keys are the object names and the
+values are the poses (geometry_msgs/Pose). The frame of the poses is the planning frame.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.get_objects">
+<span class="sig-name descname"><span class="pre">get_objects</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.get_objects" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the objects in the planning scene</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>object_names</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – The names of the objects to return. If empty, all objects are returned, by default []</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The objects in the planning scene. The keys are the object names and the values are the
+objects (moveit_msgs/CollisionObject)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.get_planning_frame">
+<span class="sig-name descname"><span class="pre">get_planning_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'whole_body'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.get_planning_frame" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the planning frame of the specified group</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>group</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the group, by default “whole_body”</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The planning frame of the specified group</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.gripper_grasp">
+<span class="sig-name descname"><span class="pre">gripper_grasp</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.gripper_grasp" title="Permalink to this definition"></a></dt>
+<dd><p>Closes the gripper to grasp an object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.gripper_open">
+<span class="sig-name descname"><span class="pre">gripper_open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.gripper_open" title="Permalink to this definition"></a></dt>
+<dd><p>Opens the gripper. The gripper is opened by moving the hand_motor_joint to 1.0</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.init_moveit">
+<span class="sig-name descname"><span class="pre">init_moveit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">planning_time</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.init_moveit" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes the moveit commander and returns the whole_body, gripper, scene and robot objects</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>planning_time</strong> (<em>float</em>) – The time to plan a trajectory</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>whole_body</strong> (<em>moveit_commander.MoveGroupCommander</em>) – The whole body move group commander</p></li>
+<li><p><strong>gripper</strong> (<em>moveit_commander.MoveGroupCommander</em>) – The gripper move group commander</p></li>
+<li><p><strong>scene</strong> (<em>moveit_commander.PlanningSceneInterface</em>) – The planning scene interface</p></li>
+<li><p><strong>robot</strong> (<em>moveit_commander.RobotCommander</em>) – The robot commander</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.place">
+<span class="sig-name descname"><span class="pre">place</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pose</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.place" title="Permalink to this definition"></a></dt>
+<dd><p>Places an object at the specified pose</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object</strong> (<em>str</em>) – The name of the object to place</p></li>
+<li><p><strong>pose</strong> (<em>geometry_msgs/Pose</em>) – The pose to place the object at</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>not None if the object was placed successfully, None otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.set_endeffector">
+<span class="sig-name descname"><span class="pre">set_endeffector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eef</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.set_endeffector" title="Permalink to this definition"></a></dt>
+<dd><p>Sets which link should be used as the end effector</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>eef</strong> (<em>str</em>) – The name of the end effector link</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.set_support_surface">
+<span class="sig-name descname"><span class="pre">set_support_surface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surface_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.set_support_surface" title="Permalink to this definition"></a></dt>
+<dd><p>Sets the support surface for the whole body</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.set_whole_body_acc">
+<span class="sig-name descname"><span class="pre">set_whole_body_acc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">acc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.set_whole_body_acc" title="Permalink to this definition"></a></dt>
+<dd><p>Set the maximum acceleration of the whole_body.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>acc</strong> (<em>float</em><em>, </em><em>optional</em>) – Maximum acceleration value. The value must be between 0.0 and 1.0, by default 1.0</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.set_whole_body_vel">
+<span class="sig-name descname"><span class="pre">set_whole_body_vel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.set_whole_body_vel" title="Permalink to this definition"></a></dt>
+<dd><p>Set the maximum speed of the whole_body.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vel</strong> (<em>float</em><em>, </em><em>optional</em>) – Maximum speed value. The value must be between 0.0 and 1.0, by default 1.0</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.whole_body_IK">
+<span class="sig-name descname"><span class="pre">whole_body_IK</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'odom'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.02</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ori_tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.17</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.whole_body_IK" title="Permalink to this definition"></a></dt>
+<dd><p>Plans and executes a motion to the target pose.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>float</em>) – Target x-coordinate of the end-effector</p></li>
+<li><p><strong>y</strong> (<em>float</em>) – Target y-coordinate of the end-effector</p></li>
+<li><p><strong>z</strong> (<em>float</em>) – Target z-coordinate of the end-effector</p></li>
+<li><p><strong>q</strong> (<em>geometry_msgs/Quaternion</em>) – Target orientation of the end-effector</p></li>
+<li><p><strong>frame</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the reference frame, by default “odom”</p></li>
+<li><p><strong>pos_tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – The tolerance for the positions, by default 0.02. Used to check if the IK was successful</p></li>
+<li><p><strong>ori_tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – The tolerance for the orientations, by default 0.17. Used to check if the IK was successful</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the IK was successful, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian">
+<span class="sig-name descname"><span class="pre">whole_body_IK_cartesian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_avoid_obstacle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eef_step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.04</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ori_tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.17</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian" title="Permalink to this definition"></a></dt>
+<dd><p>Plan and execute a motion to the target pose using inverse kinematics control of the whole body.</p>
+<p>Assumes the coordinates to be in the planning scene frame and uses Time.now() as a stamp.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>float</em>) – Target x-coordinate of the end-effector</p></li>
+<li><p><strong>y</strong> (<em>float</em>) – Target y-coordinate of the end-effector</p></li>
+<li><p><strong>z</strong> (<em>float</em>) – Target z-coordinate of the end-effector</p></li>
+<li><p><strong>q</strong> (<em>geometry_msgs/Quaternion</em>) – Target orientation of the end-effector</p></li>
+<li><p><strong>is_avoid_obstacle</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether obstacles should be avoided, by default True</p></li>
+<li><p><strong>eef_step</strong> (<em>float</em><em>, </em><em>optional</em>) – The step size for the calculation, by default 0.01</p></li>
+<li><p><strong>fraction_th</strong> (<em>float</em><em>, </em><em>optional</em>) – Threshold for the fraction of the path. The fraction itself indicates the percentage of
+how much of the path was followed. If the fraction of the plan is smaller than the value
+of the fraction threshold, the function does not return a plan, by default 0.5</p></li>
+<li><p><strong>pos_tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – The tolerance for the positions, by default 0.04</p></li>
+<li><p><strong>ori_tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – The tolerance for the orientations, by default 0.17</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the IK was successfully planned and executed, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian_plan">
+<span class="sig-name descname"><span class="pre">whole_body_IK_cartesian_plan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">waypoints</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_avoid_obstacle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eef_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction_th</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian_plan" title="Permalink to this definition"></a></dt>
+<dd><p>Compute a sequence of waypoints that make the end-effector move in straight line segments
+that follow the poses specified as waypoints.</p>
+<p>Configurations are computed for every eef_step meters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waypoints</strong> (<em>list</em><em>[</em><em>geometry_msgs/Pose</em><em>]</em>) – The waypoints to plan a path for. The frame of the poses should be the same as the
+planning frame</p></li>
+<li><p><strong>is_avoid_obstacle</strong> (<em>bool</em>) – Whether obstacles should be avoided</p></li>
+<li><p><strong>eef_step</strong> (<em>float</em>) – The step size for the calculation</p></li>
+<li><p><strong>fraction_th</strong> (<em>float</em>) – Threshold for the fraction of the path. The fraction itself indicates the percentage of
+how much of the path was followed. If the fraction of the plan is smaller than the value
+of the fraction threshold, the function does not return a plan.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The computed plan</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>moveit_commander.RobotTrajectory</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian_with_timeout">
+<span class="sig-name descname"><span class="pre">whole_body_IK_cartesian_with_timeout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_avoid_obstacle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eef_step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.02</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ori_tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.17</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.whole_body_IK_cartesian_with_timeout" title="Permalink to this definition"></a></dt>
+<dd><p>Plans and executes a motion to the target pose for multiple coordinates with a timeout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>float</em>) – Target x-coordinate of the end-effector</p></li>
+<li><p><strong>y</strong> (<em>float</em>) – Target y-coordinate of the end-effector</p></li>
+<li><p><strong>z</strong> (<em>float</em>) – Target z-coordinate of the end-effector</p></li>
+<li><p><strong>q</strong> (<em>geometry_msgs/Quaternion</em>) – Target orientation of the end-effector</p></li>
+<li><p><strong>is_avoid_obstacle</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether obstacles should be avoided, by default True</p></li>
+<li><p><strong>eef_step</strong> (<em>float</em><em>, </em><em>optional</em>) – The step size for the calculation, by default 0.01</p></li>
+<li><p><strong>fraction_th</strong> (<em>float</em><em>, </em><em>optional</em>) – Threshold for the fraction of the path. The fraction itself indicates the percentage of
+how much of the path was followed. If the fraction of the plan is smaller than the value
+of the fraction threshold, the function does not return a plan, by default 0.5</p></li>
+<li><p><strong>pos_tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – The tolerance for the positions, by default 0.02</p></li>
+<li><p><strong>ori_tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – The tolerance for the orientations, by default 0.17</p></li>
+<li><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – The timeout in seconds, by default 5.0. If the timeout is reached, the function aborts.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the IK was successfully planned and executed, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="moveit_wrapper.MoveitWrapper.whole_body_plan_and_go">
+<span class="sig-name descname"><span class="pre">whole_body_plan_and_go</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_target</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#moveit_wrapper.MoveitWrapper.whole_body_plan_and_go" title="Permalink to this definition"></a></dt>
+<dd><p>Plans and executes a motion to the target pose</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pose_target</strong> (<em>geometry_msgs/PoseStamped</em>) – The target pose</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the plan was found and executed, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="moveit_wrapper.html" class="btn btn-neutral float-left" title="7.11. moveit_wrapper" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="object_detector.html" class="btn btn-neutral float-right" title="7.12. object_detector" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Alexander Haberl.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

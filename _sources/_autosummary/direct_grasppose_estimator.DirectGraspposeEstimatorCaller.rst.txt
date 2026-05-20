@@ -1,0 +1,33 @@
+direct\_grasppose\_estimator.DirectGraspposeEstimatorCaller
+===========================================================
+
+.. currentmodule:: direct_grasppose_estimator
+
+.. autoclass:: DirectGraspposeEstimatorCaller
+   :members:                                    
+   :show-inheritance:                           
+   :inherited-members:                          
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DirectGraspposeEstimatorCaller.__init__
+      ~DirectGraspposeEstimatorCaller.add_bb_marker
+      ~DirectGraspposeEstimatorCaller.add_marker
+      ~DirectGraspposeEstimatorCaller.execute
+      ~DirectGraspposeEstimatorCaller.get_3D_bbs
+      ~DirectGraspposeEstimatorCaller.get_bb_3D_from_bb
+      ~DirectGraspposeEstimatorCaller.get_bb_3D_from_mask
+      ~DirectGraspposeEstimatorCaller.get_bb_center_poses
+      ~DirectGraspposeEstimatorCaller.get_closest_object
+   
+   
+
+   
+   
+   

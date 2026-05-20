@@ -1,0 +1,40 @@
+﻿object\_detector
+================
+
+.. automodule:: object_detector
+  
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:                                          
+   
+      check_label_img
+      visualize_label_image
+      visualize_rois
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:                                          
+      :template: custom-class-template.rst              
+   
+      CallObjectDetectorService
+   
+   
+
+   
+   
+   
+
+
+

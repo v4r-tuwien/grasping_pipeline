@@ -1,0 +1,26 @@
+grasp\_method\_selector.GraspMethodSelector
+===========================================
+
+.. currentmodule:: grasp_method_selector
+
+.. autoclass:: GraspMethodSelector
+   :members:                                    
+   :show-inheritance:                           
+   :inherited-members:                          
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~GraspMethodSelector.__init__
+      ~GraspMethodSelector.execute
+   
+   
+
+   
+   
+   

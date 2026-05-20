@@ -1,0 +1,6 @@
+statemachine.get\_single\_grasp\_sm
+===================================
+
+.. currentmodule:: statemachine
+
+.. autofunction:: get_single_grasp_sm
