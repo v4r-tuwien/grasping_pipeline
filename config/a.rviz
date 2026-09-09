@@ -54,20 +54,237 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /robot_description
-      Enabled: false
+      Enabled: true
       Links:
         All Links Enabled: true
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
-        Link Tree Style: ""
+        Link Tree Style: Links in Alphabetic Order
+        arm_flex_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_lift_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        arm_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_b_bumper_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_f_bumper_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_imu_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_l_drive_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_l_passive_wheel_x_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_l_passive_wheel_y_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_l_passive_wheel_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_r_drive_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_r_passive_wheel_x_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_r_passive_wheel_y_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_r_passive_wheel_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_range_sensor_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        hand_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        hand_camera_gazebo_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        hand_l_distal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        hand_l_finger_tip_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        hand_l_finger_vacuum_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        hand_l_mimic_distal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        hand_l_proximal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        hand_l_spring_proximal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        hand_motor_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        hand_palm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        hand_r_distal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        hand_r_finger_tip_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        hand_r_mimic_distal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        hand_r_proximal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        hand_r_spring_proximal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_center_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_center_camera_gazebo_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_l_stereo_camera_gazebo_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_l_stereo_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_pan_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_r_stereo_camera_gazebo_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_r_stereo_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_rgbd_sensor_gazebo_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_rgbd_sensor_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_tilt_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        torso_lift_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        wrist_flex_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        wrist_ft_sensor_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wrist_ft_sensor_mount_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wrist_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
       Name: RobotModel
       TF Prefix: ""
       Update Interval: 0
-      Value: false
+      Value: true
       Visual Enabled: true
     - Class: rviz_default_plugins/TF
       Enabled: true
@@ -80,6 +297,10 @@ Visualization Manager:
           Value: false
         arm_roll_link:
           Value: false
+        aruco_marker/17:
+          Value: true
+        aruco_marker/17fix:
+          Value: true
         base_b_bumper_link:
           Value: false
         base_f_bumper_link:
@@ -172,7 +393,7 @@ Visualization Manager:
           Value: false
         odom:
           Value: false
-        pose_obj_000005:
+        tf_help:
           Value: true
         torso_lift_link:
           Value: false
@@ -193,6 +414,8 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
+          aruco_marker/17fix:
+            {}
           odom:
             base_footprint:
               base_link:
@@ -244,6 +467,8 @@ Visualization Manager:
                     base_r_passive_wheel_y_frame:
                       base_r_passive_wheel_z_link:
                         {}
+                tf_help:
+                  {}
                 torso_lift_link:
                   head_pan_link:
                     head_tilt_link:
@@ -253,9 +478,9 @@ Visualization Manager:
                       head_l_stereo_camera_link:
                         head_l_stereo_camera_frame:
                           head_rgbd_sensor_rgb_frame:
-                            head_rgbd_sensor_depth_frame:
+                            aruco_marker/17:
                               {}
-                            pose_obj_000005:
+                            head_rgbd_sensor_depth_frame:
                               {}
                         head_l_stereo_camera_gazebo_frame:
                           {}
@@ -530,7 +755,8 @@ Visualization Manager:
       Enabled: true
       Name: Marker
       Namespaces:
-        {}
+        bb_marker: true
+        grasp_marker: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -627,7 +853,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 34.9974365234375
+      Distance: 17.38104820251465
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -642,10 +868,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.734761118888855
+      Pitch: 0.8247608542442322
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 3.242388963699341
+      Yaw: 3.4723892211914062
     Saved: ~
 Window Geometry:
   Displays:
@@ -666,4 +892,4 @@ Window Geometry:
     collapsed: false
   Width: 1680
   X: 1920
-  Y: 30
+  Y: 0

@@ -1,9 +1,6 @@
 # Building documentation
+
 This README explains how to build the documentation for the project. It uses `sphinx` to generate the documentation from the source code.
-
-## Multiversion
-
-sphinx-multiversion source build/html -W --keep-going
 
 ## Installation
 To install the required dependencies, run the following command:

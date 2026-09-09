@@ -1,9 +1,7 @@
 Installation
 ============
 
-.. note:: This only covers the installation of the ros2 environment. For the installation of the outdated ros1 environment please see the ros1 branch of this repository
-
-.. warning:: This is not yet fully updated to ros2
+.. note:: This only covers the installation of the ros2 environment. For the installation of the ros1 environment please see the ros1 branch of this repository
 
 You can install the grasping pipeline in two ways:
 
@@ -61,7 +59,7 @@ The instructions can be found in the `HSRB_ROS_Docker_Image repository <https://
 
    .. code-block:: console
 
-      $ ..TODO update echo "alias hsr2='cd ~/HSR/ && bash ./RUN-DOCKER-CONTAINER.bash'" >> ~/.bashrc
+      $ echo "alias hsr2='cd ~/HSR2/ && bash ./RUN-DOCKER-CONTAINER.bash'" >> ~/.bashrc
 
    This allows you to start the docker container by simply typing `hsr2` in the terminal.
 
@@ -72,7 +70,40 @@ The instructions can be found in the `HSRB_ROS_Docker_Image repository <https://
        $ source ~/.bashrc
 
 
-..TODO network configuration ?? what needs to be set ? (why?, should there be a script for this?)
+*********************
+Network configuration
+*********************
+
+.. note:: These settings are required when using the docker container and when installing manually
+
+.. warning:: These are system settings and require sudo permissions.
+
+In order for our cyclone_dds configuration to work correctly the networking buffer sizes need to be increased.
+
+To permanently change these settings, add a file to /etc/sysctl.d/
+
+.. code-block:: console
+
+    $ sudo nano /etc/sysctl.d/99-custom.conf
+
+The file should have the following content:
+
+.. code-block:: text
+
+    # network settings for ros2 cyclone dds
+    net.core.rmem_max=2147483647
+    net.core.rmem_default=2147483647
+    net.core.wmem_max=2147483647
+    net.core.wmem_default=2147483647
+    net.ipv4.ipfrag_time=3
+    net.ipv4.ipfrag_high_thresh=134217728
+
+The immediately apply these settings use
+
+.. code-block:: console
+
+    $ sudo sysctl --system
+
 
 ******************************************************************
 Manually installing the grasping pipeline and all its dependencies
@@ -80,33 +111,42 @@ Manually installing the grasping pipeline and all its dependencies
 This option assumes that you already have installed:
 
 * ROS2 humble and the most common ROS packages (ros-humble-desktop)
-* ..TODO toyota HSR packages, need to be built from source
-* moveit (ros-noetic-moveit), ..TODO moveit python needs to be built ??
-* vision-msgs (ros-noetic-vision-msgs) ..TODO check, should be in desktop install
-* tf2-sensor-msgs (ros-noetic-tf2-sensor-msgs) ..TODO check, should be in desktop install
-* ros-numpy (ros-noetic-ros-numpy) ..TODO still in use?
+* ROS2 development tools (ros-dev-tools)
+* CycloneDDS (ros-humble-rmw-cyclonedds-cpp)
+* moveit (ros-humble-moveit)
 
-If you have not installed these packages yet, please refer to the commands in the **Dockerfile of the HSRB_ROS_Docker_Image repository** (`Link <https://github.com/v4r-tuwien/HSRB-ROS-Docker-Image/blob/main/docker/hsr-devel/Dockerfile>`_) on how to install ROS, the toyota HSR packages and moveit. If possible, use the versions specified in the Dockerfile. ..TODO update
+If you have not installed these packages yet, please refer to the commands in the **Dockerfile of the HSRB_ROS2_Docker_Image repository** (`Link <https://github.com/v4r-tuwien/HSRB-ROS2-Docker-Image/blob/main/docker/Dockerfile>`_) on how to install ROS2, the toyota HSR packages and moveit. If possible, use the versions specified in the Dockerfile.
 
 .. warning::
    You will need access to the private v4r github repositories, because some of the repositories include confidential data from toyota. This means that you have to setup your github ssh-key (`Link for instructions <https://docs.github.com/en/authentication/connecting-to-github-with-ssh>`_)
 
+=========================
+Install HSRB dependencies
+=========================
+
+Before creating the grasping pipeline the HSRB dependencies need to be installed.
+
+See the Dockerfile of the HSRB_ROS2_Docker_Image repository for how to install the moveit commander and the hsrb dependencies.
+
 ===========================
 Creating a colcon workspace
 ===========================
+
 We recommend to create a new colcon workspace for the grasping pipeline. You can do so with the following commands:
 
 .. code-block:: console
 
-    $ mkdir -p ~/catkin_ws/src
-    $ cd ~/catkin_ws
-    $ catkin build
+    $ mkdir -p ~/colcon_ws/src
+    $ cd ~/colcon_ws
+    $ colcon build
 
 ==========================================
 Cloning all grasping pipeline repositories
 ==========================================
 
 After installing the ROS dependencies and setting up the ssh key, you can finally clone all necessary grasping pipeline repositories into your catkin workspace:
+
+.. TODO this script needs to be checked and tested
 
 .. code-block:: console
 
@@ -116,7 +156,10 @@ After installing the ROS dependencies and setting up the ssh key, you can finall
 ==================================
 Installing the python dependencies
 ==================================
-The grasping pipeline is written in python3 and uses several python packages. The dependenciesare listed in the *requirements.txt* file.
+
+.. TODO this needs to be checked and tested
+
+The grasping pipeline is written in python3 and uses several python packages. The dependencies are listed in the *requirements.txt* file.
 
 .. note:: If you want to install the dependencies in a virtual environment, you have to modify the launch files found in *./grasping_pipeline/launch*:
 
@@ -151,6 +194,8 @@ To install the dependencies (either in the virtual environment or system-wide):
     .. code-block:: console
 
         $ source ~/.bashrc
+
+
 
 ===============
 Helpful aliases
@@ -193,8 +238,8 @@ Finally, build the workspace:
 
 .. code-block:: console
 
-    $ cd ~/catkin_ws
-    $ catkin build
+    $ cd ~/colcon_ws
+    $ colcon build
 
 If you encounter an error while building because some packages are missing, please look at the error messages and try to install the missing packages using apt-get or pip and notify one of the roadies of this issue.
 
@@ -202,5 +247,5 @@ After building the workspace, you can source the setup.bash file:
 
 .. code-block:: console
 
-    $ cd ~/catkin_ws
-    $ source devel/setup.bash
+    $ cd ~/colcon_ws
+    $ source install/setup.bash

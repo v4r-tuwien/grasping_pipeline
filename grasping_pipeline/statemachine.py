@@ -57,12 +57,13 @@ def get_clear_table_sm(table_waypoint, object_detector_sm, pose_estimator_sm, ex
         remappings={'object_name':'grasp_object_name'}
     )
         
-    sm.add_state('PLACEMENT', placement_sm, transitions={'end_placement': 'RETREAT_AFTER_PLACEMENT', 'failed_to_place': 'GO_BACK_TO_TABLE'})
+    # sm.add_state('PLACEMENT', placement_sm, transitions={'end_placement': 'RETREAT_AFTER_PLACEMENT', 'failed_to_place': 'GO_BACK_TO_TABLE'})
         
-    sm.add_state('RETREAT_AFTER_PLACEMENT', GoBack(node,0.2), transitions={'succeeded': 'GO_TO_NEUTRAL_AFTER_PLACEMENT', 'aborted': 'GO_TO_NEUTRAL_AFTER_PLACEMENT'})
-    sm.add_state('GO_TO_NEUTRAL_AFTER_PLACEMENT', GoToNeutral(node), transitions={'succeeded': 'SETUP'})
+    # sm.add_state('RETREAT_AFTER_PLACEMENT', GoBack(node,0.2), transitions={'succeeded': 'GO_TO_NEUTRAL_AFTER_PLACEMENT', 'aborted': 'GO_TO_NEUTRAL_AFTER_PLACEMENT'})
+    # sm.add_state('GO_TO_NEUTRAL_AFTER_PLACEMENT', GoToNeutral(node), transitions={'succeeded': 'SETUP'})
 
-    sm.add_state('GO_BACK_TO_TABLE', table_waypoint, transitions={'succeeded': 'HANDOVER', 'aborted': 'GO_BACK_TO_TABLE'})
+    # sm.add_state('GO_BACK_TO_TABLE', table_waypoint, transitions={'succeeded': 'HANDOVER', 'aborted': 'GO_BACK_TO_TABLE'})
+    
     return sm
 
 def get_single_grasp_sm(table_waypoint, find_grasp_sm, execute_grasp_sm, placement_sm, node):

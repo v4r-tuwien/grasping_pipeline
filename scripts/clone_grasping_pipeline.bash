@@ -7,17 +7,13 @@
 
 ################################################################################
 
-git clone git@github.com:v4r-tuwien/hsrb_moveit.git
-git clone https://github.com/v4r-tuwien/grasping_pipeline.git
-git clone https://github.com/v4r-tuwien/haf_grasping.git
-git clone https://github.com/v4r-tuwien/v4r_util.git
-git clone https://github.com/v4r-tuwien/table_plane_extractor.git
-git clone https://github.com/v4r-tuwien/sasha_handover.git
-git clone https://github.com/v4r-tuwien/object_detector_msgs.git
-git clone https://github.com/v4r-tuwien/grasping_pipeline_msgs.git
-git clone https://gitlab.informatik.uni-bremen.de/robokudo/robokudo_msgs.git
-
-cd haf_grasping
-git checkout bremen_wrapper
-cd libsvm-3.12
-make
+mkdir -p ./workspace/ros2_ws/src
+cd ./workspace/ros2_ws/src
+git clone -b ros2_humble https://github.com/BitstreamRider/grasping_pipeline.git
+git clone -b ros2_humble https://github.com/BitstreamRider/v4r_util.git
+git clone -b ros2_humble https://github.com/BitstreamRider/table_plane_extractor.git
+git clone -b ros2_humble https://github.com/BitstreamRider/sasha_handover.git
+git clone -b ros2_humble https://github.com/BitstreamRider/object_detector_msgs.git
+git clone -b ros2_humble https://github.com/BitstreamRider/grasping_pipeline_msgs.git
+git clone -b ros2_humble_bremen_wrapper https://github.com/BitstreamRider/haf_grasping.git
+git clone -b ros2_jazzy https://gitlab.informatik.uni-bremen.de/robokudo/robokudo_msgs.git

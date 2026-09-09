@@ -7,30 +7,27 @@ This page will tell you how to start the grasping pipeline. It will also explain
     Make sure to set your `ROS_DOMAIN_ID` to 1 to communicate with the robot and add check that your ip-address is added to the cyclone_dds configuration.
 
 .. note:: 
-   Some of the upcoming commands need to be run locally, while others need to be run on the robot (via ssh). You can check the location of your terminal by looking at the command prompt. 
-   - If the command prompt starts with ``user@host`` (with host being most likely `robbie` or `raufbold`) you are running the command locally **outside** the container.
-   
-   .. TODO - If the command prompt starts with ``<hsrb>`` you are running the command locally **inside** the container.
-   
-   - If the command prompt starts with ``v4r@hsrb`` you are running the command on the robot (via ssh).
-   
-   .. TODO it needs to run on sasha but also in a container
+   Some of the upcoming commands need to be run locally, while others need to be run on the robot (via ssh). You can check the location of your terminal by looking at the command prompt.
 
+   - If the command prompt starts with ``user@host`` (with host being most likely `robbie` or `raufbold`) you are running the command locally **outside** the container.
+   - If the command prompt starts with ``v4r@hsrb`` you are running the command on the robot (via ssh).
+   - If the command prompt starts with ``dev@hsr2`` you are running the command **inside** the container.
+   
 
 ********************
 Turning on the robot
 ********************
-Before starting the grasping pipeline, you should turn on the robot.
+Before starting the grasping pipeline, you should turn on the robot and switch the environment to ros2.
 
 .. note:: 
    When you start the grasping pipeline, a window will open displaying the commands listed in this section. You don't need to run these commands manually beforehand. However, they are explained here because they are necessary if a user wishes to use the HSR without the grasping pipeline. For more details, see `our repository <https://github.com/v4r-tuwien/hsr_startup>`_. 
 
-.. note::
-    After starting the robot, make sure to switch the robot to ros2.
 
 
 After the robot is turned on and switched to ros2, you have to manually start the startup procedure of the robot which aligns the robot with the pre-recorded map of the environment. 
 This is necessary so that the waypoints work as expected. 
+
+.. error:: startup script is not ready yet
 
 To start the startup procedure, you first have to ssh into the robot. Ask other team members for the password.:
 
@@ -67,9 +64,11 @@ If you set up the grasping pipeline according to the installation instructions, 
 
    .. code-block:: console
 
-       user@host         $ hsr2
-       root@CONTAINER_ID $ gp2
+       user@host $ hsr2
+       dev@hsr2  $ gp
     
+.. warning::The gp alias is not yet set
+
 This should open up a tmux session.
 
 .. note:: 

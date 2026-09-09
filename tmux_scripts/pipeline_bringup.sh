@@ -17,24 +17,18 @@ tmux split-window -h
 tmux split-window -h
 
 tmux select-pane -t 0
-tmux send-keys "source /root/ros2_ws/install/setup.bash" C-m
-tmux send-keys "source /root/hsr_ros2_ws/install/setup.bash" C-m
 tmux send-keys "ros2 launch grasping_pipeline grasping_pipeline_statemachine.launch.py"
 
 tmux select-pane -t 1
-tmux send-keys "source /root/ros2_ws/install/setup.bash" C-m
-tmux send-keys "source /root/hsr_ros2_ws/install/setup.bash" C-m
 tmux send-keys "ros2 launch grasping_pipeline grasping_pipeline_server.launch.py"
 
 tmux select-pane -t 2
-tmux send-keys "source /root/ros2_ws/install/setup.bash" C-m
-tmux send-keys "source /root/hsr_ros2_ws/install/setup.bash" C-m
 tmux send-keys "ros2 run grasping_pipeline userinput_publisher"
 
 tmux select-window -t $SESSION:1
-tmux send-keys "ssh v4r@hsrb.local" C-m
+## TODO fix this ip/name lookup
+tmux send-keys "ssh v4r@10.0.0.143" C-m
 tmux send-keys "docker exec -it docker.humble.robot.service /ros_entrypoint.sh /bin/bash" C-m
-tmux send-keys "source /root/ros2_ws/install/setup.bash" C-m
 tmux send-keys "ros2 launch hsrb_moveit_config hsrb_demo.launch.py"
 
 tmux rename-window 'grasping'

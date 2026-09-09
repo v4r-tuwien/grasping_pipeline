@@ -7,7 +7,7 @@ When switching ros environment, it is not enough to just start a different docke
 
 In the home directory of sasha (user v4r) is a folder called `scripts` containing the scripts to switch between the ros version.
 
-.. note:: The switching scripts (both ways) require sudo privileges and might ask you to enter the password.
+.. warning:: The switching scripts (both ways) require sudo privileges and might ask you to enter the password.
 
 **************
 Switch to ROS2
@@ -36,6 +36,8 @@ Troubleshooting
 If either ros1 or ros2 environment cannot start, the most likely reason it that the arduino was not programmed correctly. The easiest way to fix this, is to just run the switching script again, as this programs the arduino.
 
 If you want to manually program the arduino, the following commands can be used:
+
+.. warning:: If any other process access the arduino as well, the flashing command will fail.
 
 for **ros1**:
 
